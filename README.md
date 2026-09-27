@@ -1,5 +1,7 @@
 # design-systems
 
+Collection of some design systems.
+
 To install dependencies:
 
 ```bash
