@@ -1,0 +1,1974 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MODULE/035 — Geometric Retro-Futurism Design System</title>
+<meta name="description" content="A front-end design system distilled from geometric retro-futurist poster art: expanded grotesques, hairline info strips, wireframe globes, sparkles and holographic foil.">
+<meta name="color-scheme" content="light dark">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<script>
+  (function () {
+    var root = document.documentElement, theme = null;
+    try { theme = localStorage.getItem("module-theme"); } catch (e) {}
+    if (theme !== "light" && theme !== "dark") {
+      theme = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    }
+    root.dataset.theme = theme;
+    root.classList.add("js");
+  })();
+</script>
+<style>
+/* ==========================================================================
+   MODULE/035 — Geometric Retro-Futurism Design System
+   00 Primitives · 01 Semantics · 02 Base · 03 Type · 04 Layout
+   05 Hero · 06 Foundations · 07 Glyphs · 08 Components · 09 Motion
+   10 Composition · 11 Utilities
+   ========================================================================== */
+
+/* 00 · Primitive tokens ---------------------------------------------------- */
+:root {
+  --paper-050: #F3F1EC;
+  --paper-100: #E8E5DE;
+  --paper-200: #D9D4CA;
+  --sand-300: #D2C5B2;
+  --ink-500: #6B6862;
+  --ink-800: #1B1B1B;
+  --ink-900: #121212;
+  --void-950: #0A0A0A;
+  --frost-050: #ECEFF0;
+  --signal-500: #FF5A1F;
+  --phosphor-300: #A6F4E5;
+  --holo: linear-gradient(115deg, #8FF0D6 0%, #F5B7C9 26%, #C8B6FF 50%, #9FE6FF 72%, #FFE39B 100%);
+
+  --font-sans: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --wdth-condensed: 62%;
+  --wdth-normal: 100%;
+  --wdth-wide: 112%;
+  --wdth-expanded: 125%;
+
+  --text-micro: 10px;
+  --text-caption: 11px;
+  --text-sm: 13px;
+  --text-body: 15px;
+  --text-lead: clamp(17px, 1.35vw, 20px);
+  --text-h4: clamp(20px, 1.9vw, 24px);
+  --text-h3: clamp(28px, 3.2vw, 40px);
+  --text-h2: clamp(40px, 6.4vw, 84px);
+  --text-h1: clamp(52px, 9vw, 128px);
+  --text-mega: clamp(48px, 15.2vw, 224px);
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+  --space-9: 96px;
+  --space-10: 128px;
+
+  --hairline: 1px;
+  --rule: 1.5px;
+  --stroke: 2px;
+  --radius-0: 0;
+  --radius-pill: 999px;
+  --radius-ellipse: 50%;
+
+  --ease-out: cubic-bezier(0.2, 0, 0, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-tap: 120ms;
+  --dur-hover: 200ms;
+  --dur-enter: 320ms;
+  --dur-reveal: 640ms;
+  --dur-orbit: 24s;
+
+  --container: 1320px;
+  --gutter: clamp(16px, 4vw, 48px);
+  --header-h: 64px;
+}
+
+/* 01 · Semantic tokens (any element can carry data-theme) ------------------ */
+[data-theme="light"] {
+  --bg: var(--paper-100);
+  --surface: var(--paper-050);
+  --surface-sunk: var(--paper-200);
+  --fg: var(--ink-900);
+  --highlight: var(--signal-500);
+  --focus: var(--ink-900);
+  --grain: 0.08;
+  color-scheme: light;
+}
+[data-theme="dark"] {
+  --bg: var(--ink-900);
+  --surface: var(--ink-800);
+  --surface-sunk: var(--void-950);
+  --fg: var(--frost-050);
+  --highlight: var(--phosphor-300);
+  --focus: var(--phosphor-300);
+  --grain: 0.06;
+  color-scheme: dark;
+}
+[data-stock="sand"] {
+  --bg: var(--sand-300);
+  --surface: #DDD2C1;
+  --surface-sunk: #C4B6A1;
+}
+[data-theme] {
+  --fg-muted: color-mix(in oklab, var(--fg) 64%, var(--bg));
+  --fg-faint: color-mix(in oklab, var(--fg) 38%, var(--bg));
+  --line: var(--fg);
+  --line-soft: color-mix(in oklab, var(--fg) 18%, var(--bg));
+  --wash: color-mix(in oklab, var(--fg) 6%, var(--bg));
+  --inverse-bg: var(--fg);
+  --inverse-fg: var(--bg);
+  --accent: var(--signal-500);
+  --on-accent: var(--ink-900);
+  color: var(--fg);
+}
+
+/* 02 · Base ---------------------------------------------------------------- */
+*, *::before, *::after { box-sizing: border-box; }
+html {
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
+  scroll-padding-top: calc(var(--header-h) + 24px);
+}
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--fg);
+  font: 400 var(--text-body)/1.55 var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  overflow-x: clip;
+}
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  pointer-events: none;
+  opacity: var(--grain);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+svg { display: block; overflow: visible; }
+h1, h2, h3, h4, p, figure { margin: 0; }
+h1, h2, h3, h4 { font-weight: inherit; text-wrap: balance; }
+p { text-wrap: pretty; }
+a { color: inherit; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { -webkit-tap-highlight-color: transparent; }
+::selection { background: var(--accent); color: var(--on-accent); }
+:focus-visible { outline: var(--stroke) solid var(--focus); outline-offset: 3px; }
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+.skip-link {
+  position: fixed; top: 8px; left: 8px; z-index: 1000;
+  padding: 10px 14px; background: var(--inverse-bg); color: var(--inverse-fg);
+  font: 500 var(--text-caption)/1 var(--font-mono); text-transform: uppercase;
+  translate: 0 -150%; transition: translate var(--dur-hover) var(--ease-out);
+}
+.skip-link:focus { translate: 0 0; }
+
+/* 03 · Type utilities ------------------------------------------------------ */
+.t-display {
+  font-weight: 900;
+  font-stretch: var(--wdth-expanded);
+  line-height: 0.84;
+  letter-spacing: -0.03em;
+  text-transform: uppercase;
+}
+.t-condensed {
+  font-weight: 700;
+  font-stretch: var(--wdth-condensed);
+  line-height: 0.9;
+  text-transform: uppercase;
+}
+.t-wide {
+  font-weight: 800;
+  font-stretch: var(--wdth-expanded);
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+}
+.t-mono {
+  font-family: var(--font-mono);
+  font-size: var(--text-caption);
+  font-weight: 500;
+  line-height: 1.35;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.t-tracked {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  font-stretch: var(--wdth-wide);
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+}
+.t-lead { font-size: var(--text-lead); line-height: 1.45; max-width: 52ch; }
+.t-muted { color: var(--fg-muted); }
+.t-echo { color: transparent; -webkit-text-stroke: 1.2px var(--fg); }
+.num { font-variant-numeric: tabular-nums; }
+.is-code,
+.space-row > span:first-child,
+.line-row > span:first-child,
+.scale-row > span:first-child { text-transform: none; letter-spacing: 0.02em; }
+
+/* 04 · Layout -------------------------------------------------------------- */
+.container { width: min(100% - 2 * var(--gutter), var(--container)); margin-inline: auto; }
+
+.site-header {
+  position: sticky; top: 0; z-index: 50;
+  background: color-mix(in oklab, var(--bg) 84%, transparent);
+  -webkit-backdrop-filter: blur(12px) saturate(1.2);
+  backdrop-filter: blur(12px) saturate(1.2);
+  border-bottom: var(--hairline) solid var(--line-soft);
+}
+.site-header .container { display: flex; align-items: center; gap: var(--space-5); height: var(--header-h); }
+.brand {
+  display: inline-flex; align-items: center; gap: 10px; min-height: 40px;
+  text-decoration: none; font-weight: 900; font-stretch: var(--wdth-expanded);
+  font-size: 15px; letter-spacing: 0.01em;
+}
+.brand-mark { width: 30px; height: 30px; transition: rotate var(--dur-reveal) var(--ease-out); }
+.brand:hover .brand-mark { rotate: 180deg; }
+.brand sup { font: 500 9px/1 var(--font-mono); margin-left: 2px; color: var(--fg-muted); }
+.nav { display: flex; gap: 2px; margin-inline-start: auto; }
+.nav a {
+  position: relative; display: inline-flex; align-items: center; gap: 6px;
+  min-height: 40px; padding: 0 10px; text-decoration: none; color: var(--fg-muted);
+  transition: color var(--dur-hover) var(--ease-out);
+}
+.nav a b { font-weight: 500; color: var(--fg-faint); }
+.nav a::after {
+  content: ""; position: absolute; left: 10px; right: 10px; bottom: 9px; height: 1px;
+  background: currentColor; scale: 0 1; transform-origin: right;
+  transition: scale var(--dur-enter) var(--ease-out);
+}
+.nav a:hover { color: var(--fg); }
+.nav a:hover::after { scale: 1 1; transform-origin: left; }
+.clock { color: var(--fg-muted); white-space: nowrap; }
+.clock b { color: var(--fg); font-weight: 500; }
+@media (max-width: 1080px) { .nav { display: none; } .clock { margin-inline-start: auto; } }
+@media (max-width: 520px) { .clock, .ts-label { display: none; } .theme-switch { margin-inline-start: auto; } }
+
+/* Theme switch */
+.theme-switch {
+  display: inline-flex; align-items: center; gap: 10px; min-height: 40px;
+  padding: 0; border: 0; background: none; cursor: pointer;
+}
+.ts-label { color: var(--fg-faint); transition: color var(--dur-hover) var(--ease-out); }
+.theme-switch[aria-checked="false"] .ts-label--paper,
+.theme-switch[aria-checked="true"] .ts-label--void { color: var(--fg); }
+.ts-track {
+  position: relative; width: 56px; height: 28px; flex: none;
+  border: var(--rule) solid var(--fg); border-radius: var(--radius-pill);
+  transition: scale var(--dur-tap) var(--ease-out);
+}
+.theme-switch:active .ts-track { scale: 0.96; }
+.ts-knob {
+  position: absolute; top: 3px; left: 3px; width: 19px; height: 19px;
+  display: grid; place-items: center; border-radius: 50%;
+  background: var(--fg); color: var(--bg);
+  transition: translate var(--dur-enter) var(--ease-out), rotate var(--dur-reveal) var(--ease-out);
+}
+.theme-switch:hover .ts-knob { rotate: 90deg; }
+.theme-switch[aria-checked="true"] .ts-knob { translate: 28px 0; }
+.ts-icon {
+  position: absolute; width: 11px; height: 11px;
+  transition-property: opacity, scale, filter;
+  transition-duration: 300ms;
+  transition-timing-function: cubic-bezier(0.2, 0, 0, 1);
+}
+.ts-icon--void,
+.theme-switch[aria-checked="true"] .ts-icon--paper { opacity: 0; scale: 0.25; filter: blur(4px); }
+.theme-switch[aria-checked="true"] .ts-icon--void { opacity: 1; scale: 1; filter: blur(0); }
+::view-transition-old(root),
+::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
+
+/* Sections */
+.section { padding-block: var(--space-9) var(--space-8); border-top: var(--hairline) solid var(--line); }
+.sec-head {
+  display: grid; grid-template-columns: auto auto 1fr auto; align-items: center;
+  gap: var(--space-4); margin-bottom: var(--space-5);
+}
+.sec-num {
+  display: grid; place-items: center; min-width: 44px; height: 30px; padding: 0 8px;
+  border: var(--hairline) solid var(--line);
+}
+.sec-title { font-size: var(--text-h2); }
+.sec-rule { height: 1px; background: var(--line); align-self: center; }
+.sec-code { color: var(--fg-muted); text-align: right; }
+.sec-lede { margin-bottom: var(--space-7); color: var(--fg-muted); }
+.sub-head {
+  display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-4);
+  padding-bottom: var(--space-3); margin: var(--space-8) 0 var(--space-5);
+  border-bottom: var(--hairline) solid var(--line);
+}
+.sub-head h3 { font-size: var(--text-h4); }
+@media (max-width: 720px) {
+  .sec-head { grid-template-columns: auto minmax(0, 1fr); }
+  .sec-title { font-size: min(var(--text-h2), 8vw); }
+  .sec-rule, .sec-code { display: none; }
+}
+
+/* Info strip — the ruled multi-cell band that anchors every composition */
+.strip {
+  --strip-bg: var(--bg);
+  display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr);
+  gap: var(--hairline); background: var(--line); border: var(--hairline) solid var(--line);
+}
+.strip > * {
+  display: flex; align-items: center; gap: var(--space-3);
+  min-height: 64px; min-width: 0; padding: var(--space-3) var(--space-4);
+  background: var(--strip-bg);
+}
+.strip p { font-size: 12px; line-height: 1.4; }
+.strip svg { flex: none; }
+
+/* 05 · Hero ---------------------------------------------------------------- */
+.hero { padding-block: var(--space-6) var(--space-9); }
+.hero-meta { display: flex; align-items: center; gap: var(--space-4); color: var(--fg-muted); }
+.meta-rule { flex: 1; height: 1px; background: var(--line); }
+.hero-title {
+  display: flex; align-items: flex-start;
+  margin: var(--space-6) 0 var(--space-5);
+  font-size: var(--text-mega); line-height: 0.78; white-space: nowrap;
+}
+.hero-title .char { display: inline-block; animation: rise 900ms var(--ease-out) both; animation-delay: calc(120ms + var(--i) * 70ms); }
+.hero-reg {
+  width: 0.2em; height: 0.2em; margin: 0.01em 0 0 0.05em; color: var(--highlight);
+  animation: spark-in 1400ms var(--ease-out) 640ms both;
+}
+@keyframes rise { from { opacity: 0; translate: 0 0.3em; filter: blur(6px); } }
+@keyframes spark-in { from { opacity: 0; scale: 0.25; rotate: -180deg; filter: blur(4px); } }
+
+.ticker {
+  display: grid; grid-template-columns: minmax(112px, 22%) minmax(0, 1fr) auto auto; grid-template-rows: 64px;
+  overflow: hidden; background: var(--inverse-bg); color: var(--inverse-fg);
+  animation: rise 800ms var(--ease-out) 520ms both;
+}
+.ticker-badge { display: grid; place-items: center; padding: 0 14px; overflow: hidden; background: var(--accent); color: var(--ink-900); }
+.ticker-badge svg { width: 100%; height: 40px; }
+.ticker-window {
+  display: flex; align-items: center; overflow: hidden;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 5%, #000 95%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 5%, #000 95%, transparent);
+}
+.ticker-track { display: flex; width: max-content; animation: marquee 36s linear infinite; }
+.ticker:hover .ticker-track { animation-play-state: paused; }
+.ticker-group {
+  display: inline-flex; align-items: center; gap: 0.5em; padding-right: 0.5em;
+  font-size: clamp(20px, 2.6vw, 34px); font-weight: 500; letter-spacing: -0.01em;
+  text-transform: uppercase; white-space: nowrap;
+}
+.ticker-group svg { width: 0.55em; height: 0.55em; }
+@keyframes marquee { to { translate: -50% 0; } }
+.ticker-tag {
+  display: flex; flex-direction: column; justify-content: center; padding: 0 16px;
+  border-left: var(--hairline) solid color-mix(in oklab, var(--inverse-fg) 28%, transparent);
+  font-size: var(--text-micro);
+}
+.ticker-orbit { width: 44px; height: 44px; margin: 0 16px; align-self: center; rotate: -24deg; }
+
+.hero-grid {
+  display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  gap: var(--space-7); margin-top: var(--space-6);
+}
+.hero-copy { display: flex; flex-direction: column; gap: var(--space-6); padding-top: var(--space-4); }
+.hero-copy .t-lead { font-size: clamp(18px, 1.6vw, 22px); }
+.hero-actions { display: flex; flex-wrap: wrap; gap: var(--space-3); }
+.stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--hairline); margin: 0; background: var(--line); border: var(--hairline) solid var(--line); }
+.stat { padding: 14px 16px 16px; background: var(--bg); }
+.stat dt { color: var(--fg-muted); }
+.stat dd { margin: 10px 0 0; font-size: clamp(36px, 3.6vw, 52px); }
+.code-row { display: flex; align-items: center; gap: var(--space-4); margin-top: auto; }
+.code-row .glyph-down { width: 28px; height: 28px; }
+.barcode { width: 100%; height: 44px; flex: 1; min-width: 0; color: var(--fg); }
+.hero-art { position: relative; aspect-ratio: 1; border: var(--hairline) solid var(--line); background: var(--surface); overflow: hidden; }
+.hero-art > svg { width: 100%; height: 100%; }
+.strip--hero { grid-auto-flow: row; grid-template-columns: minmax(0, 2.4fr) auto auto minmax(0, 1.2fr); margin-top: var(--space-6); }
+.strip--hero .icon { width: 30px; height: 30px; }
+.art-word { font-size: 26px; font-weight: 900; font-stretch: var(--wdth-expanded); }
+.art-years { font: 500 var(--text-caption)/1.25 var(--font-mono); }
+@media (max-width: 960px) {
+  .hero-grid { grid-template-columns: 1fr; }
+  .strip--hero { grid-template-columns: 1fr 1fr; }
+  .ticker { grid-template-columns: 96px minmax(0, 1fr); }
+  .ticker-tag, .ticker-orbit { display: none; }
+}
+
+/* SVG art primitives */
+.art-solid { fill: currentColor; }
+.art-occlude { fill: var(--occlude, var(--surface)); stroke: currentColor; stroke-width: 1.2; vector-effect: non-scaling-stroke; }
+.art-line { fill: none; stroke: currentColor; stroke-width: 1.2; vector-effect: non-scaling-stroke; }
+.art-label { font: 500 11px var(--font-mono); letter-spacing: 0.06em; fill: var(--fg-muted); }
+.globe ellipse, .globe circle { fill: none; stroke: currentColor; stroke-width: var(--globe-w, 1.2); vector-effect: non-scaling-stroke; }
+.globe .globe-fill { fill: var(--globe-bg, transparent); stroke: none; }
+.twinkle { transform-box: fill-box; transform-origin: center; animation: twinkle 5.2s var(--ease-in-out) infinite; animation-delay: var(--d, 0s); }
+.drift { animation: drift 9s var(--ease-in-out) infinite alternate; animation-delay: var(--d, 0s); }
+@keyframes twinkle { 50% { scale: 0.72; rotate: 45deg; } }
+.tunnel { fill: none; stroke: currentColor; }
+.tunnel line, .tunnel rect { stroke-width: 1; vector-effect: non-scaling-stroke; }
+.tunnel .tunnel-core { fill: currentColor; }
+.tunnel .tunnel-frame {
+  opacity: 0; transform-box: view-box; transform-origin: 50% 50%;
+  animation: tunnel 4s var(--ease-in) infinite; animation-delay: calc(var(--i) * -0.8s);
+}
+@keyframes tunnel { from { transform: scale(1); opacity: 0; } 12% { opacity: 1; } to { transform: scale(3.846); opacity: 1; } }
+@keyframes drift { to { translate: 0 -10px; } }
+
+/* 06 · Foundations --------------------------------------------------------- */
+.swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: var(--space-4); }
+.swatch {
+  position: relative; display: flex; flex-direction: column; width: 100%; height: 100%; padding: 0; text-align: left;
+  border: var(--hairline) solid var(--line); background: var(--surface); cursor: copy;
+  transition-property: translate, box-shadow;
+  transition-duration: var(--dur-hover);
+  transition-timing-function: var(--ease-out);
+}
+.swatch:hover { translate: -4px -4px; box-shadow: 4px 4px 0 var(--fg); }
+.swatch:active { translate: 0 0; box-shadow: 0 0 0 var(--fg); transition-duration: var(--dur-tap); }
+.swatch-chip { position: relative; aspect-ratio: 16 / 10; background: var(--c); border-bottom: var(--hairline) solid var(--line); overflow: hidden; }
+.swatch-chip > .t-mono:not(.swatch-copy) { position: absolute; left: 12px; top: 10px; color: var(--chip-ink, var(--ink-900)); }
+.swatch-copy {
+  position: absolute; right: 12px; top: 10px; color: var(--chip-ink, var(--ink-900));
+  opacity: 0; translate: 0 -4px;
+  transition: opacity var(--dur-hover) var(--ease-out), translate var(--dur-hover) var(--ease-out);
+}
+.swatch:hover .swatch-copy, .swatch:focus-visible .swatch-copy { opacity: 1; translate: 0 0; }
+.swatch-meta { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; padding: 12px 14px 14px; }
+.swatch-name { font-weight: 800; font-stretch: var(--wdth-wide); font-size: 14px; text-transform: uppercase; }
+.swatch-var { grid-column: 1 / -1; color: var(--fg-muted); }
+.chip-holo { background: var(--holo); background-size: 200% 200%; animation: holo-drift 12s var(--ease-in-out) infinite alternate; }
+@keyframes holo-drift { from { background-position: 0% 30%; } to { background-position: 100% 70%; } }
+
+.ratio { display: flex; height: 56px; margin-top: var(--space-6); border: var(--hairline) solid var(--line); }
+.ratio > span { display: flex; align-items: flex-end; padding: 8px 10px; min-width: 0; overflow: hidden; white-space: nowrap; }
+.ratio > span + span { border-left: var(--hairline) solid var(--line); }
+
+.tokens { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: var(--hairline); background: var(--line); border: var(--hairline) solid var(--line); }
+.token { display: grid; grid-template-columns: 28px 1fr; gap: 2px 12px; align-items: center; padding: 14px; background: var(--bg); }
+.token i { grid-row: span 2; width: 28px; height: 28px; border-radius: 50%; background: var(--v); box-shadow: 0 0 0 1px var(--line-soft); transition: background-color var(--dur-enter) var(--ease-out); }
+.token b { font: 500 var(--text-caption)/1.2 var(--font-mono); }
+.token span { font: 400 var(--text-micro)/1.2 var(--font-mono); color: var(--fg-muted); text-transform: uppercase; }
+
+.type-grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: var(--hairline); background: var(--line); border: var(--hairline) solid var(--line); }
+.type-cell { display: flex; flex-direction: column; gap: var(--space-5); min-width: 0; padding: var(--space-5); background: var(--bg); container-type: inline-size; }
+.type-cell > header { display: flex; justify-content: space-between; gap: var(--space-4); color: var(--fg-muted); }
+.span-12 { grid-column: span 12; } .span-8 { grid-column: span 8; } .span-7 { grid-column: span 7; }
+.span-6 { grid-column: span 6; } .span-5 { grid-column: span 5; } .span-4 { grid-column: span 4; }
+@media (max-width: 960px) { .type-grid > * { grid-column: span 12; } }
+.spec-display { display: flex; align-items: flex-start; gap: 0.08em; font-size: 13cqi; }
+.spec-display svg { width: 0.34em; height: 0.34em; margin-top: 0.1em; }
+.spec-condensed { align-self: flex-end; font-size: clamp(44px, 19cqi, 84px); text-align: right; }
+.spec-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: auto; }
+.echo-stack { font-size: 11cqi; line-height: 0.86; cursor: default; }
+.echo-stack span { display: block; transition: translate var(--dur-reveal) var(--ease-out); }
+.echo-stack span + span { color: transparent; -webkit-text-stroke: 1.2px var(--fg); }
+.echo-stack:hover span:nth-child(2) { translate: 0.08em 0; }
+.echo-stack:hover span:nth-child(3) { translate: 0.16em 0; }
+.coord-sample { display: flex; flex-wrap: wrap; gap: 10px 22px; font-size: 13px; }
+.coord-sample span::before { content: "·"; margin-right: 6px; color: var(--fg-faint); }
+.scale-row {
+  display: grid; grid-template-columns: 116px 76px minmax(0, 1fr); align-items: baseline; gap: var(--space-4);
+  padding: 14px 0; border-bottom: var(--hairline) solid var(--line-soft);
+}
+.scale-row:last-child { border-bottom: 0; }
+.scale-row .sample { overflow: hidden; white-space: nowrap; text-overflow: clip; }
+
+.form-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--hairline); background: var(--line); border: var(--hairline) solid var(--line); }
+.form-grid > * { padding: var(--space-5); background: var(--bg); min-width: 0; }
+.cell-head { display: flex; justify-content: space-between; gap: var(--space-4); margin-bottom: var(--space-4); color: var(--fg-muted); }
+@media (max-width: 960px) { .form-grid { grid-template-columns: 1fr; } }
+.space-row { display: grid; grid-template-columns: 76px 44px minmax(0, 1fr); align-items: center; gap: var(--space-3); padding: 6px 0; }
+.space-bar { height: 12px; width: var(--s); background: repeating-linear-gradient(-45deg, var(--fg) 0 1px, transparent 1px 4px); box-shadow: inset 0 0 0 1px var(--fg); transform-origin: left; transition: scale var(--dur-reveal) var(--ease-out); }
+.js .reveal:not(.is-in) .space-bar { scale: 0 1; }
+.line-row { display: grid; grid-template-columns: 76px minmax(0, 1fr) 44px; align-items: center; gap: var(--space-3); padding: 16px 0; }
+.line-row i { height: var(--w); background: var(--fg); }
+.shape-row { display: flex; flex-wrap: wrap; gap: var(--space-4); align-items: center; }
+.shape { display: grid; place-items: center; width: 84px; height: 56px; border: var(--rule) solid var(--fg); }
+.shape--pill { border-radius: var(--radius-pill); }
+.shape--ellipse { width: 120px; border-radius: var(--radius-ellipse); }
+.shape-caption { margin-top: var(--space-4); color: var(--fg-muted); font-size: var(--text-sm); }
+
+/* 07 · Glyphs -------------------------------------------------------------- */
+.glyphs { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: var(--hairline); background: var(--line); border: var(--hairline) solid var(--line); }
+.glyph { --occlude: var(--bg); position: relative; display: grid; place-items: center; aspect-ratio: 1; padding: 34px 24px; background: var(--bg); overflow: hidden; }
+.glyph > svg, .glyph > .pat { width: 58%; height: 58%; transition: rotate 900ms var(--ease-out), scale 900ms var(--ease-out); }
+.glyph[data-hover="spin"]:hover > svg { rotate: 90deg; }
+.glyph[data-hover="grow"]:hover > * { scale: 1.12; }
+.glyph-code, .glyph-name { position: absolute; left: 12px; font-size: var(--text-micro); }
+.glyph-code { top: 10px; color: var(--fg-muted); }
+.glyph-name { bottom: 10px; }
+.pat { display: block; }
+.pat-hatch { background: repeating-linear-gradient(-45deg, currentColor 0 1.5px, transparent 1.5px 7px); }
+.pat-dots { background: radial-gradient(currentColor 1.4px, transparent 1.8px) 0 0 / 12px 12px; }
+.pat-plus {
+  background: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20'%3E%3Cpath d='M10 5.5v9M5.5 10h9' stroke='%23000' stroke-width='1.6'/%3E%3C/svg%3E") 0 0 / 20px 20px;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20'%3E%3Cpath d='M10 5.5v9M5.5 10h9' stroke='%23000' stroke-width='1.6'/%3E%3C/svg%3E") 0 0 / 20px 20px;
+  -webkit-mask-repeat: space;
+  mask-repeat: space;
+}
+.dot-row { display: flex; gap: 6px; }
+.dot-row i { width: 12px; height: 12px; flex: none; border-radius: 50%; border: var(--hairline) solid currentColor; transition: background-color var(--dur-enter) var(--ease-out); }
+.dot-row i.on { background: currentColor; }
+.glyph .dot-row { width: auto; height: auto; }
+
+/* 08 · Components ---------------------------------------------------------- */
+.demo-grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: var(--hairline); background: var(--line); border: var(--hairline) solid var(--line); }
+.demo { display: flex; flex-direction: column; gap: var(--space-5); min-width: 0; padding: var(--space-5); background: var(--bg); }
+.demo > header { display: flex; justify-content: space-between; gap: var(--space-4); color: var(--fg-muted); }
+.demo-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); }
+@media (max-width: 960px) { .demo-grid > * { grid-column: span 12; } }
+
+/* Button */
+.btn {
+  --btn-fg: var(--fg); --btn-bg: transparent; --btn-border: var(--fg);
+  --btn-wipe: var(--fg); --btn-wipe-fg: var(--bg);
+  position: relative; isolation: isolate; overflow: hidden;
+  display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+  min-height: 44px; padding: 0 20px;
+  border: var(--hairline) solid var(--btn-border); border-radius: 0;
+  background: var(--btn-bg); color: var(--btn-fg);
+  font-size: 12px; font-weight: 700; font-stretch: var(--wdth-wide); line-height: 1;
+  letter-spacing: 0.1em; text-transform: uppercase; text-decoration: none; white-space: nowrap;
+  cursor: pointer;
+  transition-property: color, border-color, background-position, scale;
+  transition-duration: var(--dur-hover);
+  transition-timing-function: var(--ease-out);
+}
+.btn::before {
+  content: ""; position: absolute; inset: 0; z-index: -1;
+  background: var(--btn-wipe); scale: 0 1; transform-origin: right;
+  transition: scale var(--dur-enter) var(--ease-out);
+}
+.btn:hover:not(:disabled) { color: var(--btn-wipe-fg); }
+.btn:hover:not(:disabled)::before { scale: 1 1; transform-origin: left; }
+.btn:active:not(:disabled) { scale: 0.96; transition-duration: var(--dur-tap); }
+.btn .i { width: 16px; height: 16px; flex: none; transition: translate var(--dur-hover) var(--ease-out), rotate var(--dur-reveal) var(--ease-out); }
+.btn:hover .i-arrow { translate: 3px 0; }
+.btn:hover .i-spark { rotate: 90deg; }
+.btn--primary { --btn-bg: var(--fg); --btn-fg: var(--bg); --btn-wipe: var(--accent); --btn-wipe-fg: var(--on-accent); }
+.btn--primary:hover:not(:disabled) { border-color: var(--accent); }
+.btn--signal { --btn-bg: var(--accent); --btn-fg: var(--on-accent); --btn-border: var(--accent); }
+.btn--signal:hover:not(:disabled) { border-color: var(--fg); }
+.btn--ghost { --btn-border: transparent; --btn-wipe: var(--wash); --btn-wipe-fg: var(--fg); }
+.btn--holo { --btn-bg: var(--holo); --btn-fg: var(--ink-900); --btn-border: var(--fg); background-size: 220% 100%; background-position: 0 0; }
+.btn--holo::before { display: none; }
+.btn--holo:hover:not(:disabled) { color: var(--ink-900); background-position: 100% 0; transition-duration: var(--dur-reveal); }
+.btn--pill { min-height: 58px; padding: 0 36px; border-width: var(--rule); border-radius: var(--radius-ellipse); font-size: 16px; font-weight: 900; font-stretch: var(--wdth-expanded); letter-spacing: 0.02em; }
+.btn--sm { min-height: 40px; padding: 0 14px; font-size: 11px; }
+.btn--lg { min-height: 56px; padding: 0 28px; font-size: 13px; }
+.btn:disabled { opacity: 0.38; cursor: not-allowed; }
+
+.icon-btn {
+  position: relative; display: inline-grid; place-items: center; width: 44px; height: 44px; flex: none;
+  border: var(--hairline) solid var(--line); background: transparent; color: var(--fg); cursor: pointer;
+  transition-property: background-color, color, scale;
+  transition-duration: var(--dur-hover);
+  transition-timing-function: var(--ease-out);
+}
+.icon-btn:hover { background: var(--fg); color: var(--bg); }
+.icon-btn:active { scale: 0.96; transition-duration: var(--dur-tap); }
+.icon-btn svg { width: 18px; height: 18px; transition: rotate var(--dur-reveal) var(--ease-out); }
+.icon-btn:hover .spin { rotate: 90deg; }
+.icon-btn--round { border-radius: 50%; }
+
+/* Tooltip */
+[data-tip]::after {
+  content: attr(data-tip); position: absolute; left: 50%; bottom: calc(100% + 8px); z-index: 5;
+  padding: 6px 8px; background: var(--inverse-bg); color: var(--inverse-fg);
+  font: 500 var(--text-micro)/1 var(--font-mono); letter-spacing: 0.06em; text-transform: uppercase; white-space: nowrap;
+  opacity: 0; translate: -50% 4px; pointer-events: none;
+  transition: opacity var(--dur-hover) var(--ease-out), translate var(--dur-hover) var(--ease-out);
+}
+[data-tip]:hover::after, [data-tip]:focus-visible::after { opacity: 1; translate: -50% 0; }
+
+/* Fields */
+.field { display: grid; gap: 8px; min-width: 0; }
+.field-label { display: flex; justify-content: space-between; gap: var(--space-3); color: var(--fg-muted); }
+.control { position: relative; }
+.control::before, .control::after {
+  content: ""; position: absolute; width: 10px; height: 10px; pointer-events: none; opacity: 0;
+  transition: opacity var(--dur-hover) var(--ease-out), translate var(--dur-enter) var(--ease-out);
+}
+.control::before { top: -5px; left: -5px; border-top: var(--rule) solid var(--accent); border-left: var(--rule) solid var(--accent); translate: 5px 5px; }
+.control::after { bottom: -5px; right: -5px; border-bottom: var(--rule) solid var(--accent); border-right: var(--rule) solid var(--accent); translate: -5px -5px; }
+.control:focus-within::before, .control:focus-within::after { opacity: 1; translate: 0 0; }
+.input {
+  display: block; width: 100%; min-height: 48px; padding: 0 14px;
+  border: var(--hairline) solid var(--line); border-radius: 0; background: var(--surface);
+  color: var(--fg); font-size: 15px; -webkit-appearance: none; appearance: none;
+  transition: box-shadow var(--dur-hover) var(--ease-out), border-color var(--dur-hover) var(--ease-out);
+}
+.input::placeholder { color: var(--fg-faint); }
+.input:focus { outline: none; box-shadow: inset 0 0 0 1px var(--fg); }
+textarea.input { min-height: 104px; padding: 12px 14px; line-height: 1.5; resize: vertical; }
+select.input { padding-right: 44px; cursor: pointer; }
+.control .chev { position: absolute; right: 16px; top: 50%; width: 14px; height: 14px; translate: 0 -50%; rotate: 90deg; pointer-events: none; }
+.field-hint { font-size: 12px; color: var(--fg-muted); }
+.field--error .input { border-color: var(--accent); }
+.field--error .field-hint { display: flex; align-items: center; gap: 8px; color: var(--fg); }
+.field--error .field-hint::before {
+  content: "!"; display: grid; place-items: center; width: 16px; height: 16px; flex: none;
+  background: var(--accent); color: var(--on-accent); font: 700 11px/1 var(--font-mono);
+}
+
+/* Checkbox · Radio · Switch */
+.check, .radio, .switch { position: relative; display: inline-flex; align-items: center; gap: 12px; min-height: 40px; font-size: 14px; cursor: pointer; user-select: none; }
+.check input, .radio input, .switch input { position: absolute; width: 1px; height: 1px; opacity: 0; margin: 0; }
+.check-box { display: grid; place-items: center; width: 22px; height: 22px; flex: none; border: var(--rule) solid var(--fg); }
+.check-box svg { width: 18px; height: 18px; }
+.check-box path { stroke-dasharray: 22; stroke-dashoffset: 22; transition: stroke-dashoffset var(--dur-enter) var(--ease-out); }
+.check input:checked + .check-box path { stroke-dashoffset: 0; }
+.radio-dot { display: grid; place-items: center; width: 20px; height: 20px; flex: none; border: var(--rule) solid var(--fg); border-radius: 50%; }
+.radio-dot::after {
+  content: ""; width: 10px; height: 10px; border-radius: 50%; background: var(--fg);
+  opacity: 0; scale: 0.25; filter: blur(4px);
+  transition-property: opacity, scale, filter; transition-duration: 300ms; transition-timing-function: cubic-bezier(0.2, 0, 0, 1);
+}
+.radio input:checked + .radio-dot::after { opacity: 1; scale: 1; filter: blur(0); }
+.switch-track { position: relative; width: 48px; height: 26px; flex: none; border: var(--rule) solid var(--fg); border-radius: var(--radius-pill); transition: background-color var(--dur-enter) var(--ease-out); }
+.switch-track::after {
+  content: ""; position: absolute; top: 3px; left: 3px; width: 17px; height: 17px; border-radius: 50%;
+  background: var(--fg); transition: translate var(--dur-enter) var(--ease-out), background-color var(--dur-enter) var(--ease-out);
+}
+.switch input:checked + .switch-track { background: var(--fg); }
+.switch input:checked + .switch-track::after { translate: 22px 0; background: var(--bg); }
+.check input:focus-visible + span, .radio input:focus-visible + span, .switch input:focus-visible + span { outline: var(--stroke) solid var(--focus); outline-offset: 3px; }
+
+/* Range */
+.range-head { display: flex; justify-content: space-between; color: var(--fg-muted); }
+.range-head output { color: var(--fg); }
+.range { --p: 50%; width: 100%; height: 32px; margin: 0; background: transparent; -webkit-appearance: none; appearance: none; cursor: pointer; }
+.range::-webkit-slider-runnable-track { height: 2px; background: linear-gradient(90deg, var(--fg) var(--p), var(--line-soft) var(--p)); }
+.range::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 14px; height: 14px; margin-top: -6px;
+  border: var(--stroke) solid var(--fg); background: var(--bg); transform: rotate(45deg);
+  transition: transform var(--dur-hover) var(--ease-out), background-color var(--dur-hover) var(--ease-out);
+}
+.range:hover::-webkit-slider-thumb { transform: rotate(45deg) scale(1.2); }
+.range:active::-webkit-slider-thumb { background: var(--accent); }
+.range::-moz-range-track { height: 2px; background: var(--line-soft); }
+.range::-moz-range-progress { height: 2px; background: var(--fg); }
+.range::-moz-range-thumb { width: 12px; height: 12px; border: var(--stroke) solid var(--fg); border-radius: 0; background: var(--bg); transform: rotate(45deg); }
+.range:active::-moz-range-thumb { background: var(--accent); }
+.range-scale { display: flex; justify-content: space-between; color: var(--fg-faint); font-size: var(--text-micro); }
+
+/* Segmented tabs */
+.seg { position: relative; display: inline-flex; max-width: 100%; padding: 3px; border: var(--hairline) solid var(--line); overflow-x: auto; }
+.seg button {
+  position: relative; z-index: 1; min-height: 38px; padding: 0 16px; border: 0; background: none; cursor: pointer;
+  color: var(--fg-muted); transition: color var(--dur-hover) var(--ease-out); white-space: nowrap;
+}
+.seg button:hover { color: var(--fg); }
+.seg button[aria-selected="true"] { color: var(--bg); }
+.seg-ind { position: absolute; top: 3px; bottom: 3px; left: 0; width: var(--w, 0); translate: var(--x, 0) 0; background: var(--fg); transition: translate var(--dur-enter) var(--ease-out), width var(--dur-enter) var(--ease-out); }
+.tab-panel { padding-top: var(--space-4); font-size: 14px; color: var(--fg-muted); max-width: 48ch; }
+.tab-panel:not([hidden]) { animation: panel-in var(--dur-enter) var(--ease-out); }
+@keyframes panel-in { from { opacity: 0; translate: 0 6px; filter: blur(4px); } }
+
+/* Stepper */
+.stepper { display: flex; align-items: center; gap: var(--space-4); }
+.stepper .dot-row { flex: 1; justify-content: center; }
+.stepper-count { min-width: 64px; text-align: center; }
+@media (max-width: 520px) {
+  .stepper { flex-wrap: wrap; }
+  .stepper .dot-row { order: 1; flex-basis: 100%; }
+  .stepper-count { flex: 1; }
+}
+
+/* Tags · Status */
+.tag { display: inline-flex; align-items: center; gap: 6px; min-height: 24px; padding: 0 8px; border: var(--hairline) solid var(--line); font-size: var(--text-micro); white-space: nowrap; }
+.tag svg { width: 10px; height: 10px; }
+.tag--solid { background: var(--fg); color: var(--bg); }
+.tag--signal { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.tag--holo { background: var(--holo); border-color: var(--fg); color: var(--ink-900); }
+.tag--ellipse { min-height: 28px; padding: 0 14px; border-radius: var(--radius-ellipse); }
+.status { display: inline-flex; align-items: center; gap: 10px; }
+.status i { position: relative; width: 8px; height: 8px; border-radius: 50%; background: var(--c, var(--fg)); }
+.status i::after { content: ""; position: absolute; inset: 0; border-radius: 50%; border: var(--hairline) solid var(--c, var(--fg)); animation: ping 2.2s var(--ease-out) infinite; }
+.status--live { --c: var(--accent); }
+.status--idle i::after { display: none; }
+@keyframes ping { from { scale: 1; opacity: 0.9; } to { scale: 3.2; opacity: 0; } }
+
+/* Advisory label */
+.advisory { display: inline-grid; gap: 3px; min-width: 190px; padding: 3px; border: var(--stroke) solid var(--fg); text-align: center; line-height: 1; }
+.advisory span { padding: 4px 0 3px; font-size: 10px; text-transform: uppercase; font-weight: 700; font-stretch: var(--wdth-wide); letter-spacing: 0.36em; text-indent: 0.36em; }
+.advisory strong { padding: 6px 10px; background: var(--fg); color: var(--bg); font-size: 24px; font-weight: 900; font-stretch: var(--wdth-expanded); letter-spacing: 0.01em; }
+
+/* Notice */
+.notices { display: grid; gap: var(--space-3); }
+.notice {
+  display: grid; grid-template-columns: 64px minmax(0, 1fr) 44px;
+  border: var(--stroke) solid var(--fg); background: var(--bg);
+  transition: opacity 160ms var(--ease-in), translate 160ms var(--ease-in), filter 160ms var(--ease-in);
+}
+.notice.is-leaving { opacity: 0; translate: 0 -8px; filter: blur(3px); }
+.notice.is-entering { animation: panel-in var(--dur-enter) var(--ease-out) both; }
+.notice-glyph { display: grid; place-items: center; background: var(--fg); color: var(--bg); font-size: 30px; font-weight: 900; font-stretch: var(--wdth-expanded); }
+.notice-glyph svg { width: 26px; height: 26px; }
+.notice--signal .notice-glyph { background: var(--accent); color: var(--on-accent); }
+.notice-body { display: grid; gap: 6px; padding: 10px 14px 12px; }
+.notice-title { display: flex; justify-content: space-between; gap: 12px; padding-bottom: 6px; border-bottom: var(--hairline) solid var(--fg); font-size: 14px; font-weight: 800; font-stretch: var(--wdth-expanded); letter-spacing: 0.04em; text-transform: uppercase; }
+.notice-title .t-mono { font-weight: 500; letter-spacing: 0.06em; white-space: nowrap; }
+.notice p { font-size: 12px; line-height: 1.35; letter-spacing: 0.03em; text-transform: uppercase; }
+.notice-close { display: grid; place-items: center; border: 0; border-left: var(--hairline) solid var(--fg); background: none; cursor: pointer; transition: background-color var(--dur-hover) var(--ease-out); }
+.notice-close:hover { background: var(--wash); }
+.notice-close svg { width: 14px; height: 14px; transition: rotate var(--dur-enter) var(--ease-out); }
+.notice-close:hover svg { rotate: 90deg; }
+
+/* Card */
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: var(--space-5); }
+.card {
+  display: flex; flex-direction: column; border: var(--hairline) solid var(--line); background: var(--surface);
+  color: inherit; text-decoration: none;
+  transition-property: translate, box-shadow; transition-duration: var(--dur-hover); transition-timing-function: var(--ease-out);
+}
+.cards > * > .card { height: 100%; }
+.card:hover { translate: -4px -4px; box-shadow: 4px 4px 0 var(--fg); }
+.card:active { translate: 0 0; box-shadow: 0 0 0 var(--fg); transition-duration: var(--dur-tap); }
+.card-head { display: flex; justify-content: space-between; padding: 12px 14px; border-bottom: var(--hairline) solid var(--line); }
+.card-art { position: relative; display: grid; place-items: center; aspect-ratio: 4 / 3; overflow: hidden; border-bottom: var(--hairline) solid var(--line); background: var(--bg); }
+.card-art > svg { width: 48%; height: auto; transition: rotate 1s var(--ease-out), scale 1s var(--ease-out); }
+.card:hover .card-art .spin { rotate: 90deg; }
+.card:hover .card-art .grow { scale: 1.08; }
+.card-art--holo { background: var(--holo); background-size: 200% 200%; animation: holo-drift 12s var(--ease-in-out) infinite alternate; color: var(--ink-900); }
+.card-art--tunnel > svg { width: 100%; height: 100%; }
+.card-body { display: grid; gap: 8px; padding: 16px 14px 18px; }
+.card-title { font-size: 34px; }
+.card-body p { font-size: 14px; color: var(--fg-muted); }
+.card .strip { --strip-bg: var(--surface); margin-top: auto; border-width: var(--hairline) 0 0; }
+.card .strip > * { min-height: 48px; justify-content: space-between; }
+.card .strip .i-arrow { width: 16px; height: 16px; transition: translate var(--dur-hover) var(--ease-out); }
+.card:hover .strip .i-arrow { translate: 4px 0; }
+
+/* Table */
+.table-wrap { overflow-x: auto; border: var(--hairline) solid var(--line); }
+.table { width: 100%; border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; }
+.table th { padding: 12px 16px; border-bottom: var(--hairline) solid var(--line); background: var(--surface); color: var(--fg-muted); text-align: left; font-weight: 500; white-space: nowrap; }
+.table td { padding: 14px 16px; border-bottom: var(--hairline) solid var(--line-soft); white-space: nowrap; }
+.table tbody tr:last-child td { border-bottom: 0; }
+.table tbody tr { transition: background-color var(--dur-hover) var(--ease-out); }
+.table tbody tr:hover { background: var(--wash); }
+.table .code { font: 500 12px var(--font-mono); }
+.table .title { font-weight: 700; font-stretch: var(--wdth-wide); text-transform: uppercase; font-size: 13px; letter-spacing: 0.02em; }
+.table .right { text-align: right; }
+
+/* Progress · Loaders */
+.progress { display: grid; gap: 8px; }
+.progress-head { display: flex; justify-content: space-between; }
+.progress-track { height: 18px; padding: 3px; border: var(--hairline) solid var(--line); }
+.progress-bar {
+  height: 100%; width: var(--p, 0%);
+  background: linear-gradient(-45deg, var(--fg) 0 14%, transparent 14% 50%, var(--fg) 50% 64%, transparent 64%) 0 0 / 9px 9px;
+  animation: stripes 700ms linear infinite;
+  transition: width var(--dur-reveal) var(--ease-out);
+}
+@keyframes stripes { from { background-position: 9px 0; } to { background-position: 0 0; } }
+.loaders { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-6); }
+.loader-orbit { width: 72px; height: 40px; }
+.dot-loader { display: flex; gap: 6px; }
+.dot-loader i { width: 10px; height: 10px; border-radius: 50%; border: var(--hairline) solid currentColor; animation: dot-step 1.6s steps(1) infinite; animation-delay: calc(var(--i) * 200ms); }
+@keyframes dot-step { 0% { background: currentColor; } 12.5%, 100% { background: transparent; } }
+.spin-star { width: 28px; height: 28px; animation: spin 2.4s var(--ease-in-out) infinite; }
+@keyframes spin { to { rotate: 180deg; } }
+
+/* Toast */
+.toast {
+  position: fixed; left: 50%; bottom: 24px; z-index: 900;
+  display: flex; align-items: center; gap: 10px; padding: 12px 16px;
+  background: var(--inverse-bg); color: var(--inverse-fg); pointer-events: none;
+  opacity: 0; translate: -50% 12px; filter: blur(4px);
+  transition: opacity 160ms var(--ease-in), translate 160ms var(--ease-in), filter 160ms var(--ease-in);
+}
+.toast.is-on { opacity: 1; translate: -50% 0; filter: blur(0); transition-duration: var(--dur-enter); transition-timing-function: var(--ease-out); }
+.toast svg { width: 12px; height: 12px; color: var(--accent); }
+
+/* 09 · Motion -------------------------------------------------------------- */
+.motion-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--hairline); background: var(--line); border: var(--hairline) solid var(--line); }
+.motion-card { display: grid; gap: var(--space-4); padding: var(--space-5); background: var(--bg); }
+.motion-card > header { display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-3); }
+.motion-card h4 { font-size: 30px; }
+.curve { width: 100%; height: 112px; color: var(--fg); }
+.curve .grid-line { stroke: var(--line-soft); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.curve .path { fill: none; stroke: currentColor; stroke-width: 2; vector-effect: non-scaling-stroke; }
+.track { position: relative; height: 34px; border: var(--hairline) solid var(--line-soft); overflow: hidden; }
+.track b { position: absolute; inset: 4px; transition: translate var(--dur, 320ms) var(--ease, ease); }
+.track i { display: block; width: 24px; height: 24px; background: var(--fg); }
+.motion-card.is-run .track b { translate: calc(100% - 24px) 0; }
+.motion-foot { display: flex; justify-content: space-between; align-items: center; gap: var(--space-3); }
+.motion-foot .btn { min-width: 88px; }
+.principles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-5); margin: var(--space-7) 0 0; padding: 0; list-style: none; counter-reset: p; }
+.principles li { display: grid; align-content: start; gap: 8px; padding-top: var(--space-3); border-top: var(--hairline) solid var(--line); counter-increment: p; font-size: 14px; color: var(--fg-muted); }
+.principles li::before { content: "M-" counter(p, decimal-leading-zero); font: 500 var(--text-caption)/1 var(--font-mono); color: var(--fg); }
+.principles b { color: var(--fg); font-weight: 700; font-stretch: var(--wdth-wide); text-transform: uppercase; font-size: 13px; letter-spacing: 0.04em; }
+
+/* 10 · Composition --------------------------------------------------------- */
+.posters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-5); align-items: stretch; }
+@media (max-width: 960px) { .posters { grid-template-columns: 1fr; } }
+.poster {
+  position: relative; display: flex; flex-direction: column; gap: 4cqi; min-width: 0;
+  padding: 6cqi; background: var(--bg); color: var(--fg); overflow: hidden;
+  container-type: inline-size; box-shadow: 0 0 0 1px var(--line-soft);
+}
+.poster-frame { container-type: inline-size; min-width: 0; }
+.poster-frame > .poster { height: 100%; }
+.poster-meta { display: flex; align-items: center; gap: 12px; font-size: max(9px, 1.7cqi); }
+.poster-title { color: var(--highlight); font-size: 19.6cqi; line-height: 0.82; letter-spacing: -0.02em; }
+.holo {
+  position: relative; flex: 1; min-height: 34cqi; overflow: hidden;
+  background:
+    radial-gradient(60% 80% at 18% 30%, #FFD9B0 0, transparent 60%),
+    radial-gradient(50% 70% at 82% 24%, #9FF0FF 0, transparent 62%),
+    radial-gradient(60% 70% at 62% 88%, #D9A8FF 0, transparent 60%),
+    var(--holo);
+  background-size: 180% 180%;
+  animation: holo-drift 14s var(--ease-in-out) infinite alternate;
+}
+.holo::before {
+  content: ""; position: absolute; inset: -20%;
+  background: repeating-linear-gradient(112deg, transparent 0 18px, rgba(255, 255, 255, 0.22) 22px, transparent 30px 64px);
+  mix-blend-mode: soft-light; animation: sheen 9s var(--ease-in-out) infinite alternate;
+}
+.holo::after {
+  content: ""; position: absolute; inset: 0; opacity: 0;
+  background: radial-gradient(circle at var(--mx, 50%) var(--my, 50%), rgba(255, 255, 255, 0.7), transparent 38%);
+  mix-blend-mode: overlay; transition: opacity var(--dur-enter) var(--ease-out);
+}
+.holo:hover::after { opacity: 1; }
+@keyframes sheen { to { translate: 12% 4%; } }
+.strip--poster { grid-template-columns: auto minmax(0, 1.5fr) auto auto minmax(0, 1fr); grid-auto-flow: row; }
+.strip--poster > * { min-height: 13cqi; padding: 2cqi; font-size: max(8px, 1.6cqi); line-height: 1.35; justify-content: center; }
+.strip--poster svg.icon { width: 9cqi; height: 9cqi; }
+.strip--poster .orbit-icon { width: 15cqi; height: 9cqi; }
+.strip--poster .is45 { font-size: 5cqi; font-weight: 500; letter-spacing: -0.02em; }
+.strip--poster .barcode { height: 8cqi; }
+.poster-pill { align-self: center; padding: 2.4cqi 7cqi; border: var(--rule) solid var(--fg); border-radius: var(--radius-ellipse); font-size: 5.4cqi; font-weight: 900; font-stretch: var(--wdth-expanded); line-height: 1; white-space: nowrap; }
+.poster-foot { display: flex; align-items: center; justify-content: space-between; gap: 3cqi; font-size: max(8px, 1.8cqi); letter-spacing: 0.3em; }
+.poster-foot .mini { display: flex; align-items: center; gap: 6px; letter-spacing: 0.02em; font-weight: 800; font-stretch: var(--wdth-expanded); }
+.poster-foot .mini svg { width: 4cqi; height: 4cqi; }
+
+.poster--grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 3cqi; align-content: start; }
+.poster--grid > * { min-width: 0; }
+.p-tunnel { grid-column: span 7; position: relative; aspect-ratio: 5 / 3; }
+.p-tunnel svg { width: 100%; height: 100%; }
+.p-tunnel .p-tunnel-label { position: absolute; left: 50%; top: 50%; translate: -50% -50%; padding: 1cqi 1.6cqi; background: var(--fg); color: var(--bg); font-size: 2.2cqi; font-weight: 800; font-stretch: var(--wdth-expanded); text-transform: uppercase; white-space: nowrap; }
+.p-labels { grid-column: span 5; display: flex; flex-direction: column; gap: 2cqi; }
+.p-labels .advisory { min-width: 0; width: 100%; }
+.p-labels .advisory span { font-size: 1.5cqi; }
+.p-labels .advisory strong { font-size: 3.4cqi; }
+.p-labels p { font-size: max(8px, 1.5cqi); line-height: 1.35; color: var(--fg-muted); }
+.p-date { grid-column: span 7; display: flex; align-items: center; gap: 2cqi; }
+.p-date strong { font-size: 7.4cqi; font-weight: 600; font-stretch: var(--wdth-condensed); line-height: 1; letter-spacing: 0.01em; }
+.p-date .barcode { height: 5cqi; }
+.p-dots { grid-column: span 5; display: grid; gap: 1.6cqi; align-content: center; }
+.p-dots .dot-row { gap: 1cqi; }
+.p-dots .dot-row i { width: 2.6cqi; height: 2.6cqi; }
+.p-dots p { display: flex; justify-content: space-between; font-size: max(8px, 1.6cqi); letter-spacing: 0.1em; }
+.p-orb { grid-column: span 6; position: relative; aspect-ratio: 1; }
+.p-orb svg { width: 100%; height: 100%; }
+.p-stack { grid-column: span 6; display: flex; flex-direction: column; align-items: flex-end; justify-content: center; gap: 2cqi; text-align: right; }
+.p-stack h3 { font-size: 10.4cqi; line-height: 0.92; }
+.p-stack .hl { font-size: 5cqi; }
+.p-echo { grid-column: span 7; align-self: end; font-size: 6.2cqi; line-height: 0.86; }
+.p-echo span { display: block; }
+.p-echo span + span { color: transparent; -webkit-text-stroke: 1px var(--fg); }
+.p-sign { grid-column: span 5; display: flex; flex-direction: column; justify-content: flex-end; gap: 2cqi; }
+.p-sign .pat { height: 12cqi; }
+.p-sign .pat-plus { height: 8cqi; }
+.p-sign strong { font-size: 3cqi; font-weight: 800; font-stretch: var(--wdth-expanded); text-align: right; text-transform: uppercase; line-height: 1; }
+
+/* Footer */
+.site-footer { padding: var(--space-8) 0 var(--space-6); border-top: var(--hairline) solid var(--line); }
+.footer-mega {
+  display: block; overflow: hidden; font-size: var(--text-mega); white-space: nowrap;
+  color: transparent; -webkit-text-stroke: 1.5px var(--fg);
+  transition: color var(--dur-reveal) var(--ease-out);
+}
+.footer-mega:hover { color: var(--fg); }
+.footer-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-4); margin-top: var(--space-5); color: var(--fg-muted); }
+.footer-row a { text-decoration: none; display: inline-flex; align-items: center; gap: 8px; min-height: 40px; color: var(--fg); }
+.footer-row a svg { width: 14px; height: 14px; rotate: -90deg; transition: translate var(--dur-hover) var(--ease-out); }
+.footer-row a:hover svg { translate: 0 -3px; }
+
+/* 11 · Utilities ----------------------------------------------------------- */
+.js .reveal {
+  opacity: 0; translate: 0 16px; filter: blur(4px);
+  transition: opacity var(--dur-reveal) var(--ease-out), translate var(--dur-reveal) var(--ease-out), filter var(--dur-reveal) var(--ease-out);
+  transition-delay: calc(var(--i, 0) * 90ms);
+}
+.js .reveal.is-in { opacity: 1; translate: 0 0; filter: none; }
+.mt-5 { margin-top: var(--space-5); } .mt-6 { margin-top: var(--space-6); }
+.stack-3 { display: grid; gap: var(--space-3); } .stack-4 { display: grid; gap: var(--space-4); }
+
+@media (max-width: 1080px) {
+  .glyphs { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .motion-grid, .tokens, .principles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 560px) {
+  .glyphs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .motion-grid, .principles { grid-template-columns: 1fr; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 1ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    transition-delay: 0ms !important;
+  }
+  .ticker-track { animation: none !important; }
+  .js .reveal { opacity: 1; translate: none; filter: none; }
+}
+</style>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="g-spark4" viewBox="0 0 100 100">
+    <path fill="currentColor" d="M50 0C53.5 37 63 46.5 100 50 63 53.5 53.5 63 50 100 46.5 63 37 53.5 0 50 37 46.5 46.5 37 50 0Z"/>
+  </symbol>
+  <symbol id="g-spark8" viewBox="0 0 100 100">
+    <path fill="currentColor" d="M50 0L52.3 44.5 65.6 34.4 55.5 47.7 100 50 55.5 52.3 65.6 65.6 52.3 55.5 50 100 47.7 55.5 34.4 65.6 44.5 52.3 0 50 44.5 47.7 34.4 34.4 47.7 44.5Z"/>
+  </symbol>
+  <symbol id="g-asterisk" viewBox="0 0 100 100">
+    <circle cx="50" cy="50" r="46" fill="none" stroke="currentColor" stroke-width="4"/>
+    <path stroke="currentColor" stroke-width="9" stroke-linecap="round" d="M50 22V78M22 50H78M30.2 30.2 69.8 69.8M69.8 30.2 30.2 69.8"/>
+  </symbol>
+  <symbol id="g-clover" viewBox="0 0 100 100">
+    <path id="g-clover-leaf" fill="currentColor" d="M47 47V24A20 20 0 0 0 27 4H24A20 20 0 0 0 4 24V27A20 20 0 0 0 24 47Z"/>
+    <use href="#g-clover-leaf" transform="rotate(90 50 50)"/>
+    <use href="#g-clover-leaf" transform="rotate(180 50 50)"/>
+    <use href="#g-clover-leaf" transform="rotate(270 50 50)"/>
+  </symbol>
+  <symbol id="g-quarter" viewBox="0 0 100 100">
+    <path fill="currentColor" d="M0 100V0A100 100 0 0 1 100 100Z"/>
+  </symbol>
+  <symbol id="g-half" viewBox="0 0 100 100">
+    <path fill="currentColor" d="M0 25H100A50 50 0 0 1 0 25Z"/>
+  </symbol>
+  <symbol id="g-orbit" viewBox="0 0 100 100">
+    <g fill="none" stroke="currentColor" stroke-width="2.4">
+      <ellipse cx="50" cy="50" rx="47" ry="19"/>
+      <ellipse cx="50" cy="50" rx="33" ry="19"/>
+      <circle cx="50" cy="50" r="19"/>
+      <ellipse cx="50" cy="50" rx="8" ry="19"/>
+      <path d="M3 50H97"/>
+    </g>
+  </symbol>
+  <symbol id="g-planet" viewBox="0 0 100 100">
+    <circle cx="50" cy="50" r="26" fill="currentColor"/>
+    <ellipse cx="50" cy="50" rx="48" ry="13" fill="none" stroke="currentColor" stroke-width="8" transform="rotate(-24 50 50)"/>
+  </symbol>
+  <symbol id="g-contour" viewBox="0 0 100 100">
+    <g fill="none" stroke="currentColor" stroke-width="2">
+      <ellipse cx="50" cy="30" rx="47" ry="17"/>
+      <ellipse cx="50" cy="35" rx="37" ry="13"/>
+      <ellipse cx="50" cy="40" rx="27" ry="9.5"/>
+      <ellipse cx="50" cy="45" rx="18" ry="6.5"/>
+      <ellipse cx="50" cy="51" rx="11" ry="4"/>
+      <ellipse cx="50" cy="60" rx="7" ry="2.6"/>
+      <ellipse cx="50" cy="72" rx="9" ry="3.4"/>
+      <ellipse cx="50" cy="85" rx="15" ry="5.5"/>
+      <path d="M39 51Q46 62 43 72 38 84 35 85M61 51Q54 62 57 72 62 84 65 85"/>
+    </g>
+  </symbol>
+  <symbol id="g-arrow" viewBox="0 0 24 24">
+    <path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="square" d="M4 12H19M13 6L19 12 13 18"/>
+  </symbol>
+  <symbol id="g-check" viewBox="0 0 24 24">
+    <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" d="M5 12.5L10 17.5 19.5 6.5"/>
+  </symbol>
+</svg>
+
+<header class="site-header">
+  <div class="container">
+    <a class="brand" href="#top" aria-label="MODULE/035, back to top">
+      <svg class="brand-mark" viewBox="0 0 100 100" aria-hidden="true">
+        <circle cx="50" cy="50" r="48" fill="currentColor"/>
+        <ellipse cx="50" cy="50" rx="36" ry="12" fill="none" style="stroke: var(--bg)" stroke-width="3" transform="rotate(-24 50 50)"/>
+        <path style="fill: var(--bg)" d="M50 20C52 42 58 48 80 50 58 52 52 58 50 80 48 58 42 52 20 50 42 48 48 42 50 20Z"/>
+      </svg>
+      MODULE<sup>/035</sup>
+    </a>
+    <nav class="nav t-mono" aria-label="Sections">
+      <a href="#color"><b>01</b>Color</a>
+      <a href="#type"><b>02</b>Type</a>
+      <a href="#form"><b>03</b>Form</a>
+      <a href="#glyphs"><b>04</b>Glyphs</a>
+      <a href="#components"><b>05</b>Components</a>
+      <a href="#motion"><b>06</b>Motion</a>
+      <a href="#composition"><b>07</b>Posters</a>
+    </nav>
+    <span class="clock t-mono num" aria-hidden="true">SYS <b data-clock>00:00:00</b></span>
+    <button class="theme-switch t-mono" type="button" role="switch" aria-checked="false" aria-label="Dark theme (Void)" data-theme-toggle>
+      <span class="ts-label ts-label--paper" aria-hidden="true">Paper</span>
+      <span class="ts-track" aria-hidden="true">
+        <span class="ts-knob">
+          <svg class="ts-icon ts-icon--paper"><use href="#g-spark4"/></svg>
+          <svg class="ts-icon ts-icon--void"><use href="#g-planet"/></svg>
+        </span>
+      </span>
+      <span class="ts-label ts-label--void" aria-hidden="true">Void</span>
+    </button>
+  </div>
+</header>
+
+<main id="main">
+
+<!-- ===================================================================== HERO -->
+<section class="hero" id="top">
+  <div class="container">
+    <div class="hero-meta t-mono">
+      <span>Design System</span><i class="meta-rule"></i><span>Geometric Retro-Futurism</span><i class="meta-rule"></i><span class="num">No. 035</span>
+    </div>
+
+    <h1 class="hero-title t-display" aria-label="Module">
+      <span class="char" style="--i:0" aria-hidden="true">M</span><span class="char" style="--i:1" aria-hidden="true">O</span><span class="char" style="--i:2" aria-hidden="true">D</span><span class="char" style="--i:3" aria-hidden="true">U</span><span class="char" style="--i:4" aria-hidden="true">L</span><span class="char" style="--i:5" aria-hidden="true">E</span>
+      <svg class="hero-reg" aria-hidden="true"><use href="#g-spark4"/></svg>
+    </h1>
+
+    <div class="ticker" aria-label="Geometry through hairlines, orbits and wireframes, retro-futurism">
+      <div class="ticker-badge"><svg data-pixels viewBox="0 0 48 12" aria-hidden="true"></svg></div>
+      <div class="ticker-window" aria-hidden="true">
+        <div class="ticker-track">
+          <span class="ticker-group">Geometry through hairlines <svg><use href="#g-spark4"/></svg> Orbits &amp; wireframes <svg><use href="#g-spark4"/></svg> Retro-futurism <svg><use href="#g-spark4"/></svg> Paper / Void / Signal <svg><use href="#g-spark4"/></svg></span>
+          <span class="ticker-group">Geometry through hairlines <svg><use href="#g-spark4"/></svg> Orbits &amp; wireframes <svg><use href="#g-spark4"/></svg> Retro-futurism <svg><use href="#g-spark4"/></svg> Paper / Void / Signal <svg><use href="#g-spark4"/></svg></span>
+        </div>
+      </div>
+      <div class="ticker-tag t-mono" aria-hidden="true"><span>Interface</span><span>System</span></div>
+      <svg class="ticker-orbit" aria-hidden="true"><use href="#g-orbit"/></svg>
+    </div>
+
+    <div class="hero-grid">
+      <div class="hero-copy" data-stagger>
+        <p class="t-lead reveal">A design language for interfaces that feel like printed matter from a future that never quite arrived: expanded grotesques, hairline rules, wireframe orbits, and a single loud signal color.</p>
+        <div class="hero-actions reveal">
+          <a class="btn btn--primary btn--lg" href="#color">Explore tokens <svg class="i i-arrow"><use href="#g-arrow"/></svg></a>
+          <a class="btn btn--lg" href="#components"><svg class="i i-spark"><use href="#g-spark4"/></svg> Components</a>
+        </div>
+        <dl class="stats reveal">
+          <div class="stat"><dt class="t-mono">Tokens</dt><dd class="t-display num" data-count="64">00</dd></div>
+          <div class="stat"><dt class="t-mono">Glyphs</dt><dd class="t-display num" data-count="16">00</dd></div>
+          <div class="stat"><dt class="t-mono">Components</dt><dd class="t-display num" data-count="24">00</dd></div>
+          <div class="stat"><dt class="t-mono">Themes</dt><dd class="t-display num" data-count="2">00</dd></div>
+        </dl>
+        <div class="code-row reveal">
+          <svg class="glyph-down" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.4" d="M12 2V22M5 15L12 22 19 15M4 8H20"/></svg>
+          <div class="stack-3" style="flex:1; min-width:0">
+            <svg class="barcode" data-barcode="35" viewBox="0 0 160 40" preserveAspectRatio="none" aria-hidden="true"></svg>
+            <span class="t-mono t-muted num">099 &nbsp;6839 2466 &nbsp;6282 92</span>
+          </div>
+        </div>
+      </div>
+
+      <figure class="hero-art reveal" aria-label="Poster composition: Bauhaus quarter circles, a rotating wireframe globe, sliced ellipses and sparkles">
+        <svg viewBox="0 0 600 600" aria-hidden="true">
+          <g class="art-solid">
+            <path d="M40 330A120 120 0 0 1 160 450H40Z"/>
+            <path d="M40 460H160A120 120 0 0 1 40 580Z"/>
+            <path d="M170 460H410A120 120 0 0 1 170 460Z"/>
+            <path d="M440 330H560V450A120 120 0 0 1 440 330Z"/>
+          </g>
+          <path d="M330 310V196A95 95 0 0 1 520 196V310" fill="none" stroke="currentColor" stroke-width="56"/>
+          <rect class="art-occlude" x="-38" y="-160" width="76" height="320" transform="translate(372 300) rotate(40)"/>
+          <g class="globe" data-globe data-cx="228" data-cy="258" data-r="150" data-lat="7" data-lon="9" style="--globe-bg: var(--surface)"></g>
+          <g class="drift">
+            <ellipse class="art-occlude" cx="300" cy="476" rx="74" ry="26" transform="rotate(-42 300 476)"/>
+            <ellipse class="art-occlude" cx="326" cy="452" rx="74" ry="26" transform="rotate(-42 326 452)"/>
+            <ellipse class="art-occlude" cx="352" cy="428" rx="74" ry="26" transform="rotate(-42 352 428)"/>
+            <ellipse class="art-occlude" cx="378" cy="404" rx="74" ry="26" transform="rotate(-42 378 404)"/>
+            <ellipse class="art-occlude" cx="404" cy="380" rx="74" ry="26" transform="rotate(-42 404 380)"/>
+            <ellipse class="art-occlude" cx="430" cy="356" rx="74" ry="26" transform="rotate(-42 430 356)"/>
+          </g>
+          <g transform="translate(36 92)"><use class="twinkle" href="#g-spark4" width="116" height="116" style="--d:-1.2s"/></g>
+          <g transform="translate(404 392)"><use class="twinkle" href="#g-spark8" width="176" height="176" style="--d:-2.6s"/></g>
+          <g transform="translate(300 96)"><use class="twinkle" href="#g-spark4" width="60" height="60" style="--d:-3.4s; color: var(--highlight)"/></g>
+          <g class="art-solid">
+            <circle cx="84" cy="70" r="9"/><circle cx="196" cy="52" r="5"/><circle cx="520" cy="72" r="4"/>
+            <circle cx="566" cy="262" r="6"/><circle cx="576" cy="410" r="3"/><circle cx="492" cy="566" r="11"/>
+            <circle cx="262" cy="410" r="7"/><circle cx="412" cy="240" r="5"/><circle cx="118" cy="296" r="4"/>
+          </g>
+          <g class="art-label">
+            <text x="40" y="236">D004</text><text x="150" y="318">N006</text><text x="404" y="40">Y008</text>
+            <text x="500" y="150">E009</text><text x="300" y="344">J003</text><text x="380" y="532">A010</text>
+            <text x="520" y="596">H001</text><text x="200" y="596">R005</text>
+          </g>
+          <path class="art-line" d="M16 8V24M8 16H24M584 8V24M576 16H592M16 576V592M8 584H24M584 576V592M576 584H592"/>
+        </svg>
+      </figure>
+    </div>
+
+    <div class="strip strip--hero reveal">
+      <p>Geometry is, with arithmetic, one of the oldest branches of mathematics. MODULE treats it as an interface language: distance, shape, size and the relative position of figures.</p>
+      <div><svg class="icon"><use href="#g-asterisk"/></svg><svg class="icon"><use href="#g-clover"/></svg></div>
+      <div><span class="art-word t-echo">ART</span><span class="art-years num">2026<br>2027</span></div>
+      <p>Hairlines over shadows. Orbits over gradients. One signal color, used sparingly.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ===================================================================== 01 COLOR -->
+<section class="section" id="color">
+  <div class="container">
+    <header class="sec-head reveal">
+      <span class="sec-num t-mono">01</span>
+      <h2 class="sec-title t-display">Color</h2>
+      <span class="sec-rule"></span>
+      <span class="sec-code t-mono">C-001 / Foundation</span>
+    </header>
+    <p class="sec-lede t-lead reveal">Two paper stocks and one ink do almost all of the work. Signal orange marks the single most important thing on screen, and holographic foil is kept for moments of delight. Click a swatch to copy its value.</p>
+
+    <div class="swatches" data-stagger>
+      <div class="reveal"><button class="swatch" type="button" data-copy="#E8E5DE" style="--c:#E8E5DE"><span class="swatch-chip"><span class="t-mono">P-100</span><span class="swatch-copy t-mono">Copy</span></span><span class="swatch-meta"><span class="swatch-name">Paper</span><span class="t-mono num">#E8E5DE</span><span class="swatch-var t-mono is-code">--paper-100</span></span></button></div>
+      <div class="reveal"><button class="swatch" type="button" data-copy="#F3F1EC" style="--c:#F3F1EC"><span class="swatch-chip"><span class="t-mono">P-050</span><span class="swatch-copy t-mono">Copy</span></span><span class="swatch-meta"><span class="swatch-name">Sheet</span><span class="t-mono num">#F3F1EC</span><span class="swatch-var t-mono is-code">--paper-050</span></span></button></div>
+      <div class="reveal"><button class="swatch" type="button" data-copy="#D2C5B2" style="--c:#D2C5B2"><span class="swatch-chip"><span class="t-mono">S-300</span><span class="swatch-copy t-mono">Copy</span></span><span class="swatch-meta"><span class="swatch-name">Sand</span><span class="t-mono num">#D2C5B2</span><span class="swatch-var t-mono is-code">--sand-300</span></span></button></div>
+      <div class="reveal"><button class="swatch" type="button" data-copy="#121212" style="--c:#121212; --chip-ink:#ECEFF0"><span class="swatch-chip"><span class="t-mono">I-900</span><span class="swatch-copy t-mono">Copy</span></span><span class="swatch-meta"><span class="swatch-name">Ink</span><span class="t-mono num">#121212</span><span class="swatch-var t-mono is-code">--ink-900</span></span></button></div>
+      <div class="reveal"><button class="swatch" type="button" data-copy="#0A0A0A" style="--c:#0A0A0A; --chip-ink:#ECEFF0"><span class="swatch-chip"><span class="t-mono">V-950</span><span class="swatch-copy t-mono">Copy</span></span><span class="swatch-meta"><span class="swatch-name">Void</span><span class="t-mono num">#0A0A0A</span><span class="swatch-var t-mono is-code">--void-950</span></span></button></div>
+      <div class="reveal"><button class="swatch" type="button" data-copy="#ECEFF0" style="--c:#ECEFF0"><span class="swatch-chip"><span class="t-mono">F-050</span><span class="swatch-copy t-mono">Copy</span></span><span class="swatch-meta"><span class="swatch-name">Frost</span><span class="t-mono num">#ECEFF0</span><span class="swatch-var t-mono is-code">--frost-050</span></span></button></div>
+      <div class="reveal"><button class="swatch" type="button" data-copy="#FF5A1F" style="--c:#FF5A1F"><span class="swatch-chip"><span class="t-mono">S-500</span><span class="swatch-copy t-mono">Copy</span></span><span class="swatch-meta"><span class="swatch-name">Signal</span><span class="t-mono num">#FF5A1F</span><span class="swatch-var t-mono is-code">--signal-500</span></span></button></div>
+      <div class="reveal"><button class="swatch" type="button" data-copy="#A6F4E5" style="--c:#A6F4E5"><span class="swatch-chip"><span class="t-mono">PH-300</span><span class="swatch-copy t-mono">Copy</span></span><span class="swatch-meta"><span class="swatch-name">Phosphor</span><span class="t-mono num">#A6F4E5</span><span class="swatch-var t-mono is-code">--phosphor-300</span></span></button></div>
+      <div class="reveal"><button class="swatch" type="button" data-copy="var(--holo)"><span class="swatch-chip chip-holo"><span class="t-mono">H-FOIL</span><span class="swatch-copy t-mono">Copy</span></span><span class="swatch-meta"><span class="swatch-name">Holo foil</span><span class="t-mono">115°</span><span class="swatch-var t-mono is-code">--holo</span></span></button></div>
+    </div>
+
+    <div class="ratio t-mono reveal" aria-label="Color proportion guide">
+      <span style="flex:58; background:#E8E5DE; color:#121212">Paper 58</span>
+      <span style="flex:30; background:#121212; color:#ECEFF0">Ink 30</span>
+      <span style="flex:7; background:#D2C5B2; color:#121212">Sand 7</span>
+      <span style="flex:3; background:#FF5A1F; color:#121212">3</span>
+      <span style="flex:2; background:var(--holo)"></span>
+    </div>
+
+    <div class="sub-head reveal"><h3 class="t-wide">Semantic tokens</h3><span class="t-mono t-muted">Live · follows theme</span></div>
+    <div class="tokens reveal">
+      <div class="token"><i style="--v: var(--bg)"></i><b>--bg</b><span data-token="--bg">—</span></div>
+      <div class="token"><i style="--v: var(--surface)"></i><b>--surface</b><span data-token="--surface">—</span></div>
+      <div class="token"><i style="--v: var(--surface-sunk)"></i><b>--surface-sunk</b><span data-token="--surface-sunk">—</span></div>
+      <div class="token"><i style="--v: var(--fg)"></i><b>--fg</b><span data-token="--fg">—</span></div>
+      <div class="token"><i style="--v: var(--fg-muted)"></i><b>--fg-muted</b><span data-token="--fg-muted">—</span></div>
+      <div class="token"><i style="--v: var(--fg-faint)"></i><b>--fg-faint</b><span data-token="--fg-faint">—</span></div>
+      <div class="token"><i style="--v: var(--line-soft)"></i><b>--line-soft</b><span data-token="--line-soft">—</span></div>
+      <div class="token"><i style="--v: var(--accent)"></i><b>--accent</b><span data-token="--accent">—</span></div>
+      <div class="token"><i style="--v: var(--highlight)"></i><b>--highlight</b><span data-token="--highlight">—</span></div>
+      <div class="token"><i style="--v: var(--focus)"></i><b>--focus</b><span data-token="--focus">—</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================================================================== 02 TYPE -->
+<section class="section" id="type">
+  <div class="container">
+    <header class="sec-head reveal">
+      <span class="sec-num t-mono">02</span>
+      <h2 class="sec-title t-display">Type</h2>
+      <span class="sec-rule"></span>
+      <span class="sec-code t-mono">T-002 / Archivo + JetBrains Mono</span>
+    </header>
+    <p class="sec-lede t-lead reveal">One variable family, stretched across its width axis: 62% for condensed stacks, 125% for expanded headlines. A monospace carries coordinates, codes and captions, the small print that makes a surface read as an artifact.</p>
+
+    <div class="type-grid reveal">
+      <div class="type-cell span-7">
+        <header class="t-mono"><span>Display · Expanded Black</span><span>wdth 125 · wght 900 · lh .84</span></header>
+        <div>
+          <p class="spec-display t-display">Linear<svg aria-hidden="true"><use href="#g-spark4"/></svg></p>
+          <p class="spec-display t-display">Contours</p>
+        </div>
+        <div class="spec-meta"><span class="tag t-mono is-code">.t-display</span><span class="tag t-mono">Headlines</span><span class="tag t-mono">Max 2 lines</span></div>
+      </div>
+      <div class="type-cell span-5">
+        <header class="t-mono"><span>Stack · Condensed</span><span>wdth 62 · wght 700</span></header>
+        <p class="spec-condensed t-condensed">Don't<br>panic<br>about<br>your<br>future</p>
+        <div class="spec-meta" style="justify-content:flex-end"><span class="tag t-mono is-code">.t-condensed</span><span class="tag t-mono">Right-aligned</span></div>
+      </div>
+      <div class="type-cell span-6">
+        <header class="t-mono"><span>Echo · Outline repeat</span><span>stroke 1.2 · hover</span></header>
+        <p class="echo-stack t-wide" aria-label="The future"><span>The future</span><span aria-hidden="true">The future</span><span aria-hidden="true">The future</span></p>
+        <div class="spec-meta"><span class="tag t-mono is-code">.t-echo</span><span class="tag t-mono">Decorative only</span></div>
+      </div>
+      <div class="type-cell span-6">
+        <header class="t-mono"><span>Body · Mono · Tracked</span><span>15/1.55 · 11 mono · +340</span></header>
+        <p style="max-width:56ch">Body copy stays at normal width and regular weight so the loud display faces have room to breathe. Keep paragraphs under 64 characters and let hairlines, not boxes, organize them.</p>
+        <p class="coord-sample t-mono num"><span>N006</span><span>Y008</span><span>E009</span><span>J003</span><span>A010</span><span>H001</span></p>
+        <p class="t-tracked">Orbital Road 486 — Sector 7</p>
+        <p class="t-wide" style="font-size:28px; font-weight:900">Fearless</p>
+      </div>
+      <div class="type-cell span-12">
+        <header class="t-mono"><span>Scale</span><span>Fluid · clamp()</span></header>
+        <div>
+          <div class="scale-row"><span class="t-mono">--text-h1</span><span class="t-mono t-muted num">128</span><span class="sample t-display" style="font-size:var(--text-h1)">Orbit</span></div>
+          <div class="scale-row"><span class="t-mono">--text-h2</span><span class="t-mono t-muted num">84</span><span class="sample t-display" style="font-size:var(--text-h2)">Contours</span></div>
+          <div class="scale-row"><span class="t-mono">--text-h3</span><span class="t-mono t-muted num">40</span><span class="sample t-wide" style="font-size:var(--text-h3); font-weight:900">Retro signal</span></div>
+          <div class="scale-row"><span class="t-mono">--text-h4</span><span class="t-mono t-muted num">24</span><span class="sample t-wide" style="font-size:var(--text-h4)">Hairline systems</span></div>
+          <div class="scale-row"><span class="t-mono">--text-lead</span><span class="t-mono t-muted num">20</span><span class="sample" style="font-size:var(--text-lead)">Interfaces as printed matter from the future.</span></div>
+          <div class="scale-row"><span class="t-mono">--text-body</span><span class="t-mono t-muted num">15</span><span class="sample">Geometry is concerned with distance, shape, size and relative position.</span></div>
+          <div class="scale-row"><span class="t-mono">--text-caption</span><span class="t-mono t-muted num">11</span><span class="sample t-mono">Fig. 01 — D004 / N006 / Y008</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================================================================== 03 FORM -->
+<section class="section" id="form">
+  <div class="container">
+    <header class="sec-head reveal">
+      <span class="sec-num t-mono">03</span>
+      <h2 class="sec-title t-display">Form</h2>
+      <span class="sec-rule"></span>
+      <span class="sec-code t-mono">F-003 / Space · Line · Shape</span>
+    </header>
+    <p class="sec-lede t-lead reveal">A 4-point spacing scale, three line weights and three shapes. Corners stay square. The only curves are true geometry: circles, pills and ellipses. Depth comes from a hard offset, never a blur.</p>
+
+    <div class="form-grid reveal">
+      <div>
+        <header class="cell-head t-mono"><span>Space</span><span>4pt base</span></header>
+        <div class="space-row t-mono"><span>--space-1</span><span class="t-muted num">4</span><i class="space-bar" style="--s:4px"></i></div>
+        <div class="space-row t-mono"><span>--space-2</span><span class="t-muted num">8</span><i class="space-bar" style="--s:8px"></i></div>
+        <div class="space-row t-mono"><span>--space-3</span><span class="t-muted num">12</span><i class="space-bar" style="--s:12px"></i></div>
+        <div class="space-row t-mono"><span>--space-4</span><span class="t-muted num">16</span><i class="space-bar" style="--s:16px"></i></div>
+        <div class="space-row t-mono"><span>--space-5</span><span class="t-muted num">24</span><i class="space-bar" style="--s:24px"></i></div>
+        <div class="space-row t-mono"><span>--space-6</span><span class="t-muted num">32</span><i class="space-bar" style="--s:32px"></i></div>
+        <div class="space-row t-mono"><span>--space-7</span><span class="t-muted num">48</span><i class="space-bar" style="--s:48px"></i></div>
+        <div class="space-row t-mono"><span>--space-8</span><span class="t-muted num">64</span><i class="space-bar" style="--s:64px"></i></div>
+        <div class="space-row t-mono"><span>--space-9</span><span class="t-muted num">96</span><i class="space-bar" style="--s:96px"></i></div>
+        <div class="space-row t-mono"><span>--space-10</span><span class="t-muted num">128</span><i class="space-bar" style="--s:128px"></i></div>
+      </div>
+      <div>
+        <header class="cell-head t-mono"><span>Line</span><span>Hairlines organize</span></header>
+        <div class="line-row t-mono"><span>--hairline</span><i style="--w:1px"></i><span class="t-muted num">1.0</span></div>
+        <div class="line-row t-mono"><span>--rule</span><i style="--w:1.5px"></i><span class="t-muted num">1.5</span></div>
+        <div class="line-row t-mono"><span>--stroke</span><i style="--w:2px"></i><span class="t-muted num">2.0</span></div>
+        <p class="shape-caption">Use the hairline for strips, tables and frames. The rule outlines controls. The stroke marks labels and focus.</p>
+        <div class="strip mt-5">
+          <div class="t-mono">Cell A</div><div class="t-mono">Cell B</div><div class="t-mono">Cell C</div>
+        </div>
+        <p class="shape-caption">Strips use a 1px gap over a line-colored ground, so dividers stay crisp at any column count.</p>
+      </div>
+      <div>
+        <header class="cell-head t-mono"><span>Shape · Depth</span><span>radius 0 / pill / 50%</span></header>
+        <div class="shape-row t-mono">
+          <span class="shape">0</span>
+          <span class="shape shape--pill">Pill</span>
+          <span class="shape shape--ellipse">50%</span>
+        </div>
+        <p class="shape-caption">Ellipses are for times, places and the one call to action that should feel like a stamp.</p>
+        <div class="mt-6"><button class="swatch" type="button" data-copy="4px 4px 0 var(--fg)" style="--c: var(--surface-sunk); cursor: pointer"><span class="swatch-chip" style="aspect-ratio: 3 / 1"><span class="t-mono" style="color: var(--fg)">Lift · hover me</span></span><span class="swatch-meta"><span class="swatch-name">Offset lift</span><span class="t-mono">4 / 4 / 0</span><span class="swatch-var t-mono is-code">translate(-4px) + hard shadow</span></span></button></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================================================================== 04 GLYPHS -->
+<section class="section" id="glyphs">
+  <div class="container">
+    <header class="sec-head reveal">
+      <span class="sec-num t-mono">04</span>
+      <h2 class="sec-title t-display">Glyphs</h2>
+      <span class="sec-rule"></span>
+      <span class="sec-code t-mono">G-004 / 16 primitives</span>
+    </header>
+    <p class="sec-lede t-lead reveal">A closed set of primitives lifted straight from the poster wall. Use at most three per surface and let one dominate. Hover a cell to see how it moves.</p>
+
+    <div class="glyphs t-mono reveal">
+      <div class="glyph" data-hover="spin"><span class="glyph-code">G-01</span><svg viewBox="0 0 100 100"><use href="#g-spark4"/></svg><span class="glyph-name">Sparkle / 4</span></div>
+      <div class="glyph" data-hover="spin"><span class="glyph-code">G-02</span><svg viewBox="0 0 100 100"><use href="#g-spark8"/></svg><span class="glyph-name">Sparkle / 8</span></div>
+      <div class="glyph" data-hover="spin"><span class="glyph-code">G-03</span><svg viewBox="0 0 100 100"><use href="#g-asterisk"/></svg><span class="glyph-name">Asterisk</span></div>
+      <div class="glyph" data-hover="spin"><span class="glyph-code">G-04</span><svg viewBox="0 0 100 100"><use href="#g-clover"/></svg><span class="glyph-name">Clover</span></div>
+      <div class="glyph" data-hover="grow"><span class="glyph-code">G-05</span><svg viewBox="0 0 100 100"><use href="#g-quarter"/></svg><span class="glyph-name">Quarter</span></div>
+      <div class="glyph" data-hover="grow"><span class="glyph-code">G-06</span><svg viewBox="0 0 100 100"><use href="#g-half"/></svg><span class="glyph-name">Half</span></div>
+      <div class="glyph"><span class="glyph-code">G-07</span><svg viewBox="0 0 100 100"><g class="globe" data-globe data-cx="50" data-cy="50" data-r="47" data-lat="6" data-lon="7"></g></svg><span class="glyph-name">Globe · live</span></div>
+      <div class="glyph" data-hover="grow"><span class="glyph-code">G-08</span><svg viewBox="0 0 100 100"><use href="#g-orbit"/></svg><span class="glyph-name">Orbit</span></div>
+      <div class="glyph" data-hover="spin"><span class="glyph-code">G-09</span><svg viewBox="0 0 100 100"><use href="#g-planet"/></svg><span class="glyph-name">Planet</span></div>
+      <div class="glyph" data-hover="grow"><span class="glyph-code">G-10</span><svg viewBox="0 0 100 100"><use href="#g-contour"/></svg><span class="glyph-name">Contour</span></div>
+      <div class="glyph"><span class="glyph-code">G-11</span><svg data-tunnel viewBox="0 0 200 120"></svg><span class="glyph-name">Tunnel · live</span></div>
+      <div class="glyph" data-hover="grow"><span class="glyph-code">G-12</span><svg data-barcode="12" viewBox="0 0 160 40" preserveAspectRatio="none" style="height:24%"></svg><span class="glyph-name">Barcode</span></div>
+      <div class="glyph" data-hover="grow"><span class="glyph-code">G-13</span><span class="dot-row"><i></i><i></i><i class="on"></i><i></i><i></i><i class="on"></i></span><span class="glyph-name">Dot row</span></div>
+      <div class="glyph" data-hover="grow"><span class="glyph-code">G-14</span><span class="pat pat-plus"></span><span class="glyph-name">Plus field</span></div>
+      <div class="glyph" data-hover="grow"><span class="glyph-code">G-15</span><span class="pat pat-hatch"></span><span class="glyph-name">Hatch</span></div>
+      <div class="glyph" data-hover="grow"><span class="glyph-code">G-16</span><svg viewBox="0 0 100 100">
+        <ellipse class="art-occlude" cx="30" cy="70" rx="30" ry="11" transform="rotate(-42 30 70)"/>
+        <ellipse class="art-occlude" cx="40" cy="60" rx="30" ry="11" transform="rotate(-42 40 60)"/>
+        <ellipse class="art-occlude" cx="50" cy="50" rx="30" ry="11" transform="rotate(-42 50 50)"/>
+        <ellipse class="art-occlude" cx="60" cy="40" rx="30" ry="11" transform="rotate(-42 60 40)"/>
+        <ellipse class="art-occlude" cx="70" cy="30" rx="30" ry="11" transform="rotate(-42 70 30)"/>
+      </svg><span class="glyph-name">Slices</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================================================================== 05 COMPONENTS -->
+<section class="section" id="components">
+  <div class="container">
+    <header class="sec-head reveal">
+      <span class="sec-num t-mono">05</span>
+      <h2 class="sec-title t-display">Components</h2>
+      <span class="sec-rule"></span>
+      <span class="sec-code t-mono">K-005 / Interactive</span>
+    </header>
+    <p class="sec-lede t-lead reveal">Every control is a framed rectangle, a pill or an ellipse. Hover wipes fill from left to right, a press scales to 96%, and focus draws registration corners in signal orange.</p>
+
+    <div class="demo-grid reveal">
+      <div class="demo span-8">
+        <header class="t-mono"><span>Button</span><span>.btn · 40 / 44 / 56</span></header>
+        <div class="demo-row">
+          <button class="btn btn--primary" type="button">Launch <svg class="i i-arrow"><use href="#g-arrow"/></svg></button>
+          <button class="btn" type="button">Secondary</button>
+          <button class="btn btn--signal" type="button"><svg class="i i-spark"><use href="#g-spark4"/></svg> Signal</button>
+          <button class="btn btn--ghost" type="button">Ghost</button>
+          <button class="btn btn--holo" type="button">Holo foil</button>
+          <button class="btn" type="button" disabled>Disabled</button>
+        </div>
+        <div class="demo-row">
+          <button class="btn btn--sm" type="button">Small</button>
+          <button class="btn" type="button">Medium</button>
+          <button class="btn btn--lg btn--primary" type="button">Large <svg class="i i-arrow"><use href="#g-arrow"/></svg></button>
+          <button class="btn btn--pill num" type="button">09H30 — 18H30</button>
+        </div>
+        <div class="demo-row">
+          <button class="icon-btn" type="button" aria-label="Favorite" data-tip="Favorite"><svg class="spin"><use href="#g-spark4"/></svg></button>
+          <button class="icon-btn" type="button" aria-label="Explore" data-tip="Explore"><svg class="spin"><use href="#g-asterisk"/></svg></button>
+          <button class="icon-btn icon-btn--round" type="button" aria-label="Orbit" data-tip="Orbit"><svg><use href="#g-orbit"/></svg></button>
+          <button class="icon-btn" type="button" aria-label="Next" data-tip="Next"><svg><use href="#g-arrow"/></svg></button>
+        </div>
+      </div>
+
+      <div class="demo span-4">
+        <header class="t-mono"><span>Tag · Status · Label</span><span>.tag</span></header>
+        <div class="demo-row t-mono">
+          <span class="tag">Web3 / NFT</span>
+          <span class="tag tag--solid">Explicit</span>
+          <span class="tag tag--signal"><svg><use href="#g-spark4"/></svg>New</span>
+          <span class="tag tag--holo">Foil</span>
+          <span class="tag tag--ellipse">IS.45</span>
+        </div>
+        <div class="stack-3 t-mono">
+          <span class="status status--live"><i></i>Live transmission</span>
+          <span class="status"><i></i>In orbit</span>
+          <span class="status status--idle"><i></i>Docked</span>
+        </div>
+        <div class="advisory" role="img" aria-label="Experimental advisory: unstable API">
+          <span>Experimental</span><strong>ADVISORY</strong><span>Unstable API</span>
+        </div>
+      </div>
+
+      <div class="demo span-6">
+        <header class="t-mono"><span>Field</span><span>.input · focus me</span></header>
+        <div class="field">
+          <label class="field-label t-mono" for="f-call"><span>Callsign</span><span>F-01</span></label>
+          <div class="control"><input class="input" id="f-call" placeholder="e.g. RUANG-EDIT"></div>
+        </div>
+        <div class="field">
+          <label class="field-label t-mono" for="f-orbit"><span>Orbit class</span><span>F-02</span></label>
+          <div class="control">
+            <select class="input" id="f-orbit"><option>Low Earth · 408 km</option><option>Medium · 20,200 km</option><option>Geostationary · 35,786 km</option></select>
+            <svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><use href="#g-arrow"/></svg>
+          </div>
+        </div>
+        <div class="field field--error">
+          <label class="field-label t-mono" for="f-date"><span>Launch date</span><span>F-03</span></label>
+          <div class="control"><input class="input num" id="f-date" value="31'02'2026" aria-describedby="f-date-hint" aria-invalid="true"></div>
+          <span class="field-hint" id="f-date-hint">That date does not exist on this timeline.</span>
+        </div>
+        <div class="field">
+          <label class="field-label t-mono" for="f-msg"><span>Transmission</span><span>F-04</span></label>
+          <div class="control"><textarea class="input" id="f-msg" placeholder="Your future is very important for you."></textarea></div>
+        </div>
+      </div>
+
+      <div class="demo span-6">
+        <header class="t-mono"><span>Selection</span><span>check · radio · switch · range</span></header>
+        <div class="stack-3">
+          <label class="check"><input type="checkbox" checked><span class="check-box"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" d="M5 12.5L10 17.5 19.5 6.5"/></svg></span>350+ abstract linear illustrations</label>
+          <label class="check"><input type="checkbox"><span class="check-box"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" d="M5 12.5L10 17.5 19.5 6.5"/></svg></span>Constructor for Sketch and Figma</label>
+        </div>
+        <div class="demo-row" role="radiogroup" aria-label="Stock" style="gap: 24px">
+          <label class="radio"><input type="radio" name="stock" checked><span class="radio-dot"></span>Paper</label>
+          <label class="radio"><input type="radio" name="stock"><span class="radio-dot"></span>Sand</label>
+          <label class="radio"><input type="radio" name="stock"><span class="radio-dot"></span>Void</label>
+        </div>
+        <div class="demo-row" style="gap: 24px">
+          <label class="switch"><input type="checkbox" role="switch" checked><span class="switch-track"></span>Grain</label>
+          <label class="switch"><input type="checkbox" role="switch"><span class="switch-track"></span>Scanlines</label>
+        </div>
+        <div class="stack-3">
+          <div class="range-head t-mono"><label for="r-alt">Altitude</label><output class="num" for="r-alt" data-range-out>408 km</output></div>
+          <input class="range" id="r-alt" type="range" min="160" max="2000" value="408" data-range>
+          <div class="range-scale t-mono num"><span>160</span><span>LEO</span><span>2000</span></div>
+        </div>
+      </div>
+
+      <div class="demo span-6">
+        <header class="t-mono"><span>Tabs · Stepper</span><span>.seg · .stepper</span></header>
+        <div>
+          <div class="seg t-mono" role="tablist" aria-label="Mission phase" data-seg>
+            <button role="tab" id="tb-1" aria-selected="true" aria-controls="tp-1">Ignite</button>
+            <button role="tab" id="tb-2" aria-selected="false" aria-controls="tp-2" tabindex="-1">Ascend</button>
+            <button role="tab" id="tb-3" aria-selected="false" aria-controls="tp-3" tabindex="-1">Orbit</button>
+            <button role="tab" id="tb-4" aria-selected="false" aria-controls="tp-4" tabindex="-1">Return</button>
+            <span class="seg-ind" aria-hidden="true"></span>
+          </div>
+          <div class="tab-panel" role="tabpanel" id="tp-1" aria-labelledby="tb-1">Main engines at 100%. The indicator slides with an interruptible transition, so rapid clicks retarget instead of restarting.</div>
+          <div class="tab-panel" role="tabpanel" id="tp-2" aria-labelledby="tb-2" hidden>Passing the Kármán line. Panels enter with a 6px rise and a 4px blur that resolves in 320ms.</div>
+          <div class="tab-panel" role="tabpanel" id="tp-3" aria-labelledby="tb-3" hidden>Stable at 408 km. Use arrow keys to move between tabs.</div>
+          <div class="tab-panel" role="tabpanel" id="tp-4" aria-labelledby="tb-4" hidden>Re-entry corridor locked. Don't panic about your future.</div>
+        </div>
+        <div class="stepper">
+          <button class="icon-btn" type="button" data-step="-1" aria-label="Previous step"><svg style="rotate:180deg"><use href="#g-arrow"/></svg></button>
+          <span class="dot-row" data-steps aria-hidden="true"><i class="on"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+          <span class="stepper-count t-mono num" aria-live="polite" data-step-count>01 / 08</span>
+          <button class="icon-btn" type="button" data-step="1" aria-label="Next step"><svg><use href="#g-arrow"/></svg></button>
+        </div>
+      </div>
+
+      <div class="demo span-6">
+        <header class="t-mono"><span>Notice</span><span>.notice · dismissible</span></header>
+        <div class="notices" data-notices>
+          <div class="notice" role="status">
+            <div class="notice-glyph" aria-hidden="true">R</div>
+            <div class="notice-body"><div class="notice-title"><span>Restricted</span><span class="t-mono">E-17</span></div><p>Under v1.0. Requires an accompanying design review before shipping.</p></div>
+            <button class="notice-close" type="button" aria-label="Dismiss notice"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6L18 18M18 6L6 18" stroke="currentColor" stroke-width="2"/></svg></button>
+          </div>
+          <div class="notice notice--signal" role="status">
+            <div class="notice-glyph" aria-hidden="true">!</div>
+            <div class="notice-body"><div class="notice-title"><span>Signal lost</span><span class="t-mono">W-04</span></div><p>Orbit desynchronized. Retrying uplink in 12 seconds.</p></div>
+            <button class="notice-close" type="button" aria-label="Dismiss notice"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6L18 18M18 6L6 18" stroke="currentColor" stroke-width="2"/></svg></button>
+          </div>
+          <div class="notice" role="status">
+            <div class="notice-glyph" aria-hidden="true"><svg><use href="#g-spark4"/></svg></div>
+            <div class="notice-body"><div class="notice-title"><span>Launched</span><span class="t-mono">S-35</span></div><p>MODULE/035 is live on every surface.</p></div>
+            <button class="notice-close" type="button" aria-label="Dismiss notice"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6L18 18M18 6L6 18" stroke="currentColor" stroke-width="2"/></svg></button>
+          </div>
+        </div>
+        <div><button class="btn btn--sm btn--ghost" type="button" data-reset-notices>Restore notices</button></div>
+      </div>
+
+      <div class="demo span-4">
+        <header class="t-mono"><span>Progress · Loaders</span><span>ambient</span></header>
+        <div class="progress">
+          <div class="progress-head t-mono"><span>Uplink</span><span class="num" data-progress-label>0%</span></div>
+          <div class="progress-track" role="progressbar" aria-label="Uplink" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" data-progress-track><div class="progress-bar" data-progress></div></div>
+        </div>
+        <div class="loaders">
+          <svg class="loader-orbit" viewBox="0 0 72 40" role="img" aria-label="Loading">
+            <ellipse cx="36" cy="20" rx="34" ry="12" fill="none" stroke="currentColor" stroke-width="1"/>
+            <circle cx="36" cy="20" r="7" fill="currentColor"/>
+            <circle r="3.5" style="fill: var(--accent)"><animateMotion dur="2.4s" repeatCount="indefinite" path="M70 20A34 12 0 1 1 2 20A34 12 0 1 1 70 20Z"/></circle>
+          </svg>
+          <span class="dot-loader" role="img" aria-label="Loading"><i style="--i:0"></i><i style="--i:1"></i><i style="--i:2"></i><i style="--i:3"></i><i style="--i:4"></i><i style="--i:5"></i><i style="--i:6"></i><i style="--i:7"></i></span>
+          <svg class="spin-star" role="img" aria-label="Loading"><use href="#g-spark8"/></svg>
+        </div>
+      </div>
+
+      <div class="demo span-4">
+        <header class="t-mono"><span>Parameters</span><span>.strip</span></header>
+        <div class="strip">
+          <div class="stack-3"><span class="t-mono t-muted">Mass</span><strong class="t-display num" style="font-size:28px">4.2t</strong></div>
+          <div class="stack-3"><span class="t-mono t-muted">Delta-v</span><strong class="t-display num" style="font-size:28px">9.4</strong></div>
+          <div class="stack-3"><span class="t-mono t-muted">Crew</span><strong class="t-display num" style="font-size:28px">03</strong></div>
+        </div>
+      </div>
+
+      <div class="demo span-4">
+        <header class="t-mono"><span>Inline code</span><span>.tag + mono</span></header>
+        <p style="font-size:14px">Scope any container to a theme with <span class="tag t-mono is-code">data-theme="dark"</span> and every token beneath it flips, including derived mixes like <span class="tag t-mono is-code">--fg-muted</span>.</p>
+      </div>
+    </div>
+
+    <div class="sub-head reveal"><h3 class="t-wide">Table</h3><span class="t-mono t-muted">Launch schedule · tabular numerals</span></div>
+    <div class="table-wrap reveal">
+      <table class="table">
+        <thead class="t-mono"><tr><th>Code</th><th>Module</th><th>Window</th><th class="right">Altitude</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td class="code">D004</td><td class="title">Paper stock</td><td>09:30 — 11:00</td><td class="right">408 km</td><td><span class="status status--live t-mono"><i></i>Boarding</span></td></tr>
+          <tr><td class="code">N006</td><td class="title">Void shift</td><td>11:30 — 13:15</td><td class="right">20,200 km</td><td><span class="status status--idle t-mono"><i></i>Queued</span></td></tr>
+          <tr><td class="code">Y008</td><td class="title">Holo foil</td><td>14:00 — 15:45</td><td class="right">35,786 km</td><td><span class="tag tag--signal t-mono">Held</span></td></tr>
+          <tr><td class="code">E009</td><td class="title">Signal bus</td><td>16:10 — 18:30</td><td class="right">71,000 km</td><td><span class="status t-mono"><i></i>Nominal</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sub-head reveal"><h3 class="t-wide">Card</h3><span class="t-mono t-muted">Offset lift on hover · press to seat</span></div>
+    <div class="cards" data-stagger>
+      <div class="reveal"><a class="card" href="#composition">
+        <div class="card-head t-mono"><span>N006</span><span>Surface</span></div>
+        <div class="card-art card-art--holo"><svg class="spin" viewBox="0 0 100 100"><use href="#g-spark4"/></svg></div>
+        <div class="card-body"><h4 class="card-title t-condensed">Holo foil</h4><p>Iridescent surfaces for launches, rewards and one-off moments.</p></div>
+        <div class="strip t-mono"><div>Read spec <svg class="i-arrow"><use href="#g-arrow"/></svg></div></div>
+      </a></div>
+      <div class="reveal"><a class="card" href="#glyphs">
+        <div class="card-head t-mono"><span>D004</span><span>Depth</span></div>
+        <div class="card-art card-art--tunnel"><svg data-tunnel viewBox="0 0 200 120" preserveAspectRatio="none"></svg></div>
+        <div class="card-body"><h4 class="card-title t-condensed">Tunnel</h4><p>Perspective grids signal entry, depth and loading.</p></div>
+        <div class="strip t-mono"><div>Read spec <svg class="i-arrow"><use href="#g-arrow"/></svg></div></div>
+      </a></div>
+      <div class="reveal"><a class="card" href="#glyphs">
+        <div class="card-head t-mono"><span>Y008</span><span>Network</span></div>
+        <div class="card-art"><svg class="grow" viewBox="0 0 100 100"><g class="globe" data-globe data-cx="50" data-cy="50" data-r="46" data-lat="6" data-lon="8"></g></svg></div>
+        <div class="card-body"><h4 class="card-title t-condensed">Globe</h4><p>Wireframe spheres for anything global, networked or live.</p></div>
+        <div class="strip t-mono"><div>Read spec <svg class="i-arrow"><use href="#g-arrow"/></svg></div></div>
+      </a></div>
+      <div class="reveal"><a class="card" href="#glyphs">
+        <div class="card-head t-mono"><span>E009</span><span>Flow</span></div>
+        <div class="card-art"><svg class="grow" viewBox="0 0 100 100"><use href="#g-contour"/></svg></div>
+        <div class="card-body"><h4 class="card-title t-condensed">Contour</h4><p>Stacked contours describe funnels, flows and gravity.</p></div>
+        <div class="strip t-mono"><div>Read spec <svg class="i-arrow"><use href="#g-arrow"/></svg></div></div>
+      </a></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================================================================== 06 MOTION -->
+<section class="section" id="motion">
+  <div class="container">
+    <header class="sec-head reveal">
+      <span class="sec-num t-mono">06</span>
+      <h2 class="sec-title t-display">Motion</h2>
+      <span class="sec-rule"></span>
+      <span class="sec-code t-mono">M-006 / Tokens · Principles</span>
+    </header>
+    <p class="sec-lede t-lead reveal">Motion is mechanical and quiet. Things slide on rails, orbit on ellipses and settle without bounce. Press Run on a specimen, then press again mid-flight to watch it retarget instead of restarting.</p>
+
+    <div class="motion-grid reveal">
+      <div class="motion-card" style="--dur: var(--dur-tap); --ease: var(--ease-out)">
+        <header><h4 class="t-condensed">Tap</h4><span class="t-mono t-muted num">120ms</span></header>
+        <svg class="curve" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><path class="grid-line" d="M0 0H100M0 50H100M0 100H100M0 0V100M50 0V100M100 0V100"/><path class="path" d="M0 100C20 100 0 0 100 0"/></svg>
+        <div class="track" aria-hidden="true"><b><i></i></b></div>
+        <div class="motion-foot"><span class="t-mono t-muted is-code">--dur-tap · --ease-out</span><button class="btn btn--sm" type="button" data-run>Run</button></div>
+      </div>
+      <div class="motion-card" style="--dur: var(--dur-hover); --ease: var(--ease-out)">
+        <header><h4 class="t-condensed">Hover</h4><span class="t-mono t-muted num">200ms</span></header>
+        <svg class="curve" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><path class="grid-line" d="M0 0H100M0 50H100M0 100H100M0 0V100M50 0V100M100 0V100"/><path class="path" d="M0 100C20 100 0 0 100 0"/></svg>
+        <div class="track" aria-hidden="true"><b><i></i></b></div>
+        <div class="motion-foot"><span class="t-mono t-muted is-code">--dur-hover · --ease-out</span><button class="btn btn--sm" type="button" data-run>Run</button></div>
+      </div>
+      <div class="motion-card" style="--dur: var(--dur-enter); --ease: var(--ease-out)">
+        <header><h4 class="t-condensed">Enter</h4><span class="t-mono t-muted num">320ms</span></header>
+        <svg class="curve" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><path class="grid-line" d="M0 0H100M0 50H100M0 100H100M0 0V100M50 0V100M100 0V100"/><path class="path" d="M0 100C20 100 0 0 100 0"/></svg>
+        <div class="track" aria-hidden="true"><b><i></i></b></div>
+        <div class="motion-foot"><span class="t-mono t-muted is-code">--dur-enter · --ease-out</span><button class="btn btn--sm" type="button" data-run>Run</button></div>
+      </div>
+      <div class="motion-card" style="--dur: var(--dur-reveal); --ease: var(--ease-in-out)">
+        <header><h4 class="t-condensed">Reveal</h4><span class="t-mono t-muted num">640ms</span></header>
+        <svg class="curve" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><path class="grid-line" d="M0 0H100M0 50H100M0 100H100M0 0V100M50 0V100M100 0V100"/><path class="path" d="M0 100C65 100 35 0 100 0"/></svg>
+        <div class="track" aria-hidden="true"><b><i></i></b></div>
+        <div class="motion-foot"><span class="t-mono t-muted is-code">--dur-reveal · --ease-in-out</span><button class="btn btn--sm" type="button" data-run>Run</button></div>
+      </div>
+      <div class="motion-card" style="--dur: 160ms; --ease: var(--ease-in)">
+        <header><h4 class="t-condensed">Exit</h4><span class="t-mono t-muted num">160ms</span></header>
+        <svg class="curve" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><path class="grid-line" d="M0 0H100M0 50H100M0 100H100M0 0V100M50 0V100M100 0V100"/><path class="path" d="M0 100C40 100 100 0 100 0"/></svg>
+        <div class="track" aria-hidden="true"><b><i></i></b></div>
+        <div class="motion-foot"><span class="t-mono t-muted is-code">160ms · --ease-in</span><button class="btn btn--sm" type="button" data-run>Run</button></div>
+      </div>
+      <div class="motion-card">
+        <header><h4 class="t-condensed">Orbit</h4><span class="t-mono t-muted num">24s · linear</span></header>
+        <svg class="curve" viewBox="0 0 300 112" aria-hidden="true">
+          <g class="globe" data-globe data-cx="80" data-cy="56" data-r="54" data-lat="6" data-lon="7"></g>
+          <g transform="translate(164 4)"><use class="twinkle" href="#g-spark4" width="68" height="68"/></g>
+          <g transform="translate(246 56)"><use class="twinkle" href="#g-spark4" width="36" height="36" style="--d:-2s"/></g>
+          <g transform="translate(196 66)"><use class="twinkle" href="#g-spark8" width="46" height="46" style="--d:-3.5s; color: var(--accent)"/></g>
+        </svg>
+        <div class="motion-foot"><span class="t-mono t-muted">Ambient · pauses off-screen</span><span class="status status--live t-mono"><i></i>Running</span></div>
+      </div>
+    </div>
+
+    <ol class="principles reveal">
+      <li><b>Transitions for state</b>Hover, toggles and tab indicators use CSS transitions, so they can be interrupted and retargeted mid-flight.</li>
+      <li><b>Keyframes for ambience</b>Orbits, marquees, twinkles and foil drift loop quietly in the background and never block input.</li>
+      <li><b>Enter louder than exit</b>Enter with a 12 to 16px rise and a 4px blur. Exit with 8px in half the time.</li>
+      <li><b>No bounce</b>Mechanical ease-out curves only. Things land, they don't wobble.</li>
+      <li><b>Press is 0.96</b>Every pressable surface scales to 96% or seats its offset shadow back into the page.</li>
+      <li><b>Respect stillness</b><span><span class="tag t-mono is-code">prefers-reduced-motion</span> collapses all motion into instant state changes.</span></li>
+    </ol>
+  </div>
+</section>
+
+<!-- ===================================================================== 07 COMPOSITION -->
+<section class="section" id="composition">
+  <div class="container">
+    <header class="sec-head reveal">
+      <span class="sec-num t-mono">07</span>
+      <h2 class="sec-title t-display">Posters</h2>
+      <span class="sec-rule"></span>
+      <span class="sec-code t-mono">P-007 / Composition</span>
+    </header>
+    <p class="sec-lede t-lead reveal">The system at full volume. Each poster scopes its own <span class="tag t-mono is-code">data-theme</span>, so it keeps its stock whatever the page theme is. Move your pointer across the foil.</p>
+
+    <div class="posters">
+      <div class="poster-frame reveal">
+        <article class="poster" data-theme="dark" aria-label="Poster: Signal, Sunday service">
+          <div class="poster-meta t-mono"><span>Sunday signal</span><i class="meta-rule"></i><span>Module</span></div>
+          <h3 class="poster-title t-display">Signal</h3>
+          <div class="holo" data-holo></div>
+          <div class="strip strip--poster">
+            <div><svg class="icon" viewBox="0 0 100 100" aria-hidden="true"><g class="globe" data-globe data-cx="50" data-cy="50" data-r="46" data-lat="5" data-lon="6"></g></svg></div>
+            <div class="t-mono" style="text-align:center">A place for grids,<br>orbits and hairlines</div>
+            <div><svg class="orbit-icon" viewBox="0 28 100 44" aria-hidden="true"><use href="#g-orbit" width="100" height="100"/></svg></div>
+            <div><span class="is45 num">IS.45</span></div>
+            <div><svg class="barcode" data-barcode="45" viewBox="0 0 160 40" preserveAspectRatio="none" aria-hidden="true"></svg></div>
+          </div>
+          <div class="poster-pill num">09H30 — 18H30</div>
+          <div class="poster-foot t-mono"><span class="mini"><svg aria-hidden="true"><use href="#g-planet"/></svg>Module</span><span>Rua das Órbitas, 486 — Setor 7</span></div>
+        </article>
+      </div>
+
+      <div class="poster-frame reveal">
+        <article class="poster poster--grid" data-theme="light" data-stock="sand" aria-label="Poster: Don't panic about your future">
+          <div class="p-tunnel"><svg data-tunnel viewBox="0 0 200 120" preserveAspectRatio="none" aria-hidden="true"></svg><span class="p-tunnel-label">Module edit</span></div>
+          <div class="p-labels">
+            <div class="advisory" role="img" aria-label="Parental advisory, explicit content"><span>Parental</span><strong>ADVISORY</strong><span>Explicit content</span></div>
+            <p>The future is simply the time after now. Its arrival is considered certain, a consequence of time and the laws of physics.</p>
+          </div>
+          <div class="p-date"><strong class="num">28'09'2026</strong><svg class="barcode" data-barcode="28" viewBox="0 0 160 40" preserveAspectRatio="none" aria-hidden="true"></svg></div>
+          <div class="p-dots"><span class="dot-row" data-dot-cycle aria-hidden="true"><i></i><i></i><i></i><i></i><i class="on"></i><i></i><i></i><i class="on"></i><i></i><i></i></span><p class="t-mono"><span>Your</span><span>future</span><span>is</span><span>very</span><span>important</span></p></div>
+          <div class="p-orb"><svg viewBox="0 0 200 200" aria-hidden="true">
+            <g class="globe" data-globe data-cx="100" data-cy="104" data-r="80" data-lat="7" data-lon="8"></g>
+            <g transform="translate(138 0)"><use class="twinkle" href="#g-spark8" width="62" height="62"/></g>
+            <g transform="translate(0 150)"><use class="twinkle" href="#g-spark4" width="40" height="40" style="--d:-2.2s"/></g>
+            <circle cx="24" cy="30" r="4" fill="currentColor"/><circle cx="186" cy="176" r="6" fill="currentColor"/>
+          </svg></div>
+          <div class="p-stack"><h3 class="t-condensed">Don't<br>panic<br>about<br>your<br>future</h3><span class="hl t-display">Fearless</span></div>
+          <p class="p-echo t-wide" aria-label="The future"><span>The future</span><span aria-hidden="true">The future</span><span aria-hidden="true">The future</span></p>
+          <div class="p-sign"><span class="pat pat-plus"></span><span class="pat pat-hatch"></span><strong>Studio Module</strong></div>
+        </article>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+<footer class="site-footer">
+  <div class="container">
+    <div class="hero-meta t-mono"><span>End of transmission</span><i class="meta-rule"></i><span class="num">035 / 035</span></div>
+    <p class="footer-mega t-display" aria-hidden="true">Module</p>
+    <div class="footer-row t-mono">
+      <span>MODULE/035 — Geometric Retro-Futurism Design System</span>
+      <span class="num">© 2026 · Paper / Void / Signal</span>
+      <a href="#top">Back to top <svg aria-hidden="true"><use href="#g-arrow"/></svg></a>
+    </div>
+  </div>
+</footer>
+
+<div class="toast t-mono" role="status" aria-live="polite" data-toast><svg aria-hidden="true"><use href="#g-spark4"/></svg><span data-toast-text>Copied</span></div>
+
+<script>
+(() => {
+  const root = document.documentElement;
+  const $ = (s, c = document) => c.querySelector(s);
+  const $$ = (s, c = document) => [...c.querySelectorAll(s)];
+  const NS = "http://www.w3.org/2000/svg";
+  const reduceMQ = matchMedia("(prefers-reduced-motion: reduce)");
+  const reduced = () => reduceMQ.matches;
+  const pad = (n, l = 2) => String(n).padStart(l, "0");
+  const svgEl = (tag, attrs, parent) => {
+    const el = document.createElementNS(NS, tag);
+    for (const k in attrs) el.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(el);
+    return el;
+  };
+
+  /* Generated art ---------------------------------------------------------- */
+  const globes = [];
+  $$("[data-globe]").forEach((g) => {
+    const d = g.dataset, cx = +d.cx, cy = +d.cy, r = +d.r, lat = +d.lat || 6, lon = +d.lon || 6;
+    svgEl("circle", { cx, cy, r, class: "globe-fill" }, g);
+    for (let i = 1; i < lat; i++) {
+      const p = (i / lat - 0.5) * Math.PI, w = r * Math.cos(p);
+      svgEl("ellipse", { cx, cy: cy + r * Math.sin(p), rx: w, ry: w * 0.14 }, g);
+    }
+    const meridians = Array.from({ length: lon }, () => svgEl("ellipse", { cx, cy, rx: 0, ry: r }, g));
+    svgEl("circle", { cx, cy, r }, g);
+    globes.push({ svg: g.ownerSVGElement, r, meridians });
+  });
+  const drawGlobe = (o, t) => {
+    const n = o.meridians.length;
+    o.meridians.forEach((m, i) => m.setAttribute("rx", (o.r * Math.abs(Math.sin(t + (i * Math.PI) / n))).toFixed(2)));
+  };
+  globes.forEach((o) => drawGlobe(o, 0.4));
+  if (!reduced() && globes.length) {
+    const visible = new WeakMap();
+    const io = new IntersectionObserver((es) => es.forEach((e) => visible.set(e.target, e.isIntersecting)));
+    globes.forEach((o) => io.observe(o.svg));
+    const frame = (now) => {
+      const t = 0.4 + (now / 24000) * Math.PI * 2;
+      globes.forEach((o) => visible.get(o.svg) && drawGlobe(o, t));
+      requestAnimationFrame(frame);
+    };
+    requestAnimationFrame(frame);
+  }
+
+  $$("[data-tunnel]").forEach((svg) => {
+    const W = 200, H = 120, k = 0.26, iw = W * k, ih = H * k, ix = (W - iw) / 2, iy = (H - ih) / 2, N = 8;
+    const g = svgEl("g", { class: "tunnel" }, svg);
+    const line = (x1, y1, x2, y2) => svgEl("line", { x1, y1, x2, y2 }, g);
+    for (let i = 0; i <= N; i++) {
+      const f = i / N;
+      line(W * f, 0, ix + iw * f, iy);
+      line(W * f, H, ix + iw * f, iy + ih);
+      line(0, H * f, ix, iy + ih * f);
+      line(W, H * f, ix + iw, iy + ih * f);
+    }
+    svgEl("rect", { x: 0.5, y: 0.5, width: W - 1, height: H - 1 }, g);
+    for (let i = 0; i < 5; i++) svgEl("rect", { x: ix, y: iy, width: iw, height: ih, class: "tunnel-frame", style: `--i:${i}` }, g);
+    svgEl("rect", { x: ix, y: iy, width: iw, height: ih, class: "tunnel-core" }, g);
+  });
+
+  $$("[data-barcode]").forEach((svg) => {
+    let seed = (+svg.dataset.barcode || 7) * 7919;
+    const rand = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    const g = svgEl("g", { fill: "currentColor" }, svg);
+    for (let x = 0; x < 158;) {
+      const w = [1, 1, 1.5, 2, 3][Math.floor(rand() * 5)];
+      svgEl("rect", { x, y: 0, width: w, height: 40 }, g);
+      x += w + [1, 1.5, 2, 3][Math.floor(rand() * 4)];
+    }
+  });
+
+  $$("[data-pixels]").forEach((svg) => {
+    const cols = 48, rows = 12, rowEls = [];
+    for (let y = 0; y < rows; y++) {
+      const row = svgEl("g", { fill: "currentColor" }, svg);
+      rowEls.push(row);
+      if (y % 4 === 3) continue;
+      for (let x = 0, on = Math.random() > 0.5; x < cols; on = !on) {
+        const len = 1 + Math.floor(Math.random() * (on ? 4 : 3));
+        if (on) svgEl("rect", { x, y, width: Math.min(len, cols - x), height: 1.02 }, row);
+        x += len;
+      }
+    }
+    if (reduced()) return;
+    setInterval(() => {
+      const row = rowEls[Math.floor(Math.random() * rows)];
+      row.setAttribute("transform", `translate(${Math.random() > 0.5 ? 2 : -2} 0)`);
+      setTimeout(() => row.removeAttribute("transform"), 140);
+    }, 380);
+  });
+
+  if (reduced()) $$("svg").forEach((s) => s.pauseAnimations && s.pauseAnimations());
+
+  /* Theme ------------------------------------------------------------------ */
+  const toggle = $("[data-theme-toggle]");
+  const ctx = document.createElement("canvas").getContext("2d", { willReadFrequently: true });
+  const tokenProbe = document.body.appendChild(document.createElement("i"));
+  tokenProbe.hidden = true;
+  const toHex = (css) => {
+    ctx.clearRect(0, 0, 1, 1);
+    ctx.fillStyle = "#010203";
+    ctx.fillStyle = css;
+    if (ctx.fillStyle === "#010203") return css;
+    ctx.fillRect(0, 0, 1, 1);
+    const [r, g, b] = ctx.getImageData(0, 0, 1, 1).data;
+    return "#" + [r, g, b].map((v) => v.toString(16).padStart(2, "0")).join("").toUpperCase();
+  };
+  const renderTokens = () => $$("[data-token]").forEach((el) => {
+    tokenProbe.style.color = `var(${el.dataset.token})`;
+    el.textContent = toHex(getComputedStyle(tokenProbe).color);
+  });
+  const syncTheme = () => {
+    toggle.setAttribute("aria-checked", String(root.dataset.theme === "dark"));
+    renderTokens();
+  };
+  const setTheme = (next) => {
+    const apply = () => {
+      root.dataset.theme = next;
+      try { localStorage.setItem("module-theme", next); } catch (e) {}
+      syncTheme();
+    };
+    if (!document.startViewTransition || reduced()) return apply();
+    const k = $(".ts-knob", toggle).getBoundingClientRect();
+    const x = k.left + k.width / 2, y = k.top + k.height / 2;
+    const end = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
+    document.startViewTransition(apply).ready.then(() => {
+      root.animate(
+        { clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${end}px at ${x}px ${y}px)`] },
+        { duration: 720, easing: "cubic-bezier(0.65, 0, 0.35, 1)", pseudoElement: "::view-transition-new(root)" }
+      );
+    });
+  };
+  toggle.addEventListener("click", () => setTheme(root.dataset.theme === "dark" ? "light" : "dark"));
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", (e) => {
+    let saved = null;
+    try { saved = localStorage.getItem("module-theme"); } catch (err) {}
+    if (!saved) { root.dataset.theme = e.matches ? "dark" : "light"; syncTheme(); }
+  });
+  syncTheme();
+
+  /* Clock ------------------------------------------------------------------ */
+  const clock = $("[data-clock]");
+  const tick = () => { const d = new Date(); clock.textContent = `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`; };
+  tick();
+  setInterval(tick, 1000);
+
+  /* Reveal · counters ------------------------------------------------------ */
+  $$("[data-stagger]").forEach((p) => [...p.children].forEach((c, i) => c.style.setProperty("--i", i)));
+  const revealIO = new IntersectionObserver((es) => es.forEach((e) => {
+    if (!e.isIntersecting) return;
+    e.target.classList.add("is-in");
+    revealIO.unobserve(e.target);
+  }), { rootMargin: "0px 0px -6% 0px", threshold: 0.06 });
+  $$(".reveal").forEach((el) => revealIO.observe(el));
+
+  const countIO = new IntersectionObserver((es) => es.forEach((e) => {
+    if (!e.isIntersecting) return;
+    countIO.unobserve(e.target);
+    const el = e.target, target = +el.dataset.count;
+    if (reduced()) { el.textContent = pad(target); return; }
+    const t0 = performance.now();
+    const step = (now) => {
+      const p = Math.min(1, (now - t0) / 1400);
+      el.textContent = pad(Math.round(target * (1 - Math.pow(1 - p, 3))));
+      if (p < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }));
+  $$("[data-count]").forEach((el) => countIO.observe(el));
+
+  /* Copy · toast ----------------------------------------------------------- */
+  const toast = $("[data-toast]"), toastText = $("[data-toast-text]");
+  let toastTimer;
+  const showToast = (msg) => {
+    toastText.textContent = msg;
+    toast.classList.add("is-on");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove("is-on"), 1800);
+  };
+  const copy = async (text) => {
+    try { await navigator.clipboard.writeText(text); return true; } catch (e) {
+      const ta = Object.assign(document.createElement("textarea"), { value: text });
+      ta.style.cssText = "position:fixed;opacity:0";
+      document.body.append(ta);
+      ta.select();
+      const ok = document.execCommand("copy");
+      ta.remove();
+      return ok;
+    }
+  };
+  $$("[data-copy]").forEach((b) => b.addEventListener("click", async () => {
+    const v = b.dataset.copy;
+    showToast((await copy(v)) ? `Copied ${v}` : v);
+  }));
+
+  /* Tabs ------------------------------------------------------------------- */
+  $$("[data-seg]").forEach((seg) => {
+    const tabs = $$('[role="tab"]', seg), ind = $(".seg-ind", seg);
+    const place = (tab, instant) => {
+      if (instant) ind.style.transition = "none";
+      seg.style.setProperty("--x", tab.offsetLeft + "px");
+      seg.style.setProperty("--w", tab.offsetWidth + "px");
+      if (instant) requestAnimationFrame(() => requestAnimationFrame(() => (ind.style.transition = "")));
+    };
+    const current = () => tabs.find((t) => t.getAttribute("aria-selected") === "true");
+    const select = (tab, focus) => {
+      tabs.forEach((t) => {
+        const on = t === tab;
+        t.setAttribute("aria-selected", String(on));
+        t.tabIndex = on ? 0 : -1;
+        document.getElementById(t.getAttribute("aria-controls")).hidden = !on;
+      });
+      place(tab);
+      if (focus) tab.focus();
+    };
+    tabs.forEach((t, i) => {
+      t.addEventListener("click", () => select(t));
+      t.addEventListener("keydown", (e) => {
+        const d = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
+        if (d) { e.preventDefault(); select(tabs[(i + d + tabs.length) % tabs.length], true); }
+      });
+    });
+    place(current(), true);
+    document.fonts && document.fonts.ready.then(() => place(current(), true));
+    addEventListener("resize", () => place(current(), true));
+  });
+
+  /* Stepper ---------------------------------------------------------------- */
+  const steps = $$("[data-steps] i"), stepCount = $("[data-step-count]");
+  let step = 0;
+  $$("[data-step]").forEach((b) => b.addEventListener("click", () => {
+    step = (step + +b.dataset.step + steps.length) % steps.length;
+    steps.forEach((s, i) => s.classList.toggle("on", i === step));
+    stepCount.textContent = `${pad(step + 1)} / ${pad(steps.length)}`;
+  }));
+
+  /* Range ------------------------------------------------------------------ */
+  $$("[data-range]").forEach((r) => {
+    const out = $("[data-range-out]", r.parentElement);
+    const update = () => {
+      r.style.setProperty("--p", ((r.value - r.min) / (r.max - r.min)) * 100 + "%");
+      out.textContent = `${Number(r.value).toLocaleString("en-US")} km`;
+    };
+    r.addEventListener("input", update);
+    update();
+  });
+
+  /* Notices ---------------------------------------------------------------- */
+  const noticeWrap = $("[data-notices]");
+  noticeWrap.addEventListener("click", (e) => {
+    const btn = e.target.closest(".notice-close");
+    if (!btn) return;
+    const n = btn.closest(".notice");
+    const done = () => { n.hidden = true; n.classList.remove("is-leaving"); };
+    n.classList.remove("is-entering");
+    n.classList.add("is-leaving");
+    reduced() ? done() : n.addEventListener("transitionend", done, { once: true });
+  });
+  $("[data-reset-notices]").addEventListener("click", () => {
+    $$(".notice[hidden]", noticeWrap).forEach((n, i) => {
+      n.hidden = false;
+      n.style.animationDelay = i * 80 + "ms";
+      n.classList.add("is-entering");
+      n.addEventListener("animationend", () => n.classList.remove("is-entering"), { once: true });
+    });
+  });
+
+  /* Progress --------------------------------------------------------------- */
+  const bar = $("[data-progress]"), barLabel = $("[data-progress-label]"), barTrack = $("[data-progress-track]");
+  let prog = 0;
+  const setProg = (v) => {
+    prog = v;
+    bar.style.setProperty("--p", v + "%");
+    barLabel.textContent = pad(v, 3) + "%";
+    barTrack.setAttribute("aria-valuenow", v);
+  };
+  if (reduced()) setProg(64);
+  else setInterval(() => setProg(prog >= 100 ? 0 : Math.min(100, prog + 4 + Math.floor(Math.random() * 14))), 900);
+
+  /* Motion specimens ------------------------------------------------------- */
+  $$("[data-run]").forEach((b) => b.addEventListener("click", () => {
+    const on = b.closest(".motion-card").classList.toggle("is-run");
+    b.textContent = on ? "Return" : "Run";
+  }));
+
+  /* Holo foil · dot cycle -------------------------------------------------- */
+  $$("[data-holo]").forEach((h) => h.addEventListener("pointermove", (e) => {
+    const r = h.getBoundingClientRect();
+    h.style.setProperty("--mx", ((e.clientX - r.left) / r.width) * 100 + "%");
+    h.style.setProperty("--my", ((e.clientY - r.top) / r.height) * 100 + "%");
+  }));
+  const cycle = $("[data-dot-cycle]");
+  if (cycle && !reduced()) {
+    const dots = $$("i", cycle);
+    let k = 4;
+    setInterval(() => {
+      k = (k + 1) % dots.length;
+      dots.forEach((d, i) => d.classList.toggle("on", i === k || i === (k + 3) % dots.length));
+    }, 900);
+  }
+})();
+</script>
+</body>
+</html>
