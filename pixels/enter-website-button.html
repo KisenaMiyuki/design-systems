@@ -1,0 +1,429 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pixel Hatch Button — Enter Website</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --color--text: #efe6d6;
+    --color--bg: #0a0a09;
+    --typography--font-family--mono: "PP Supply Mono", "DM Mono", ui-monospace, monospace;
+    --_type-scale---font-size-button: .6875rem;
+    --_type-scale---tracking-tight: -.01em;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+
+  html, body { height: 100%; margin: 0; }
+
+  body {
+    display: grid;
+    grid-template-rows: 1fr auto;
+    background:
+      radial-gradient(120% 80% at 50% 45%, #3a3b3a 0%, #1c1d1c 45%, var(--color--bg) 100%);
+    color: var(--color--text);
+    font-family: var(--typography--font-family--mono);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  .stage {
+    display: grid;
+    place-items: center;
+    align-content: center;
+    gap: 1.75rem;
+    padding: 4rem 1.5rem;
+  }
+
+  .tagline {
+    margin: 0;
+    font-size: .875rem;
+    letter-spacing: -.01em;
+    opacity: .9;
+  }
+
+  .muted {
+    margin: 0;
+    font-size: .8125rem;
+    opacity: .55;
+  }
+
+  .variants {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 4rem;
+    padding: 2.5rem 1.5rem 3rem;
+    border-top: 1px solid rgba(239, 230, 214, .08);
+  }
+
+  .variant {
+    display: grid;
+    justify-items: center;
+    gap: 1rem;
+  }
+
+  .variant__name {
+    font-size: .625rem;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    opacity: .45;
+  }
+
+  /* ── Pixel Hatch Button ─────────────────────────────── */
+
+  .btn-ph {
+    --ph-ink: var(--color--text, #eae9e6);
+    --ph-fill-ink: var(--color--bg, #181818);
+    --ph-duration: .42s;
+    --ph-exit-duration: .32s;
+    --ph-ease: cubic-bezier(.22, 1, .36, 1);
+    --ph-fill-duration: .525s;
+    --btnlab-ease: cubic-bezier(.625, .05, 0, 1);
+    position: relative;
+    display: flex;
+    width: calc(20em - 1px);
+    height: 4em;
+    padding: 0;
+    overflow: visible;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: var(--ph-fill-ink);
+    clip-path: inset(0 calc(100% - 4em) 0 0);
+    transition: clip-path var(--ph-exit-duration) var(--ph-ease);
+    font-family: var(--typography--font-family--mono);
+    font-size: var(--_type-scale---font-size-button, .6875rem);
+    font-weight: 400;
+    line-height: 1;
+    letter-spacing: var(--_type-scale---tracking-tight, -.01em);
+    text-decoration: none;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+
+  /* Expand variant */
+
+  .btn-ph__icon {
+    position: relative;
+    z-index: 2;
+    display: block;
+    flex: 0 0 4em;
+    width: 4em;
+    height: 4em;
+    overflow: hidden;
+    border: 1px solid var(--ph-ink);
+    background: var(--ph-ink);
+  }
+
+  .btn-ph__arrow-track {
+    position: relative;
+    display: block;
+    width: 100%;
+    height: 100%;
+    transform: translate3d(0, 0, 0);
+    transition: transform var(--ph-duration) var(--ph-ease) 45ms;
+  }
+
+  .btn-ph__arrow-track > span {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    color: var(--ph-fill-ink);
+    font-size: 1rem;
+  }
+
+  .btn-ph__arrow-track > span:nth-child(2) { transform: translate3d(-100%, 100%, 0); }
+
+  .btn-ph__panel {
+    position: relative;
+    z-index: 1;
+    display: block;
+    flex: 0 0 16em;
+    width: 16em;
+    height: 4em;
+    margin-left: -1px;
+    overflow: hidden;
+    border: 1px solid var(--ph-ink);
+    background: transparent;
+    clip-path: inset(0 100% 0 0);
+    transition: clip-path var(--ph-exit-duration) var(--ph-ease);
+    contain: paint;
+  }
+
+  .btn-ph__pixels {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    display: grid;
+    grid-template-columns: repeat(18, minmax(0, 1fr));
+    grid-template-rows: repeat(6, minmax(0, 1fr));
+    pointer-events: none;
+  }
+
+  .btn-ph__pixels i,
+  .btn-ph__fill-pixels i {
+    display: block;
+    background: var(--ph-ink);
+    opacity: 0;
+    /* Hairline overlap hides sub-pixel seams between cells */
+    outline: .6px solid var(--ph-ink);
+    outline-offset: -.4px;
+  }
+
+  .btn-ph__pixels i { transition: opacity 220ms cubic-bezier(.66, 0, .34, 1) var(--ph-exit-delay); }
+
+  .btn-ph__label {
+    position: relative;
+    z-index: 2;
+    display: grid;
+    place-items: center;
+    width: 100%;
+    height: 100%;
+    padding: 0 1.4545em;
+    color: var(--ph-fill-ink);
+    white-space: nowrap;
+    clip-path: inset(0 100% 0 0);
+    transition: clip-path .34s var(--ph-ease) 70ms;
+  }
+
+  .btn-ph__corners {
+    position: absolute;
+    inset: -6px;
+    z-index: 4;
+    pointer-events: none;
+  }
+
+  .btn-ph__corner {
+    --ph-corner-x: 0;
+    --ph-corner-y: 0;
+    --ph-corner-line: 1px solid color-mix(in srgb, var(--ph-fill-ink) 30%, transparent);
+    position: absolute;
+    display: block;
+    width: 5px;
+    height: 5px;
+    opacity: 0;
+    transform: translate3d(var(--ph-corner-x), var(--ph-corner-y), 0);
+    transition: opacity 110ms linear, transform 180ms var(--ph-ease);
+  }
+
+  .btn-ph__corner--tl { --ph-corner-x: -3px; --ph-corner-y: -3px; inset: 0 auto auto 0; border-top: var(--ph-corner-line); border-left: var(--ph-corner-line); }
+  .btn-ph__corner--tr { --ph-corner-x: 3px; --ph-corner-y: -3px; inset: 0 0 auto auto; border-top: var(--ph-corner-line); border-right: var(--ph-corner-line); }
+  .btn-ph__corner--br { --ph-corner-x: 3px; --ph-corner-y: 3px; inset: auto 0 0 auto; border-right: var(--ph-corner-line); border-bottom: var(--ph-corner-line); }
+  .btn-ph__corner--bl { --ph-corner-x: -3px; --ph-corner-y: 3px; inset: auto auto 0 0; border-bottom: var(--ph-corner-line); border-left: var(--ph-corner-line); }
+
+  @media (hover: hover) and (pointer: fine) {
+    .btn-ph:hover { clip-path: inset(0); transition-duration: var(--ph-duration); }
+    .btn-ph:hover .btn-ph__panel { clip-path: inset(0); transition-duration: var(--ph-duration); }
+    .btn-ph:hover .btn-ph__pixels i { opacity: 1; transition-delay: var(--ph-enter-delay); }
+    .btn-ph:hover .btn-ph__label { clip-path: inset(0); }
+    .btn-ph:hover .btn-ph__arrow-track { transform: translate3d(100%, -100%, 0); }
+    .btn-ph:hover .btn-ph__corner {
+      --ph-corner-x: 0px;
+      --ph-corner-y: 0px;
+      opacity: 1;
+      transition: opacity 160ms linear 140ms, transform 280ms var(--ph-ease) 110ms;
+    }
+  }
+
+  .btn-ph:focus-visible { clip-path: inset(0); transition-duration: var(--ph-duration); outline: 2px solid var(--ph-ink); outline-offset: 3px; }
+  .btn-ph:focus-visible .btn-ph__panel { clip-path: inset(0); transition-duration: var(--ph-duration); }
+  .btn-ph:focus-visible .btn-ph__pixels i { opacity: 1; transition-delay: var(--ph-enter-delay); }
+  .btn-ph:focus-visible .btn-ph__label { clip-path: inset(0); }
+  .btn-ph:focus-visible .btn-ph__arrow-track { transform: translate3d(100%, -100%, 0); }
+  .btn-ph:focus-visible .btn-ph__corner { --ph-corner-x: 0px; --ph-corner-y: 0px; opacity: 1; }
+
+  /* Fill variant — the one used on the preloader */
+
+  .btn-ph--fill {
+    display: inline-grid;
+    grid-template-columns: auto 4em;
+    width: max-content;
+    overflow: hidden;
+    border: 1px solid var(--ph-ink);
+    clip-path: none;
+    transition: none;
+  }
+
+  .btn-ph__fill-pixels {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    display: grid;
+    grid-template-columns: repeat(24, minmax(0, 1fr));
+    grid-template-rows: repeat(6, minmax(0, 1fr));
+    pointer-events: none;
+  }
+
+  .btn-ph__fill-pixels i { transition: opacity 260ms cubic-bezier(.66, 0, .34, 1) var(--ph-exit-delay); }
+
+  .btn-ph__fill-label,
+  .btn-ph__fill-icon {
+    position: relative;
+    z-index: 2;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  .btn-ph__fill-label { padding: 0 1.4545em; }
+
+  .btn-ph__fill-label-track {
+    display: grid;
+    grid-template-rows: repeat(2, 50%);
+    width: 100%;
+    height: 200%;
+    transform: translate3d(0, 0, 0);
+    transition: transform var(--ph-fill-duration) var(--btnlab-ease);
+  }
+
+  .btn-ph__fill-label-track > * { display: grid; place-items: center; white-space: nowrap; }
+
+  .btn-ph__fill-label-track > :first-child,
+  .btn-ph__fill-arrow-track > span:first-child { color: var(--ph-ink); }
+
+  .btn-ph__fill-label-track > :nth-child(2),
+  .btn-ph__fill-arrow-track > span:nth-child(2) { color: var(--ph-fill-ink); }
+
+  .btn-ph__fill-icon { font-size: 1rem; }
+
+  .btn-ph__fill-icon::before {
+    content: "";
+    position: absolute;
+    inset: -1px auto -1px 0;
+    z-index: 3;
+    width: 1px;
+    background: var(--ph-ink);
+    transition: background-color var(--ph-fill-duration) var(--btnlab-ease);
+  }
+
+  .btn-ph__fill-arrow-track {
+    position: relative;
+    display: block;
+    width: 100%;
+    height: 100%;
+    transform: translate3d(0, 0, 0);
+    transition: transform var(--ph-fill-duration) var(--btnlab-ease) 55ms;
+  }
+
+  .btn-ph__fill-arrow-track > span { position: absolute; inset: 0; display: grid; place-items: center; }
+  .btn-ph__fill-arrow-track > span:nth-child(2) { transform: translate3d(-100%, 100%, 0); }
+
+  @media (hover: hover) and (pointer: fine) {
+    .btn-ph--fill:hover .btn-ph__fill-pixels i { opacity: 1; transition-delay: var(--ph-enter-delay); }
+    .btn-ph--fill:hover .btn-ph__fill-label-track { transform: translate3d(0, -50%, 0); }
+    .btn-ph--fill:hover .btn-ph__fill-arrow-track { transform: translate3d(100%, -100%, 0); }
+    .btn-ph--fill:hover .btn-ph__fill-icon::before { background: var(--ph-fill-ink); }
+  }
+
+  .btn-ph--fill:focus-visible .btn-ph__fill-pixels i { opacity: 1; transition-delay: var(--ph-enter-delay); }
+  .btn-ph--fill:focus-visible .btn-ph__fill-label-track { transform: translate3d(0, -50%, 0); }
+  .btn-ph--fill:focus-visible .btn-ph__fill-arrow-track { transform: translate3d(100%, -100%, 0); }
+  .btn-ph--fill:focus-visible .btn-ph__fill-icon::before { background: var(--ph-fill-ink); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .btn-ph,
+    .btn-ph__arrow-track,
+    .btn-ph__panel,
+    .btn-ph__pixels i,
+    .btn-ph__label,
+    .btn-ph__corner,
+    .btn-ph__fill-arrow-track,
+    .btn-ph__fill-pixels i,
+    .btn-ph__fill-label-track,
+    .btn-ph__fill-icon::before { transition-duration: 0ms; transition-delay: 0ms; }
+  }
+</style>
+</head>
+<body>
+
+<main class="stage">
+  <p class="tagline">Every map begins with a walk.</p>
+
+  <a href="#" class="btn-ph btn-ph--fill" aria-label="Enter website">
+    <span class="btn-ph__fill-pixels" data-ph-pixels="fill"></span>
+    <span class="btn-ph__fill-label">
+      <span class="btn-ph__fill-label-track">
+        <div>Enter Website</div>
+        <div aria-hidden="true">Enter Website</div>
+      </span>
+    </span>
+    <span class="btn-ph__fill-icon">
+      <span class="btn-ph__fill-arrow-track"><span>↗</span><span>↗</span></span>
+    </span>
+  </a>
+
+  <p class="muted">Enter without sound</p>
+</main>
+
+<section class="variants">
+  <div class="variant">
+    <a href="#" class="btn-ph btn-ph--fill" aria-label="Enter website">
+      <span class="btn-ph__fill-pixels" data-ph-pixels="fill"></span>
+      <span class="btn-ph__fill-label">
+        <span class="btn-ph__fill-label-track">
+          <div>Enter Website</div>
+          <div aria-hidden="true">Enter Website</div>
+        </span>
+      </span>
+      <span class="btn-ph__fill-icon">
+        <span class="btn-ph__fill-arrow-track"><span>↗</span><span>↗</span></span>
+      </span>
+    </a>
+    <span class="variant__name">Fill</span>
+  </div>
+
+  <div class="variant">
+    <a href="#" class="btn-ph" aria-label="Enter website">
+      <span class="btn-ph__icon">
+        <span class="btn-ph__arrow-track"><span>↗</span><span>↗</span></span>
+      </span>
+      <span class="btn-ph__panel">
+        <span class="btn-ph__pixels" data-ph-pixels="expand"></span>
+        <div class="btn-ph__label">Enter Website</div>
+      </span>
+      <span class="btn-ph__corners">
+        <span class="btn-ph__corner btn-ph__corner--tl"></span>
+        <span class="btn-ph__corner btn-ph__corner--tr"></span>
+        <span class="btn-ph__corner btn-ph__corner--br"></span>
+        <span class="btn-ph__corner btn-ph__corner--bl"></span>
+      </span>
+    </a>
+    <span class="variant__name">Expand</span>
+  </div>
+</section>
+
+<script>
+  // Cells wipe in left → right with per-cell jitter, and wipe out right → left.
+  const GRIDS = {
+    fill:   { cols: 24, rows: 6, sweep: 200, jitter: 55 },
+    expand: { cols: 18, rows: 6, sweep: 135, jitter: 45 },
+  };
+
+  document.querySelectorAll('[data-ph-pixels]').forEach((grid) => {
+    const { cols, rows, sweep, jitter } = GRIDS[grid.dataset.phPixels];
+    const frag = document.createDocumentFragment();
+
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const t = c / (cols - 1);
+        const cell = document.createElement('i');
+        cell.style.setProperty('--ph-enter-delay', `${Math.round(t * sweep + Math.random() * jitter)}ms`);
+        cell.style.setProperty('--ph-exit-delay', `${Math.round((1 - t) * sweep + Math.random() * jitter)}ms`);
+        frag.appendChild(cell);
+      }
+    }
+
+    grid.appendChild(frag);
+  });
+
+  document.querySelectorAll('.btn-ph').forEach((btn) => {
+    btn.addEventListener('click', (e) => e.preventDefault());
+  });
+</script>
+</body>
+</html>
