@@ -430,6 +430,9 @@
     font-size: 14px;
   }
 
+  /* The icon is a permanently lit hatch so press tone and release pulse run across the whole button */
+  .px-xbtn__icon { --hatch: var(--ink); --hatch-rest: 1; }
+  .px-xbtn__icon .arrow { z-index: 1; }
   .px-xbtn__icon .arrow > span { color: var(--on); }
 
   .px-xbtn__panel {
@@ -1500,7 +1503,7 @@
             <span class="sub t-micro">Expand · icon</span>
             <div class="row">
               <button class="px-xbtn" aria-label="Open survey">
-                <span class="px-xbtn__icon" data-arrow="↗"></span>
+                <span class="px-xbtn__icon" data-arrow="↗" data-hatch="x" data-hatch-cell="6"></span>
                 <span class="px-xbtn__panel" data-hatch="x" data-hatch-cell="6"><span class="px-xbtn__label">Open survey</span></span>
                 <span class="px-xbtn__corners"><span></span><span></span><span></span><span></span></span>
               </button>
@@ -1951,7 +1954,8 @@
   }
 
   // Release pulse: a square front (Chebyshev distance) runs out from the press point, grading each cell
-  // from the pressed tone back to the fill over PULSE_W cells. Alpha is untouched.
+  // from the pressed tone back to the fill over PULSE_W cells. Alpha is untouched. Position and radius are
+  // in layer pixels, so every hatch in one control shares a single seamless front.
   const PULSE_W = 1.5;
 
   function drawHatch(st, now) {
@@ -1960,13 +1964,13 @@
     if (pu) {
       const p = Math.max(0, (now - pu.t0) / pu.dur);
       if (p >= 1) { st.pulse = null; paintHatch(st, st.pressed); }
-      else rad = p * (pu.reach + PULSE_W);
+      else rad = p * (pu.reach + PULSE_W * pu.cell);
     }
     for (let r = 0, i = 0, o = 0; r < st.rows; r++) {
       for (let c = 0; c < st.cols; c++, i++, o += 4) {
         if (rad >= 0) {
-          const dist = Math.max(Math.abs(c - pu.x), Math.abs(r - pu.y));
-          const s = clamp((dist - rad) / PULSE_W + .5, 0, 1);
+          const dist = Math.max(Math.abs((c + .5) * pu.cw - pu.x), Math.abs((r + .5) * pu.ch - pu.y));
+          const s = clamp((dist - rad) / (PULSE_W * pu.cell) + .5, 0, 1);
           const n = st.tone[i] ? st.cb : st.ca, p = st.tone[i] ? st.pb : st.pa;
           d[o] = n[0] + (p[0] - n[0]) * s;
           d[o + 1] = n[1] + (p[1] - n[1]) * s;
@@ -2065,16 +2069,20 @@
 
   let pressing = null;
 
+  const PRESS_HOSTS = '[data-hover], .px-xbtn__panel, .px-xbtn__icon';
+
   function pressControl(ctl, e) {
     const sts = [...hatchHosts]
-      .filter((h) => h._hatch && ctl.contains(h) && (h.dataset.hover !== undefined || h.classList.contains('px-xbtn__panel')))
+      .filter((h) => h._hatch && ctl.contains(h) && h.matches(PRESS_HOSTS))
       .map((h) => h._hatch);
     if (!sts.length) return;
     const now = performance.now();
+    const cr = ctl.getBoundingClientRect();
+    const px = e && e.clientX !== undefined ? e.clientX : cr.left + cr.width / 2;
+    const py = e && e.clientY !== undefined ? e.clientY : cr.top + cr.height / 2;
     for (const st of sts) {
-      const host = st.layer.parentElement;
-      const [fx, fy] = e && e.clientX !== undefined ? localPoint(host, e) : [.5, .5];
-      st.pressAt = [fx * (st.cols - 1), fy * (st.rows - 1)];
+      const lr = st.layer.getBoundingClientRect();
+      st.press = { x: px - lr.left, y: py - lr.top, w: lr.width, h: lr.height };
       st.pressed = true;
       st.pulse = null;
       st.on = true;
@@ -2091,11 +2099,15 @@
   function releaseControl(pulse) {
     if (!pressing) return;
     const now = performance.now();
-    for (const st of pressing.sts) {
+    const { sts } = pressing;
+    // One front for the whole control: the farthest reach and the finest cell set its size and speed.
+    const reach = Math.max(...sts.map(({ press: p }) => Math.max(p.x, p.w - p.x, p.y, p.h - p.y)));
+    const cell = Math.min(...sts.map((st) => st.press.w / st.cols));
+    const dur = clamp(reach / cell * 14, 160, 320);
+    for (const st of sts) {
       if (pulse && !REDUCE) {
-        const [x, y] = st.pressAt;
-        const reach = Math.max(x, st.cols - 1 - x, y, st.rows - 1 - y);
-        st.pulse = { x, y, reach, t0: now, dur: clamp(reach * 14, 160, 320) };
+        const { x, y, w, h } = st.press;
+        st.pulse = { x, y, cw: w / st.cols, ch: h / st.rows, cell, reach, t0: now, dur };
         animateHatch(st);
       }
       st.pressed = false;
