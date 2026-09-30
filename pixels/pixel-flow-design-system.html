@@ -1351,18 +1351,33 @@
     50% { opacity: .2; }
   }
 
-  /* Toast */
-  .px-toast {
-    --hatch: var(--bone);
+  /* Toasts: stacked at the corner, newest nearest it. Each sits in a slot that opens and collapses
+     in steps, so neighbours shift by whole units instead of jumping. */
+  .px-toasts {
     position: fixed;
     right: calc(var(--u) * 2);
     bottom: calc(var(--u) * 2);
     z-index: 20;
+    display: flex;
+    flex-direction: column;
     width: min(360px, calc(100vw - var(--u) * 4));
-    height: 72px;
-    overflow: hidden;
     pointer-events: none;
   }
+
+  .px-toast-slot { flex: 0 0 auto; height: 0; overflow: hidden; transition: height 160ms steps(4, end); }
+  .px-toast-slot.is-open { height: calc(72px + var(--u)); }
+
+  .px-toast {
+    --hatch: var(--bone);
+    --kick: var(--signal-700);
+    position: relative;
+    height: 72px;
+    margin-top: var(--u);
+    overflow: hidden;
+  }
+  .px-toast--success { --hatch: var(--bone-100); --kick: var(--ash-700); }
+  .px-toast--error { --hatch: var(--signal); --kick: var(--signal-900); }
+  .px-toast--progress { --kick: var(--ash-700); }
 
   .px-toast.is-on { pointer-events: auto; }
 
@@ -1370,7 +1385,7 @@
     position: relative;
     z-index: 1;
     display: grid;
-    grid-template-columns: 1fr 48px;
+    grid-template-columns: 1fr auto 48px;
     align-items: center;
     height: 100%;
     padding-left: calc(var(--u) * 2);
@@ -1381,17 +1396,31 @@
   }
 
   .px-toast.is-on .px-toast__body { opacity: 1; transition-delay: 260ms; }
-  .px-toast__body .t-micro { color: var(--signal-700); }
+  .px-toast__text { min-width: 0; padding-right: var(--u); }
+  .px-toast__kicker { display: flex; align-items: center; gap: 6px; color: var(--kick); }
+  .px-toast__kicker svg { width: 9px; height: 9px; fill: currentColor; shape-rendering: crispEdges; }
+  .px-toast__kicker .px-spin { color: var(--void); }
 
+  .px-toast__action,
   .px-toast__close {
     height: 100%;
     border: 0;
     background: transparent;
     box-shadow: inset 1px 0 0 rgba(0, 0, 0, .15);
     color: var(--void);
-    font-size: 14px;
+    font: inherit;
     cursor: pointer;
   }
+  .px-toast__action { grid-column: 2; padding: 0 var(--u); font-size: 10px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; }
+  .px-toast__action[hidden] { display: none; }
+  .px-toast__close { grid-column: 3; font-size: 14px; }
+  .px-toast__action:hover,
+  .px-toast__close:hover { background: rgba(0, 0, 0, .08); }
+  .px-toast__action:focus-visible,
+  .px-toast__close:focus-visible { outline: 1px solid var(--void); outline-offset: -5px; }
+
+  .px-spin--s { grid-template-columns: repeat(3, 3px); }
+  .px-spin--s i { width: 3px; height: 3px; }
 
   /* ═══════════════════════════ Matrix + Signal ═══════════════════════════ */
   .matrix {
@@ -2079,7 +2108,7 @@
             <span class="sub t-micro">Toast</span>
             <div class="row">
               <button class="px-btn" data-hatch="x" data-hover id="toast-btn"><span class="px-btn__label" data-roll>Trigger toast</span><span class="px-btn__icon" data-arrow="↘"></span></button>
-              <span class="muted" style="flex: 1; min-width: 20ch">Assembles from the page side, holds, then clears out toward the screen edge.</span>
+              <span class="muted" style="flex: 1; min-width: 20ch">Random each press: info, undo, error with retry, or progress that lands as success or failure. Up to four stack at the corner.</span>
             </div>
           </div>
         </div>
@@ -2558,15 +2587,7 @@
   </footer>
 </main>
 
-<div class="px-toast" id="toast" data-hatch="entry" data-hatch-cell="12" data-hatch-sweep="260" role="status" aria-live="polite">
-  <div class="px-toast__body">
-    <div>
-      <div class="t-micro" id="toast-kicker">Signal</div>
-      <div id="toast-msg">Survey deployed to 4 layers.</div>
-    </div>
-    <button class="px-toast__close" id="toast-close" aria-label="Dismiss">×</button>
-  </div>
-</div>
+<div class="px-toasts" id="toasts" role="region" aria-label="Notifications" aria-live="polite"></div>
 
 <div class="px-tip" id="px-tip" role="tooltip" data-side="top" data-hatch="x" data-hatch-cell="6" data-hatch-sweep="90" data-hatch-jitter="30"><span class="px-tip__text"></span></div>
 
@@ -4242,21 +4263,150 @@
   $('#load-run').addEventListener('click', Progress.run);
   $('#load-reset').addEventListener('click', Progress.reset);
 
-  /* ═════════════ Toast ═════════════ */
+  /* ═════════════ Toasts ═════════════ */
 
-  const toastEl = $('#toast');
-  let toastTimer = 0;
-  function toast(kicker, msg) {
-    $('#toast-kicker').textContent = kicker;
-    $('#toast-msg').textContent = msg;
-    buildHatch(toastEl);
-    toastEl.classList.add('is-on');
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(hideToast, 3600);
-  }
-  function hideToast() { toastEl.classList.remove('is-on'); }
-  $('#toast-btn').addEventListener('click', () => toast('Signal', 'Survey deployed to 4 layers.'));
-  $('#toast-close').addEventListener('click', hideToast);
+  // toast(kicker, msg, { kind, action: { label, run(handle) }, duration }) → handle { update(next), dismiss() }
+  // kind: info · success · error (stays until dismissed) · progress (breathes until updated)
+  const toast = (() => {
+    const stack = $('#toasts');
+    const MAX = 4;
+    // Shallower than the dark grids: dimming a light surface over black shows far more contrast.
+    const BREATHE = .09;
+    const KINDS = ['info', 'success', 'error', 'progress'];
+    const HOLD = { info: 3600, success: 3600, error: 0, progress: 0 };
+    const SPIN = '<span class="px-spin px-spin--s" aria-hidden="true">' + '<i></i>'.repeat(9) + '</span>';
+    const CHECK = '<svg viewBox="0 0 6 6" aria-hidden="true"><rect x="4" y="1" width="1" height="1"/><rect x="1" y="2" width="1" height="1"/><rect x="3" y="2" width="1" height="1"/><rect x="2" y="3" width="1" height="1"/></svg>';
+    const live = [];
+
+    const holdFor = (t) => (t.o.duration !== undefined ? t.o.duration : t.o.action && t.o.kind === 'info' ? 6000 : HOLD[t.o.kind]);
+
+    function paint(t) {
+      const { el, o } = t;
+      KINDS.forEach((k) => el.classList.toggle(`px-toast--${k}`, o.kind === k));
+      el.setAttribute('role', o.kind === 'error' ? 'alert' : 'status');
+      t.kicker.innerHTML = (o.kind === 'progress' ? SPIN : o.kind === 'success' ? CHECK : '') + esc(o.kicker);
+      t.msg.innerHTML = esc(o.msg) + (o.kind === 'progress' ? '<span class="px-dots" aria-hidden="true"></span>' : '');
+      t.action.hidden = !o.action;
+      t.action.textContent = o.action ? o.action.label : '';
+      const st = el._hatch;
+      if (st) {
+        st.breathe = o.kind === 'progress' && !REDUCE ? BREATHE : 0;
+        if (st.breathe && st.on) animateHatch(st);
+      }
+    }
+
+    function arm(t) {
+      clearTimeout(t.timer);
+      const ms = holdFor(t);
+      if (ms) t.timer = setTimeout(() => dismiss(t), ms);
+    }
+
+    function dismiss(t) {
+      if (t.leaving) return;
+      t.leaving = true;
+      clearTimeout(t.timer);
+      t.el.classList.remove('is-on');
+      // Clear out toward the edge, then close the slot so the stack settles.
+      setTimeout(() => {
+        t.slot.classList.remove('is-open');
+        setTimeout(() => {
+          hatchRO.unobserve(t.el);
+          hatchHosts.delete(t.el);
+          if (t.el._hatch) hatchLive.delete(t.el._hatch);
+          t.slot.remove();
+          live.splice(live.indexOf(t), 1);
+        }, 200);
+      }, 420);
+    }
+
+    return function show(kicker, msg, opts = {}) {
+      const slot = document.createElement('div');
+      slot.className = 'px-toast-slot';
+      slot.innerHTML =
+        `<div class="px-toast" data-hatch="entry" data-hatch-cell="12" data-hatch-sweep="260" data-hatch-breathe="${BREATHE}">` +
+          '<div class="px-toast__body">' +
+            '<div class="px-toast__text"><div class="px-toast__kicker t-micro"></div><div class="px-toast__msg"></div></div>' +
+            '<button type="button" class="px-toast__action" hidden></button>' +
+            '<button type="button" class="px-toast__close" aria-label="Dismiss">×</button>' +
+          '</div>' +
+        '</div>';
+      const el = slot.firstElementChild;
+      const t = {
+        slot, el,
+        o: { kind: 'info', kicker, msg, ...opts },
+        kicker: $('.px-toast__kicker', el),
+        msg: $('.px-toast__msg', el),
+        action: $('.px-toast__action', el),
+      };
+      const handle = {
+        update(next) {
+          if (t.leaving) return;
+          t.o = { kind: t.o.kind, kicker: t.o.kicker, msg: t.o.msg, ...next };
+          paint(t);
+          recolorHatches(el);
+          arm(t);
+        },
+        dismiss: () => dismiss(t),
+      };
+
+      stack.append(slot);
+      paint(t);
+      initHatch(el);
+      paint(t);
+      live.push(t);
+      const open = live.filter((x) => !x.leaving);
+      if (open.length > MAX) dismiss(open[0]);
+
+      requestAnimationFrame(() => {
+        slot.classList.add('is-open');
+        setTimeout(() => el.classList.add('is-on'), 140);
+      });
+      arm(t);
+
+      t.action.addEventListener('click', () => (t.o.action.run ? t.o.action.run(handle) : dismiss(t)));
+      $('.px-toast__close', el).addEventListener('click', () => dismiss(t));
+      // Hovering holds a toast; leaving gives a short grace before it goes.
+      el.addEventListener('pointerenter', () => clearTimeout(t.timer));
+      el.addEventListener('pointerleave', () => {
+        if (!t.leaving && holdFor(t)) t.timer = setTimeout(() => dismiss(t), 1600);
+      });
+      return handle;
+    };
+  })();
+
+  // Trigger toast: a random scenario each press, never the same kind twice in a row.
+  (() => {
+    function exportTiles(h) {
+      const next = { kind: 'progress', kicker: 'Exporting', msg: 'Packing 2,184 tiles' };
+      if (h) h.update(next);
+      else h = toast(next.kicker, next.msg, { kind: next.kind });
+      setTimeout(() => {
+        if (rnd() < .7) h.update({ kind: 'success', kicker: 'Export ready', msg: 'relief-04.zip · 38 MB' });
+        else h.update({ kind: 'error', kicker: 'Export failed', msg: 'The tile server ran out of space.', action: { label: 'Retry', run: exportTiles } });
+      }, 2200 + rnd() * 1600);
+    }
+
+    function reconnect(h) {
+      h.update({ kind: 'progress', kicker: 'Reconnecting', msg: 'Reaching field unit 07' });
+      setTimeout(() => h.update({ kind: 'success', kicker: 'Back online', msg: 'Field unit 07 is syncing again.' }), 1800 + rnd() * 1000);
+    }
+
+    const DEMOS = {
+      info: () => toast('Signal', 'Survey deployed to 4 layers.'),
+      undo: () => toast('Layer hidden', 'Hydrology is off the map.', {
+        action: { label: 'Undo', run: (h) => { h.dismiss(); toast('Restored', 'Hydrology is back on the map.', { kind: 'success' }); } },
+      }),
+      error: () => toast('Sync failed', 'Lost contact with field unit 07.', { kind: 'error', action: { label: 'Retry', run: reconnect } }),
+      progress: () => exportTiles(),
+    };
+
+    let last = '';
+    $('#toast-btn').addEventListener('click', () => {
+      const keys = Object.keys(DEMOS).filter((k) => k !== last);
+      last = keys[(rnd() * keys.length) | 0];
+      DEMOS[last]();
+    });
+  })();
 
   $$('[data-copy]').forEach((el) => {
     el.addEventListener('click', async () => {
