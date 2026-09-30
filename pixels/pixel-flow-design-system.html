@@ -860,10 +860,29 @@
 
   .px-input__bar {
     --hatch: var(--signal);
+    --px-cell-dur: 140ms;
     position: absolute;
     inset: auto 0 0;
     height: 6px;
   }
+
+  /* Grid focus style (html[data-focus="grid"]): the box fills with dim cells that breathe slightly.
+     Cells stay near-black (or deep signal on error) so bone text keeps well above 4.5:1. */
+  .px-input__box > :not(.px-input__bar):not(.px-input__grid) { position: relative; z-index: 1; }
+
+  .px-input__grid {
+    --hatch: var(--void-700);
+    --hatch-b: var(--void-600);
+    position: absolute;
+    inset: 1px;
+    z-index: 0;
+    pointer-events: none;
+  }
+  .px-input.is-error .px-input__grid { --hatch: var(--signal-900); --hatch-b: #5a210d; }
+
+  [data-focus="grid"] .px-input__box:focus-within input::placeholder { color: var(--ash); }
+  [data-focus="grid"] .px-input__box:focus-within .px-input__prefix,
+  [data-focus="grid"] .px-input__box:focus-within .px-input__suffix { color: var(--ash); }
 
   .px-input__suffix { padding-right: var(--u); color: var(--ash-700); }
   .px-input__help { color: var(--ash); }
@@ -1967,9 +1986,9 @@
               <span class="px-input__box">
                 <input type="text" placeholder="Ridgeline North" value="">
                 <span class="px-input__suffix t-micro">↵</span>
-                <span class="px-input__bar" data-hatch="x" data-hatch-cell="6"></span>
+                <span class="px-input__bar" data-hatch="x" data-hatch-cell="6" data-hatch-sweep="160" data-hatch-jitter="30"></span>
               </span>
-              <span class="px-input__help t-micro">Focus sweeps the signal bar in.</span>
+              <span class="px-input__help t-micro">Focus brings in the effect chosen below.</span>
             </label>
 
             <label class="px-input is-error">
@@ -1977,10 +1996,18 @@
               <span class="px-input__box">
                 <input type="text" value="0.5 m" aria-invalid="true">
                 <span class="px-input__suffix t-micro">m/cell</span>
-                <span class="px-input__bar" data-hatch="x" data-hatch-cell="6"></span>
+                <span class="px-input__bar" data-hatch="x" data-hatch-cell="6" data-hatch-sweep="160" data-hatch-jitter="30"></span>
               </span>
               <span class="px-input__help t-micro">Minimum is 1 m per cell.</span>
             </label>
+
+            <div class="px-field">
+              <span class="t-micro muted" id="focus-style-label">Focus effect · every input on the page</span>
+              <div class="px-seg px-seg--block" role="tablist" aria-labelledby="focus-style-label" id="focus-style">
+                <button role="tab" aria-selected="true" data-hatch="entry" data-hatch-cell="6" data-value="bar"><span>Signal bar</span></button>
+                <button role="tab" aria-selected="false" data-hatch="entry" data-hatch-cell="6" data-value="grid"><span>Breathing grid</span></button>
+              </div>
+            </div>
 
             <div class="row">
               <label class="opt"><button class="px-switch" role="switch" aria-checked="true" data-hatch="x" data-hatch-cell="6" aria-label="Contours"><span class="px-switch__knob"></span></button><span>Contours</span></label>
@@ -2104,7 +2131,7 @@
               <span class="t-micro muted">Email</span>
               <span class="px-input__box">
                 <input type="email" inputmode="email" autocomplete="email" placeholder="surveyor@field.org" spellcheck="false">
-                <span class="px-input__bar" data-hatch="x" data-hatch-cell="6"></span>
+                <span class="px-input__bar" data-hatch="x" data-hatch-cell="6" data-hatch-sweep="160" data-hatch-jitter="30"></span>
               </span>
               <span class="px-input__help t-micro">Checked when you leave the field.</span>
             </label>
@@ -2114,7 +2141,7 @@
               <span class="px-input__box">
                 <span class="px-input__prefix">https://</span>
                 <input type="url" inputmode="url" autocomplete="url" placeholder="topography.webflow.io" spellcheck="false">
-                <span class="px-input__bar" data-hatch="x" data-hatch-cell="6"></span>
+                <span class="px-input__bar" data-hatch="x" data-hatch-cell="6" data-hatch-sweep="160" data-hatch-jitter="30"></span>
               </span>
               <span class="px-input__help t-micro">Paste a full link; the protocol is dropped.</span>
             </label>
@@ -2124,7 +2151,7 @@
               <span class="px-input__box">
                 <input id="f-pass" type="password" autocomplete="new-password" placeholder="12+ characters">
                 <button type="button" class="px-input__btn t-micro" data-hatch="x" data-hatch-cell="6" data-hover aria-pressed="false" aria-controls="f-pass">Show</button>
-                <span class="px-input__bar" data-hatch="x" data-hatch-cell="6"></span>
+                <span class="px-input__bar" data-hatch="x" data-hatch-cell="6" data-hatch-sweep="160" data-hatch-jitter="30"></span>
               </span>
               <span class="px-input__help t-micro px-meter" data-level="0">
                 <span class="px-meter__cells" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
@@ -2139,7 +2166,7 @@
                 <input id="f-search" type="search" placeholder="Layers, sectors, surveys" autocomplete="off" spellcheck="false">
                 <span class="px-input__kbd t-micro" aria-hidden="true">/</span>
                 <button type="button" class="px-input__btn" data-hatch="center" data-hatch-cell="6" data-hover aria-label="Clear search" hidden><span data-arrow="×"></span></button>
-                <span class="px-input__bar" data-hatch="x" data-hatch-cell="6"></span>
+                <span class="px-input__bar" data-hatch="x" data-hatch-cell="6" data-hatch-sweep="160" data-hatch-jitter="30"></span>
               </span>
               <span class="px-input__help t-micro">Press / anywhere to jump here · Esc clears.</span>
             </div>
@@ -2151,7 +2178,7 @@
                 <span class="px-input__suffix t-micro">m</span>
                 <button type="button" class="px-input__btn" data-hatch="center" data-hatch-cell="6" data-hover data-step="-1" tabindex="-1" aria-label="Decrease"><span data-arrow="−"></span></button>
                 <button type="button" class="px-input__btn" data-hatch="center" data-hatch-cell="6" data-hover data-step="1" tabindex="-1" aria-label="Increase"><span data-arrow="+"></span></button>
-                <span class="px-input__bar" data-hatch="x" data-hatch-cell="6"></span>
+                <span class="px-input__bar" data-hatch="x" data-hatch-cell="6" data-hatch-sweep="160" data-hatch-jitter="30"></span>
               </span>
               <span class="px-input__help t-micro">↑ ↓ step by 1 · Shift steps by 10.</span>
             </div>
@@ -2168,7 +2195,7 @@
                 <button type="button" class="px-input__box px-select" data-hover aria-haspopup="listbox" aria-expanded="false" aria-controls="sel-proj-list" aria-labelledby="sel-proj-label sel-proj-value">
                   <span class="px-select__value" id="sel-proj-value">Web Mercator</span>
                   <span class="px-dd__caret" data-arrow="↓"></span>
-                  <span class="px-input__bar" data-hatch="x" data-hatch-cell="6"></span>
+                  <span class="px-input__bar" data-hatch="x" data-hatch-cell="6" data-hatch-sweep="160" data-hatch-jitter="30"></span>
                 </button>
                 <ul class="px-menu" id="sel-proj-list" role="listbox" aria-labelledby="sel-proj-label" tabindex="-1" data-hatch-group>
                   <li role="option" aria-selected="true" data-hatch="x" data-hatch-cell="6"><span>Web Mercator</span></li>
@@ -2187,7 +2214,7 @@
                 <div class="px-input__box">
                   <input id="cb-region" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="cb-region-list" autocomplete="off" spellcheck="false" placeholder="Type to filter ranges">
                   <button type="button" class="px-dd__caret" data-arrow="↓" data-hover tabindex="-1" aria-label="Show ranges"></button>
-                  <span class="px-input__bar" data-hatch="x" data-hatch-cell="6"></span>
+                  <span class="px-input__bar" data-hatch="x" data-hatch-cell="6" data-hatch-sweep="160" data-hatch-jitter="30"></span>
                 </div>
                 <ul class="px-menu" id="cb-region-list" role="listbox" aria-label="Mountain ranges" data-hatch-group>
                   <li role="option" aria-selected="false" data-hatch="x" data-hatch-cell="6"><span class="px-menu__text">Alps</span></li>
@@ -2213,7 +2240,7 @@
                   <span class="px-chip" data-value="Relief">Relief<button type="button" aria-label="Remove Relief">×</button></span>
                   <span class="px-chip" data-value="Contours">Contours<button type="button" aria-label="Remove Contours">×</button></span>
                   <input id="tags-input" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="tags-list" autocomplete="off" spellcheck="false" placeholder="Add layer">
-                  <span class="px-input__bar" data-hatch="x" data-hatch-cell="6"></span>
+                  <span class="px-input__bar" data-hatch="x" data-hatch-cell="6" data-hatch-sweep="160" data-hatch-jitter="30"></span>
                 </div>
                 <ul class="px-menu" id="tags-list" role="listbox" aria-label="Layer suggestions" data-hatch-group>
                   <li role="option" aria-selected="false" data-hatch="x" data-hatch-cell="6"><span class="px-menu__text">Relief</span></li>
@@ -2250,7 +2277,7 @@
               <span class="t-micro muted">Contact email</span>
               <span class="px-input__box">
                 <input type="email" name="email" inputmode="email" autocomplete="email" placeholder="surveyor@field.org" spellcheck="false">
-                <span class="px-input__bar" data-hatch="x" data-hatch-cell="6"></span>
+                <span class="px-input__bar" data-hatch="x" data-hatch-cell="6" data-hatch-sweep="160" data-hatch-jitter="30"></span>
               </span>
               <span class="px-input__help t-micro">Where the survey report goes.</span>
             </label>
@@ -2541,9 +2568,11 @@
     ':focus-visible > .px-hatch',
     '.px-xbtn:focus-visible .px-xbtn__panel > .px-hatch',
     '.px-xbtn.is-open .px-xbtn__panel > .px-hatch',
-    '.px-input__box:focus-within > .px-input__bar > .px-hatch',
+    ':root:not([data-focus="grid"]) .px-input__box:focus-within > .px-input__bar > .px-hatch',
+    ':root:not([data-focus="grid"]) .px-dd.is-open .px-input__bar > .px-hatch',
+    '[data-focus="grid"] .px-input__box:focus-within > .px-input__grid > .px-hatch',
+    '[data-focus="grid"] .px-dd.is-open .px-input__grid > .px-hatch',
     '.px-input.is-error .px-input__bar > .px-hatch',
-    '.px-dd.is-open .px-input__bar > .px-hatch',
     '.nav a.is-active > .nav__bar > .px-hatch',
     ...(FINE ? [
       '[data-hover]:hover > .px-hatch',
@@ -2586,6 +2615,7 @@
       sweep: d.hatchSweep !== undefined ? +d.hatchSweep : null,
       jitter: d.hatchJitter !== undefined ? +d.hatchJitter : 55,
       tone: +d.hatchTone || 0,
+      breathe: REDUCE ? 0 : +d.hatchBreathe || 0,
     };
   }
 
@@ -2628,6 +2658,10 @@
       on: layer.matches(HATCH_ON),
       group: host.closest('[data-hatch-group]'),
       t0: -Infinity,
+      // Breathing: each cell dims by up to `breathe` on its own slow cycle (0.25–0.7 Hz, random phase).
+      breathe: p.breathe,
+      bPhase: p.breathe ? Float32Array.from({ length: n }, () => rnd() * Math.PI * 2) : null,
+      bRate: p.breathe ? Float32Array.from({ length: n }, () => (.25 + rnd() * .45) * Math.PI * 2) : null,
     };
     stagger(host);
     readHatchStyle(st);
@@ -2696,7 +2730,9 @@
           d[o + 1] = n[1] + (p[1] - n[1]) * s;
           d[o + 2] = n[2] + (p[2] - n[2]) * s;
         }
-        d[o + 3] = cellValue(st, i, now) * 255;
+        let v = cellValue(st, i, now);
+        if (st.breathe) v *= 1 - st.breathe * (.5 + .5 * Math.sin(now / 1000 * st.bRate[i] + st.bPhase[i]));
+        d[o + 3] = v * 255;
       }
     }
     st.ctx.putImageData(st.img, 0, 0);
@@ -2712,7 +2748,7 @@
     hatchRaf = 0;
     for (const st of hatchLive) {
       drawHatch(st, now);
-      if (now >= st.end && !st.pulse) hatchLive.delete(st);
+      if (now >= st.end && !st.pulse && !(st.breathe && st.on)) hatchLive.delete(st);
     }
     if (hatchLive.size) hatchRaf = requestAnimationFrame(tickHatches);
   }
@@ -2997,6 +3033,14 @@
       }
     });
     el.appendChild(frag);
+  });
+
+  $$('.px-input__box').forEach((box) => {
+    const grid = document.createElement('span');
+    grid.className = 'px-input__grid';
+    grid.setAttribute('aria-hidden', 'true');
+    Object.assign(grid.dataset, { hatch: 'scatter', hatchCell: '6', hatchSweep: '200', hatchTone: '.3', hatchBreathe: '.28' });
+    box.prepend(grid);
   });
 
   $$('[data-hatch]').forEach(initHatch);
@@ -3487,7 +3531,10 @@
       const empty = !v;
       const ok = empty ? field.dataset.required === undefined || !strict : VALID[kind](v);
       if (strict || field.classList.contains('is-error')) {
-        field.classList.toggle('is-error', !ok);
+        if (field.classList.contains('is-error') === ok) {
+          field.classList.toggle('is-error', !ok);
+          recolorHatches($('.px-input__box', field));
+        }
         input.setAttribute('aria-invalid', String(!ok));
         help.textContent = ok ? hint : empty ? 'Required.' : field.dataset.error;
       }
@@ -3577,6 +3624,11 @@
     };
     input.addEventListener('input', paint);
     paint();
+  });
+
+  initSeg($('#focus-style'), (v) => {
+    document.documentElement.dataset.focus = v;
+    queueHatchSync();
   });
 
   /* ═════════════ Radio ═════════════ */
