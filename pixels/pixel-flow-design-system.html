@@ -1364,14 +1364,15 @@
     pointer-events: none;
   }
 
+  /* --th (set per toast): 48px + 24px per message line, 1–3 lines → 72 / 96 / 120px */
   .px-toast-slot { flex: 0 0 auto; height: 0; overflow: hidden; transition: height 160ms steps(4, end); }
-  .px-toast-slot.is-open { height: calc(72px + var(--u)); }
+  .px-toast-slot.is-open { height: calc(var(--th, 72px) + var(--u)); }
 
   .px-toast {
     --hatch: var(--bone);
     --kick: var(--signal-700);
     position: relative;
-    height: 72px;
+    height: var(--th, 72px);
     margin-top: var(--u);
     overflow: hidden;
   }
@@ -1397,6 +1398,13 @@
 
   .px-toast.is-on .px-toast__body { opacity: 1; transition-delay: 260ms; }
   .px-toast__text { min-width: 0; padding-right: var(--u); }
+  .px-toast__msg {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+  }
   .px-toast__kicker { display: flex; align-items: center; gap: 6px; color: var(--kick); }
   .px-toast__kicker svg { width: 9px; height: 9px; fill: currentColor; shape-rendering: crispEdges; }
   .px-toast__kicker .px-spin { color: var(--void); }
@@ -2108,7 +2116,7 @@
             <span class="sub t-micro">Toast</span>
             <div class="row">
               <button class="px-btn" data-hatch="x" data-hover id="toast-btn"><span class="px-btn__label" data-roll>Trigger toast</span><span class="px-btn__icon" data-arrow="↘"></span></button>
-              <span class="muted" style="flex: 1; min-width: 20ch">Random each press: info, undo, error with retry, or progress that lands as success or failure. Up to four stack at the corner.</span>
+              <span class="muted" style="flex: 1; min-width: 20ch">Random each press: info, a long note, undo, error with retry, or progress that lands as success or failure. Long text grows the toast by whole lines, up to three.</span>
             </div>
           </div>
         </div>
@@ -2660,6 +2668,8 @@
       jitter: d.hatchJitter !== undefined ? +d.hatchJitter : 55,
       tone: +d.hatchTone || 0,
       breathe: REDUCE ? 0 : +d.hatchBreathe || 0,
+      // Present (even as "0") means breathing can be switched on later without a rebuild.
+      canBreathe: !REDUCE && d.hatchBreathe !== undefined,
     };
   }
 
@@ -2704,8 +2714,8 @@
       t0: -Infinity,
       // Breathing: each cell dims by up to `breathe` on its own slow cycle (0.25–0.7 Hz, random phase).
       breathe: p.breathe,
-      bPhase: p.breathe ? Float32Array.from({ length: n }, () => rnd() * Math.PI * 2) : null,
-      bRate: p.breathe ? Float32Array.from({ length: n }, () => (.25 + rnd() * .45) * Math.PI * 2) : null,
+      bPhase: p.canBreathe ? Float32Array.from({ length: n }, () => rnd() * Math.PI * 2) : null,
+      bRate: p.canBreathe ? Float32Array.from({ length: n }, () => (.25 + rnd() * .45) * Math.PI * 2) : null,
     };
     stagger(host);
     readHatchStyle(st);
@@ -4278,7 +4288,14 @@
     const CHECK = '<svg viewBox="0 0 6 6" aria-hidden="true"><rect x="4" y="1" width="1" height="1"/><rect x="1" y="2" width="1" height="1"/><rect x="3" y="2" width="1" height="1"/><rect x="2" y="3" width="1" height="1"/></svg>';
     const live = [];
 
-    const holdFor = (t) => (t.o.duration !== undefined ? t.o.duration : t.o.action && t.o.kind === 'info' ? 6000 : HOLD[t.o.kind]);
+    // Timed kinds hold longer for longer text: ~60ms per character, 3.6s floor (6s with an action), 10s cap.
+    const holdFor = (t) => {
+      if (t.o.duration !== undefined) return t.o.duration;
+      const base = HOLD[t.o.kind];
+      if (!base) return 0;
+      const floor = t.o.action ? 6000 : base;
+      return clamp(2000 + 60 * (t.o.kicker.length + t.o.msg.length), floor, 10000);
+    };
 
     function paint(t) {
       const { el, o } = t;
@@ -4286,13 +4303,23 @@
       el.setAttribute('role', o.kind === 'error' ? 'alert' : 'status');
       t.kicker.innerHTML = (o.kind === 'progress' ? SPIN : o.kind === 'success' ? CHECK : '') + esc(o.kicker);
       t.msg.innerHTML = esc(o.msg) + (o.kind === 'progress' ? '<span class="px-dots" aria-hidden="true"></span>' : '');
+      t.msg.title = o.msg;
       t.action.hidden = !o.action;
       t.action.textContent = o.action ? o.action.label : '';
+      // Kept on the attribute too, so a resize rebuild picks up the same breathing.
+      const breathe = o.kind === 'progress' && !REDUCE ? BREATHE : 0;
+      el.dataset.hatchBreathe = breathe;
       const st = el._hatch;
       if (st) {
-        st.breathe = o.kind === 'progress' && !REDUCE ? BREATHE : 0;
+        st.breathe = breathe;
         if (st.breathe && st.on) animateHatch(st);
       }
+    }
+
+    // Message wraps up to three 24px lines; the toast grows by whole lines to fit.
+    function fit(t) {
+      const lines = clamp(Math.round(t.msg.offsetHeight / 24), 1, 3);
+      t.slot.style.setProperty('--th', `${48 + lines * 24}px`);
     }
 
     function arm(t) {
@@ -4343,6 +4370,9 @@
           if (t.leaving) return;
           t.o = { kind: t.o.kind, kicker: t.o.kicker, msg: t.o.msg, ...next };
           paint(t);
+          fit(t);
+          buildHatch(el);
+          paint(t);
           recolorHatches(el);
           arm(t);
         },
@@ -4351,6 +4381,7 @@
 
       stack.append(slot);
       paint(t);
+      fit(t);
       initHatch(el);
       paint(t);
       live.push(t);
@@ -4393,6 +4424,7 @@
 
     const DEMOS = {
       info: () => toast('Signal', 'Survey deployed to 4 layers.'),
+      note: () => toast('Field note', 'Fresh snow above 2,400 m on the north face. Contours there may lag the survey until the next pass.'),
       undo: () => toast('Layer hidden', 'Hydrology is off the map.', {
         action: { label: 'Undo', run: (h) => { h.dismiss(); toast('Restored', 'Hydrology is back on the map.', { kind: 'success' }); } },
       }),
