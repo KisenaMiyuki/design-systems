@@ -262,14 +262,23 @@
 
   /* Glyph motion follows meaning: arrows travel the way they point (--dx, --dy);
      turning glyphs stay put, rotate by --spin and cross-fade (--fade) to the on colour.
-     Active states set --t: 1. */
+     Active states set --t: 1. While pressed, the glyph nudges 2px along its direction or leans by --lean;
+     that uses translate/rotate so it stacks on whichever transform hover or focus applied. */
   .arrow {
     --go: translate3d(calc(var(--dx, 1) * 100%), calc(var(--dy, -1) * 100%), 0) rotate(var(--spin, 0deg));
     position: relative;
     display: block;
     width: 100%;
     height: 100%;
-    transition: transform var(--dur-roll) var(--ease-snap) 55ms;
+    transition:
+      transform var(--dur-roll) var(--ease-snap) 55ms,
+      translate 90ms var(--ease-out),
+      rotate 90ms var(--ease-out);
+  }
+
+  .is-pressed .arrow {
+    translate: calc(var(--dx, 1) * 2px) calc(var(--dy, -1) * 2px);
+    rotate: var(--lean, 0deg);
   }
 
   .arrow > span {
@@ -295,9 +304,9 @@
   [data-arrow="↙"] { --dx: -1; --dy: 1; }
   [data-arrow="↖"] { --dx: -1; --dy: -1; }
   [data-arrow="↺"], [data-arrow="↻"], [data-arrow="×"], [data-arrow="+"] { --dx: 0; --dy: 0; --fade: 1; }
-  [data-arrow="↺"] { --spin: -360deg; }
-  [data-arrow="↻"] { --spin: 360deg; }
-  [data-arrow="×"], [data-arrow="+"] { --spin: 90deg; }
+  [data-arrow="↺"] { --spin: -360deg; --lean: -20deg; }
+  [data-arrow="↻"] { --spin: 360deg; --lean: 20deg; }
+  [data-arrow="×"], [data-arrow="+"] { --spin: 90deg; --lean: 15deg; }
 
   @media (hover: hover) and (pointer: fine) {
     [data-hover]:hover .roll__track { transform: translate3d(0, -50%, 0); }
@@ -305,9 +314,11 @@
   }
 
   :focus-visible .roll__track,
-  .is-on .roll__track { transform: translate3d(0, -50%, 0); }
+  .is-on .roll__track,
+  .is-pressed .roll__track { transform: translate3d(0, -50%, 0); }
   :focus-visible .arrow,
-  .is-on .arrow { --t: 1; transform: var(--go); }
+  .is-on .arrow,
+  .is-pressed .arrow { --t: 1; transform: var(--go); }
 
   /* ═══════════════════════════ Button ═══════════════════════════ */
   .px-btn {
@@ -369,7 +380,8 @@
     .px-btn:hover .px-btn__icon::before { background: var(--on); }
   }
 
-  .px-btn:focus-visible .px-btn__icon::before { background: var(--on); }
+  .px-btn:focus-visible .px-btn__icon::before,
+  .px-btn.is-pressed .px-btn__icon::before { background: var(--on); }
 
   .px-btn--s { --h: 36px; --fs: 10px; }
   .px-btn--l { --h: 60px; --fs: 13px; }
@@ -1908,15 +1920,27 @@
   function readHatchStyle(st) {
     const cs = getComputedStyle(st.layer);
     const css = (k) => cs.getPropertyValue(k).trim();
-    const a = toRGB(css('--hatch') || css('--bone'));
-    const b = css('--hatch-b') ? toRGB(css('--hatch-b')) : a;
-    const d = st.img.data;
+    st.ca = toRGB(css('--hatch') || css('--bone'));
+    st.cb = css('--hatch-b') ? toRGB(css('--hatch-b')) : st.ca;
+    st.pa = pressTone(st.ca);
+    st.pb = pressTone(st.cb);
+    paintHatch(st, st.pressed);
+    st.rest = +css('--hatch-rest') || 0;
+    st.durIn = Math.max(1, toMs(css('--px-cell-dur') || css('--dur-cell')));
+  }
+
+  // One tint step: darker for light fills, lighter for near-black ones.
+  function pressTone([r, g, b]) {
+    const lum = (.2126 * r + .7152 * g + .0722 * b) / 255;
+    return lum < .15 ? [r, g, b].map((v) => v + (255 - v) * .1) : [r, g, b].map((v) => v * .85);
+  }
+
+  function paintHatch(st, pressed) {
+    const a = pressed ? st.pa : st.ca, b = pressed ? st.pb : st.cb, d = st.img.data;
     for (let i = 0, o = 0; i < st.tone.length; i++, o += 4) {
       const c = st.tone[i] ? b : a;
       d[o] = c[0]; d[o + 1] = c[1]; d[o + 2] = c[2];
     }
-    st.rest = +css('--hatch-rest') || 0;
-    st.durIn = Math.max(1, toMs(css('--px-cell-dur') || css('--dur-cell')));
   }
 
   function cellValue(st, i, now) {
@@ -1926,19 +1950,45 @@
     return st.from[i] + (st.to - st.from[i]) * (st.quick[i] ? easeOut(p) : easeCell(p));
   }
 
+  // Release pulse: a square front (Chebyshev distance) runs out from the press point, grading each cell
+  // from the pressed tone back to the fill over PULSE_W cells. Alpha is untouched.
+  const PULSE_W = 1.5;
+
   function drawHatch(st, now) {
-    const d = st.img.data;
-    for (let i = 0, o = 3; i < st.from.length; i++, o += 4) d[o] = cellValue(st, i, now) * 255;
+    const d = st.img.data, pu = st.pulse;
+    let rad = -1;
+    if (pu) {
+      const p = Math.max(0, (now - pu.t0) / pu.dur);
+      if (p >= 1) { st.pulse = null; paintHatch(st, st.pressed); }
+      else rad = p * (pu.reach + PULSE_W);
+    }
+    for (let r = 0, i = 0, o = 0; r < st.rows; r++) {
+      for (let c = 0; c < st.cols; c++, i++, o += 4) {
+        if (rad >= 0) {
+          const dist = Math.max(Math.abs(c - pu.x), Math.abs(r - pu.y));
+          const s = clamp((dist - rad) / PULSE_W + .5, 0, 1);
+          const n = st.tone[i] ? st.cb : st.ca, p = st.tone[i] ? st.pb : st.pa;
+          d[o] = n[0] + (p[0] - n[0]) * s;
+          d[o + 1] = n[1] + (p[1] - n[1]) * s;
+          d[o + 2] = n[2] + (p[2] - n[2]) * s;
+        }
+        d[o + 3] = cellValue(st, i, now) * 255;
+      }
+    }
     st.ctx.putImageData(st.img, 0, 0);
   }
 
   const hatchLive = new Set();
   let hatchRaf = 0;
+  function animateHatch(st) {
+    hatchLive.add(st);
+    if (!hatchRaf) hatchRaf = requestAnimationFrame(tickHatches);
+  }
   function tickHatches(now) {
     hatchRaf = 0;
     for (const st of hatchLive) {
       drawHatch(st, now);
-      if (now >= st.end) hatchLive.delete(st);
+      if (now >= st.end && !st.pulse) hatchLive.delete(st);
     }
     if (hatchLive.size) hatchRaf = requestAnimationFrame(tickHatches);
   }
@@ -1980,8 +2030,7 @@
     st.delay = delay; st.len = len; st.quick = quick;
     st.t0 = REDUCE ? -Infinity : now;
     st.end = st.t0 + span;
-    hatchLive.add(st);
-    if (!hatchRaf) hatchRaf = requestAnimationFrame(tickHatches);
+    animateHatch(st);
   }
 
   // Inside a [data-hatch-group], the first hover plays in full. While the group is warm (a member is lit,
@@ -1998,7 +2047,7 @@
       const st = host._hatch;
       if (!st) continue;
       if (st.on && st.group) lit.add(st.group);
-      if (st.layer.matches(HATCH_ON) !== st.on) {
+      if ((st.pressed || st.layer.matches(HATCH_ON)) !== st.on) {
         flips.push(st);
         if (!st.on && st.group) entering.add(st.group);
       }
@@ -2011,6 +2060,75 @@
     }
   }
   ['pointerover', 'pointerout', 'focusin', 'focusout'].forEach((t) => document.addEventListener(t, queueHatchSync, { passive: true }));
+
+  /* Press: hover-filled controls snap full in a darker tone while held, then pulse out on release */
+
+  let pressing = null;
+
+  function pressControl(ctl, e) {
+    const sts = [...hatchHosts]
+      .filter((h) => h._hatch && ctl.contains(h) && (h.dataset.hover !== undefined || h.classList.contains('px-xbtn__panel')))
+      .map((h) => h._hatch);
+    if (!sts.length) return;
+    const now = performance.now();
+    for (const st of sts) {
+      const host = st.layer.parentElement;
+      const [fx, fy] = e && e.clientX !== undefined ? localPoint(host, e) : [.5, .5];
+      st.pressAt = [fx * (st.cols - 1), fy * (st.rows - 1)];
+      st.pressed = true;
+      st.pulse = null;
+      st.on = true;
+      st.from.fill(1);
+      st.to = 1;
+      st.t0 = st.end = -Infinity;
+      paintHatch(st, true);
+      drawHatch(st, now);
+    }
+    ctl.classList.add('is-pressed');
+    pressing = { ctl, sts };
+  }
+
+  function releaseControl(pulse) {
+    if (!pressing) return;
+    const now = performance.now();
+    for (const st of pressing.sts) {
+      if (pulse && !REDUCE) {
+        const [x, y] = st.pressAt;
+        const reach = Math.max(x, st.cols - 1 - x, y, st.rows - 1 - y);
+        st.pulse = { x, y, reach, t0: now, dur: clamp(reach * 14, 160, 320) };
+        animateHatch(st);
+      }
+      st.pressed = false;
+      if (!st.pulse) paintHatch(st, false);
+      drawHatch(st, now);
+    }
+    pressing.ctl.classList.remove('is-pressed');
+    pressing = null;
+    queueHatchSync();
+  }
+
+  const pressable = (t) => {
+    const ctl = t instanceof Element && t.closest('a, button');
+    return ctl && !ctl.disabled ? ctl : null;
+  };
+
+  document.addEventListener('pointerdown', (e) => {
+    const ctl = e.button === 0 && pressable(e.target);
+    if (ctl) pressControl(ctl, e);
+  });
+  document.addEventListener('pointerup', (e) => {
+    if (pressing) releaseControl(pressing.ctl.contains(document.elementFromPoint(e.clientX, e.clientY)));
+  });
+  document.addEventListener('pointercancel', () => releaseControl(false));
+  window.addEventListener('blur', () => releaseControl(false));
+
+  // Enter clicks links and buttons; Space only clicks buttons.
+  const pressKey = (e) => e.key === 'Enter' || (e.key === ' ' && e.target instanceof HTMLButtonElement);
+  document.addEventListener('keydown', (e) => {
+    const ctl = !e.repeat && !pressing && pressKey(e) && pressable(e.target);
+    if (ctl) pressControl(ctl, null);
+  });
+  document.addEventListener('keyup', (e) => { if (pressing && pressKey(e)) releaseControl(true); });
   new MutationObserver(queueHatchSync).observe(document.body, {
     subtree: true, attributes: true, attributeFilter: ['class', 'aria-checked', 'aria-selected'],
   });
