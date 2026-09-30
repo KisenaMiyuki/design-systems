@@ -1364,7 +1364,8 @@
     pointer-events: none;
   }
 
-  /* --th (set per toast): 48px + 24px per message line, 1–3 lines → 72 / 96 / 120px */
+  /* --th (set per toast): 48px + 24px per message line, 1–3 lines → 72 / 96 / 120px. Content is
+     12px title + 6px gap + lines, so vertical padding is 15px. */
   .px-toast-slot { flex: 0 0 auto; height: 0; overflow: hidden; transition: height 160ms steps(4, end); }
   .px-toast-slot.is-open { height: calc(var(--th, 72px) + var(--u)); }
 
@@ -1377,7 +1378,7 @@
     overflow: hidden;
   }
   .px-toast--success { --hatch: var(--bone-100); --kick: var(--ash-700); }
-  .px-toast--error { --hatch: var(--signal); --kick: var(--signal-900); }
+  .px-toast--error { --hatch: var(--signal); }
   .px-toast--progress { --kick: var(--ash-700); }
 
   .px-toast.is-on { pointer-events: auto; }
@@ -1405,7 +1406,10 @@
     -webkit-line-clamp: 3;
     line-clamp: 3;
   }
-  .px-toast__kicker { display: flex; align-items: center; gap: 6px; color: var(--kick); }
+  /* 6px under the 12px title lines it up with the rhythm of the 24px message lines */
+  .px-toast__kicker { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; color: var(--kick); }
+  /* On a signal surface the accented title inverts: a void tag with light signal text (~8:1) */
+  .px-toast--error .px-toast__kicker { width: fit-content; padding: 0 5px; background: var(--void); color: var(--signal-300); }
   .px-toast__kicker svg { width: 9px; height: 9px; fill: currentColor; shape-rendering: crispEdges; }
   .px-toast__kicker .px-spin { color: var(--void); }
 
