@@ -260,6 +260,12 @@
   .roll__track > :first-child { color: var(--text, currentColor); }
   .roll__track > :nth-child(2) { color: var(--on, var(--void)); }
 
+  /* Dark text on a light or signal fill reads thinner than light-on-dark, so it steps up to 500.
+     Mono advance widths don't change with weight, so nothing reflows. */
+  .roll__track > :nth-child(2),
+  .px-btn--solid .roll__track > :first-child { font-weight: 500; }
+  .px-btn--quiet .roll__track > :nth-child(2) { font-weight: 400; }
+
   /* Glyph motion follows meaning: arrows travel the way they point (--dx, --dy);
      turning glyphs stay put, rotate by --spin and cross-fade (--fade) to the on colour.
      Active states set --t: 1. While pressed, the glyph nudges 2px along its direction or leans by --lean;
@@ -452,6 +458,7 @@
     position: relative;
     z-index: 1;
     display: grid;
+    font-weight: 500;
     place-items: center;
     height: 100%;
     clip-path: inset(0 100% 0 0);
@@ -1176,13 +1183,13 @@
     letter-spacing: .08em;
     text-transform: uppercase;
     cursor: pointer;
-    transition: color 160ms linear;
+    transition: color 160ms linear, font-weight 160ms steps(1, end);
   }
 
   .px-seg button + button { box-shadow: inset 1px 0 0 var(--void-500); }
   .px-seg button > span:not(.px-hatch) { position: relative; z-index: 1; }
   .px-seg button:hover { color: var(--bone); }
-  .px-seg button[aria-selected="true"] { color: var(--void); transition-delay: 90ms; }
+  .px-seg button[aria-selected="true"] { color: var(--void); font-weight: 500; transition-delay: 90ms; }
 
   .px-slider { display: grid; gap: 6px; }
 
@@ -1368,6 +1375,7 @@
     height: 100%;
     padding-left: calc(var(--u) * 2);
     color: var(--void);
+    font-weight: 500;
     opacity: 0;
     transition: opacity 140ms linear;
   }
@@ -1608,6 +1616,7 @@
     padding: 6px var(--u);
     color: var(--void);
     font-size: 11px;
+    font-weight: 500;
     line-height: 12px;
     letter-spacing: .02em;
     pointer-events: none;
