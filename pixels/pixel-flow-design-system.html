@@ -260,7 +260,11 @@
   .roll__track > :first-child { color: var(--text, currentColor); }
   .roll__track > :nth-child(2) { color: var(--on, var(--void)); }
 
+  /* Glyph motion follows meaning: arrows travel the way they point (--dx, --dy);
+     turning glyphs stay put, rotate by --spin and cross-fade (--fade) to the on colour.
+     Active states set --t: 1. */
   .arrow {
+    --go: translate3d(calc(var(--dx, 1) * 100%), calc(var(--dy, -1) * 100%), 0) rotate(var(--spin, 0deg));
     position: relative;
     display: block;
     width: 100%;
@@ -268,19 +272,42 @@
     transition: transform var(--dur-roll) var(--ease-snap) 55ms;
   }
 
-  .arrow > span { position: absolute; inset: 0; display: grid; place-items: center; }
+  .arrow > span {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    opacity: calc(1 - var(--t, 0) * var(--fade, 0));
+    transition: opacity calc(var(--dur-roll) * .5) linear 55ms;
+  }
   .arrow > :first-child { color: var(--text, currentColor); }
-  .arrow > :nth-child(2) { color: var(--on, var(--void)); transform: translate3d(-100%, 100%, 0); }
+  .arrow > :nth-child(2) {
+    color: var(--on, var(--void));
+    opacity: calc(1 - (1 - var(--t, 0)) * var(--fade, 0));
+    transform: translate3d(calc(var(--dx, 1) * -100%), calc(var(--dy, -1) * -100%), 0);
+  }
+
+  [data-arrow="→"], [data-arrow="▸"] { --dx: 1; --dy: 0; }
+  [data-arrow="←"] { --dx: -1; --dy: 0; }
+  [data-arrow="↑"] { --dx: 0; --dy: -1; }
+  [data-arrow="↓"] { --dx: 0; --dy: 1; }
+  [data-arrow="↘"] { --dx: 1; --dy: 1; }
+  [data-arrow="↙"] { --dx: -1; --dy: 1; }
+  [data-arrow="↖"] { --dx: -1; --dy: -1; }
+  [data-arrow="↺"], [data-arrow="↻"], [data-arrow="×"], [data-arrow="+"] { --dx: 0; --dy: 0; --fade: 1; }
+  [data-arrow="↺"] { --spin: -360deg; }
+  [data-arrow="↻"] { --spin: 360deg; }
+  [data-arrow="×"], [data-arrow="+"] { --spin: 90deg; }
 
   @media (hover: hover) and (pointer: fine) {
     [data-hover]:hover .roll__track { transform: translate3d(0, -50%, 0); }
-    [data-hover]:hover .arrow { transform: translate3d(100%, -100%, 0); }
+    [data-hover]:hover .arrow { --t: 1; transform: var(--go); }
   }
 
   :focus-visible .roll__track,
   .is-on .roll__track { transform: translate3d(0, -50%, 0); }
   :focus-visible .arrow,
-  .is-on .arrow { transform: translate3d(100%, -100%, 0); }
+  .is-on .arrow { --t: 1; transform: var(--go); }
 
   /* ═══════════════════════════ Button ═══════════════════════════ */
   .px-btn {
@@ -438,7 +465,7 @@
     .px-xbtn:hover,
     .px-xbtn:hover .px-xbtn__panel,
     .px-xbtn:hover .px-xbtn__label { clip-path: inset(0); transition-duration: var(--dur-base); }
-    .px-xbtn:hover .arrow { transform: translate3d(100%, -100%, 0); }
+    .px-xbtn:hover .arrow { --t: 1; transform: var(--go); }
     .px-xbtn:hover .px-xbtn__corners span {
       --x: 0px; --y: 0px;
       opacity: 1;
