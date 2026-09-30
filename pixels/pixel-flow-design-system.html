@@ -1018,6 +1018,7 @@
   }
   .px-menu [role="option"][hidden],
   .px-menu__empty[hidden] { display: none; }
+  .px-menu [role="option"] { --px-cell-dur: 140ms; }
   .px-menu [role="option"] > :not(.px-hatch) { position: relative; z-index: 1; }
   .px-menu [role="option"].is-on,
   .px-menu [role="option"][aria-selected="true"] { color: var(--bone); }
@@ -2209,12 +2210,12 @@
                   <span class="px-input__bar" data-hatch="x" data-hatch-cell="6" data-hatch-sweep="160" data-hatch-jitter="30"></span>
                 </button>
                 <ul class="px-menu" id="sel-proj-list" role="listbox" aria-labelledby="sel-proj-label" tabindex="-1" data-hatch-group>
-                  <li role="option" aria-selected="true" data-hatch="x" data-hatch-cell="6"><span>Web Mercator</span></li>
-                  <li role="option" aria-selected="false" data-hatch="x" data-hatch-cell="6"><span>Equal Earth</span></li>
-                  <li role="option" aria-selected="false" data-hatch="x" data-hatch-cell="6"><span>Lambert conformal</span></li>
-                  <li role="option" aria-selected="false" data-hatch="x" data-hatch-cell="6"><span>Transverse Mercator</span></li>
-                  <li role="option" aria-selected="false" data-hatch="x" data-hatch-cell="6"><span>Polar stereographic</span></li>
-                  <li role="option" aria-selected="false" data-hatch="x" data-hatch-cell="6"><span>Robinson</span></li>
+                  <li role="option" aria-selected="true" data-hatch="x" data-hatch-cell="6" data-hatch-sweep="120" data-hatch-jitter="30"><span>Web Mercator</span></li>
+                  <li role="option" aria-selected="false" data-hatch="x" data-hatch-cell="6" data-hatch-sweep="120" data-hatch-jitter="30"><span>Equal Earth</span></li>
+                  <li role="option" aria-selected="false" data-hatch="x" data-hatch-cell="6" data-hatch-sweep="120" data-hatch-jitter="30"><span>Lambert conformal</span></li>
+                  <li role="option" aria-selected="false" data-hatch="x" data-hatch-cell="6" data-hatch-sweep="120" data-hatch-jitter="30"><span>Transverse Mercator</span></li>
+                  <li role="option" aria-selected="false" data-hatch="x" data-hatch-cell="6" data-hatch-sweep="120" data-hatch-jitter="30"><span>Polar stereographic</span></li>
+                  <li role="option" aria-selected="false" data-hatch="x" data-hatch-cell="6" data-hatch-sweep="120" data-hatch-jitter="30"><span>Robinson</span></li>
                 </ul>
               </div>
             </div>
@@ -2228,17 +2229,17 @@
                   <span class="px-input__bar" data-hatch="x" data-hatch-cell="6" data-hatch-sweep="160" data-hatch-jitter="30"></span>
                 </div>
                 <ul class="px-menu" id="cb-region-list" role="listbox" aria-label="Mountain ranges" data-hatch-group>
-                  <li role="option" aria-selected="false" data-hatch="x" data-hatch-cell="6"><span class="px-menu__text">Alps</span></li>
-                  <li role="option" aria-selected="false" data-hatch="x" data-hatch-cell="6"><span class="px-menu__text">Andes</span></li>
-                  <li role="option" aria-selected="false" data-hatch="x" data-hatch-cell="6"><span class="px-menu__text">Atlas</span></li>
-                  <li role="option" aria-selected="false" data-hatch="x" data-hatch-cell="6"><span class="px-menu__text">Carpathians</span></li>
-                  <li role="option" aria-selected="false" data-hatch="x" data-hatch-cell="6"><span class="px-menu__text">Caucasus</span></li>
-                  <li role="option" aria-selected="false" data-hatch="x" data-hatch-cell="6"><span class="px-menu__text">Dolomites</span></li>
-                  <li role="option" aria-selected="false" data-hatch="x" data-hatch-cell="6"><span class="px-menu__text">Himalaya</span></li>
-                  <li role="option" aria-selected="false" data-hatch="x" data-hatch-cell="6"><span class="px-menu__text">Pyrenees</span></li>
-                  <li role="option" aria-selected="false" data-hatch="x" data-hatch-cell="6"><span class="px-menu__text">Rockies</span></li>
-                  <li role="option" aria-selected="false" data-hatch="x" data-hatch-cell="6"><span class="px-menu__text">Tatra</span></li>
-                  <li role="option" aria-selected="false" data-hatch="x" data-hatch-cell="6"><span class="px-menu__text">Urals</span></li>
+                  <li role="option" aria-selected="false" data-hatch="x" data-hatch-cell="6" data-hatch-sweep="120" data-hatch-jitter="30"><span class="px-menu__text">Alps</span></li>
+                  <li role="option" aria-selected="false" data-hatch="x" data-hatch-cell="6" data-hatch-sweep="120" data-hatch-jitter="30"><span class="px-menu__text">Andes</span></li>
+                  <li role="option" aria-selected="false" data-hatch="x" data-hatch-cell="6" data-hatch-sweep="120" data-hatch-jitter="30"><span class="px-menu__text">Atlas</span></li>
+                  <li role="option" aria-selected="false" data-hatch="x" data-hatch-cell="6" data-hatch-sweep="120" data-hatch-jitter="30"><span class="px-menu__text">Carpathians</span></li>
+                  <li role="option" aria-selected="false" data-hatch="x" data-hatch-cell="6" data-hatch-sweep="120" data-hatch-jitter="30"><span class="px-menu__text">Caucasus</span></li>
+                  <li role="option" aria-selected="false" data-hatch="x" data-hatch-cell="6" data-hatch-sweep="120" data-hatch-jitter="30"><span class="px-menu__text">Dolomites</span></li>
+                  <li role="option" aria-selected="false" data-hatch="x" data-hatch-cell="6" data-hatch-sweep="120" data-hatch-jitter="30"><span class="px-menu__text">Himalaya</span></li>
+                  <li role="option" aria-selected="false" data-hatch="x" data-hatch-cell="6" data-hatch-sweep="120" data-hatch-jitter="30"><span class="px-menu__text">Pyrenees</span></li>
+                  <li role="option" aria-selected="false" data-hatch="x" data-hatch-cell="6" data-hatch-sweep="120" data-hatch-jitter="30"><span class="px-menu__text">Rockies</span></li>
+                  <li role="option" aria-selected="false" data-hatch="x" data-hatch-cell="6" data-hatch-sweep="120" data-hatch-jitter="30"><span class="px-menu__text">Tatra</span></li>
+                  <li role="option" aria-selected="false" data-hatch="x" data-hatch-cell="6" data-hatch-sweep="120" data-hatch-jitter="30"><span class="px-menu__text">Urals</span></li>
                   <li class="px-menu__empty t-micro" role="presentation" hidden>No matching range</li>
                 </ul>
               </div>
@@ -2254,15 +2255,15 @@
                   <span class="px-input__bar" data-hatch="x" data-hatch-cell="6" data-hatch-sweep="160" data-hatch-jitter="30"></span>
                 </div>
                 <ul class="px-menu" id="tags-list" role="listbox" aria-label="Layer suggestions" data-hatch-group>
-                  <li role="option" aria-selected="false" data-hatch="x" data-hatch-cell="6"><span class="px-menu__text">Relief</span></li>
-                  <li role="option" aria-selected="false" data-hatch="x" data-hatch-cell="6"><span class="px-menu__text">Contours</span></li>
-                  <li role="option" aria-selected="false" data-hatch="x" data-hatch-cell="6"><span class="px-menu__text">Hillshade</span></li>
-                  <li role="option" aria-selected="false" data-hatch="x" data-hatch-cell="6"><span class="px-menu__text">Hydrology</span></li>
-                  <li role="option" aria-selected="false" data-hatch="x" data-hatch-cell="6"><span class="px-menu__text">Vegetation</span></li>
-                  <li role="option" aria-selected="false" data-hatch="x" data-hatch-cell="6"><span class="px-menu__text">Roads</span></li>
-                  <li role="option" aria-selected="false" data-hatch="x" data-hatch-cell="6"><span class="px-menu__text">Buildings</span></li>
-                  <li role="option" aria-selected="false" data-hatch="x" data-hatch-cell="6"><span class="px-menu__text">Labels</span></li>
-                  <li role="option" aria-selected="false" class="px-menu__add" data-add data-hatch="x" data-hatch-cell="6" hidden><span class="px-menu__text"></span><span class="t-micro">Add new</span></li>
+                  <li role="option" aria-selected="false" data-hatch="x" data-hatch-cell="6" data-hatch-sweep="120" data-hatch-jitter="30"><span class="px-menu__text">Relief</span></li>
+                  <li role="option" aria-selected="false" data-hatch="x" data-hatch-cell="6" data-hatch-sweep="120" data-hatch-jitter="30"><span class="px-menu__text">Contours</span></li>
+                  <li role="option" aria-selected="false" data-hatch="x" data-hatch-cell="6" data-hatch-sweep="120" data-hatch-jitter="30"><span class="px-menu__text">Hillshade</span></li>
+                  <li role="option" aria-selected="false" data-hatch="x" data-hatch-cell="6" data-hatch-sweep="120" data-hatch-jitter="30"><span class="px-menu__text">Hydrology</span></li>
+                  <li role="option" aria-selected="false" data-hatch="x" data-hatch-cell="6" data-hatch-sweep="120" data-hatch-jitter="30"><span class="px-menu__text">Vegetation</span></li>
+                  <li role="option" aria-selected="false" data-hatch="x" data-hatch-cell="6" data-hatch-sweep="120" data-hatch-jitter="30"><span class="px-menu__text">Roads</span></li>
+                  <li role="option" aria-selected="false" data-hatch="x" data-hatch-cell="6" data-hatch-sweep="120" data-hatch-jitter="30"><span class="px-menu__text">Buildings</span></li>
+                  <li role="option" aria-selected="false" data-hatch="x" data-hatch-cell="6" data-hatch-sweep="120" data-hatch-jitter="30"><span class="px-menu__text">Labels</span></li>
+                  <li role="option" aria-selected="false" class="px-menu__add" data-add data-hatch="x" data-hatch-cell="6" data-hatch-sweep="120" data-hatch-jitter="30" hidden><span class="px-menu__text"></span><span class="t-micro">Add new</span></li>
                   <li class="px-menu__empty t-micro" role="presentation" hidden>Every layer is added</li>
                 </ul>
               </div>
@@ -3861,8 +3862,7 @@
       li.setAttribute('role', 'option');
       li.setAttribute('aria-selected', 'false');
       li.dataset.label = v;
-      li.dataset.hatch = 'x';
-      li.dataset.hatchCell = '6';
+      Object.assign(li.dataset, { hatch: 'x', hatchCell: '6', hatchSweep: '120', hatchJitter: '30' });
       li.innerHTML = `<span class="px-menu__text">${esc(v)}</span>`;
       lb.menu.insertBefore(li, add);
       lb.name(li);
