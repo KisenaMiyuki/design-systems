@@ -1601,7 +1601,7 @@
         <!-- List -->
         <div class="panel s-12" data-panel data-snap>
           <div class="panel__head t-micro"><b>List</b><span>Rows hatch diagonally</span></div>
-          <div class="px-list">
+          <div class="px-list" data-hatch-group>
             <div class="px-list__row px-list__row--head t-micro"><span>#</span><span>Layer</span><span>Cells</span><span>Updated</span><span>Status</span></div>
             <div class="px-list__row" data-hatch="diag" data-hatch-cell="12" data-hatch-tone=".2" data-hover><span class="idx t-micro">01</span><span>Terrain / relief</span><span class="num muted">2,184,320</span><span class="num muted">00:02:14</span><span class="px-tag px-tag--live"><span class="px-tag__dot"><i></i><i></i><i></i><i></i></span>Live</span></div>
             <div class="px-list__row" data-hatch="diag" data-hatch-cell="12" data-hatch-tone=".2" data-hover><span class="idx t-micro">02</span><span>Contours / 10 m</span><span class="num muted">912,004</span><span class="num muted">00:14:51</span><span class="px-tag px-tag--sync"><span class="px-tag__dot"><i></i><i></i><i></i><i></i></span>Sync</span></div>
@@ -1864,6 +1864,7 @@
       entry: [0, .5],
       exit: [1, .5],
       on: layer.matches(HATCH_ON),
+      group: host.closest('[data-hatch-group]'),
       t0: -Infinity,
     };
     stagger(host);
@@ -1917,14 +1918,16 @@
 
   // Settled cells follow the sweep, starting from the first one that has to move.
   // Cells caught mid-fade turn around at once, so an interrupted fill reverses without a pause.
-  function setHatchState(st, on, now) {
+  // A handoff compresses the sweep and fade and eases out, so the new state reads within a frame or two.
+  function setHatchState(st, on, now, handoff = false) {
     const n = st.from.length, prev = st.to;
     for (let i = 0; i < n; i++) st.from[i] = cellValue(st, i, now);
     readHatchStyle(st);
     st.on = on;
     const to = st.to = on ? 1 : st.rest;
     const base = on ? st.dIn : st.dOut;
-    const dur = on ? st.durIn : st.durIn * .8;
+    const pace = handoff ? HANDOFF.sweep : 1;
+    const dur = (on ? st.durIn : st.durIn * .8) * (handoff ? HANDOFF.dur : 1);
     const range = Math.abs(1 - st.rest) || 1;
     const delay = new Float32Array(n), len = new Float32Array(n), quick = new Uint8Array(n);
 
@@ -1941,8 +1944,9 @@
         quick[i] = 1;
         len[i] = dur * clamp(gap / range, .3, 1);
       } else {
-        delay[i] = Math.max(0, base[i] - skip);
+        delay[i] = Math.max(0, base[i] - skip) * pace;
         len[i] = dur;
+        quick[i] = handoff ? 1 : 0;
       }
       if (delay[i] + len[i] > span) span = delay[i] + len[i];
     }
@@ -1953,14 +1957,30 @@
     if (!hatchRaf) hatchRaf = requestAnimationFrame(tickHatches);
   }
 
+  // Inside a [data-hatch-group], the first hover plays in full. While the group is warm (a member is lit,
+  // or one went dark within WARM ms), moving to another member hands off quickly in both directions.
+  const HANDOFF = { sweep: .15, dur: .45 }, WARM = 300;
+  const groupOffAt = new WeakMap();
   const hatchHosts = new Set();
   let hatchSync = 0;
   function queueHatchSync() { if (!hatchSync) hatchSync = requestAnimationFrame(syncHatches); }
   function syncHatches(now) {
     hatchSync = 0;
+    const flips = [], lit = new Set(), entering = new Set();
     for (const host of hatchHosts) {
       const st = host._hatch;
-      if (st && st.layer.matches(HATCH_ON) !== st.on) setHatchState(st, !st.on, now);
+      if (!st) continue;
+      if (st.on && st.group) lit.add(st.group);
+      if (st.layer.matches(HATCH_ON) !== st.on) {
+        flips.push(st);
+        if (!st.on && st.group) entering.add(st.group);
+      }
+    }
+    for (const st of flips) {
+      const g = st.group;
+      const warm = g && (st.on ? entering.has(g) : lit.has(g) || now - (groupOffAt.get(g) ?? -Infinity) < WARM);
+      if (g && st.on) groupOffAt.set(g, now);
+      setHatchState(st, !st.on, now, !!warm);
     }
   }
   ['pointerover', 'pointerout', 'focusin', 'focusout'].forEach((t) => document.addEventListener(t, queueHatchSync, { passive: true }));
