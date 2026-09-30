@@ -226,53 +226,25 @@
   }
 
   /* ═══════════════════════════ Hatch ═══════════════════════════ */
+  /* One canvas pixel per cell, scaled up without smoothing. On-states are listed in HATCH_ON (script). */
   .px-hatch {
     position: absolute;
     inset: 0;
     z-index: 0;
-    display: grid;
+    display: block;
     pointer-events: none;
   }
 
-  .px-hatch i {
+  .px-hatch canvas {
     display: block;
-    background: var(--hatch, var(--bone));
-    opacity: 0;
-    outline: .6px solid var(--hatch, var(--bone));
-    outline-offset: -.4px;
-    transition: opacity calc(var(--px-cell-dur, var(--dur-cell)) * .8) var(--ease-cell) var(--out, 0ms);
-  }
-
-  .px-hatch i.b {
-    background: var(--hatch-b, var(--hatch));
-    outline-color: var(--hatch-b, var(--hatch));
-  }
-
-  .is-on > .px-hatch i,
-  [aria-checked="true"] > .px-hatch i,
-  [aria-selected="true"] > .px-hatch i,
-  :focus-visible > .px-hatch i,
-  .px-input:focus-within > .px-input__bar > .px-hatch i,
-  .px-input.is-error > .px-input__bar > .px-hatch i,
-  .nav a.is-active > .nav__bar > .px-hatch i {
-    opacity: 1;
-    transition-duration: var(--px-cell-dur, var(--dur-cell));
-    transition-delay: var(--in, 0ms);
-  }
-
-  @media (hover: hover) and (pointer: fine) {
-    [data-hover]:hover > .px-hatch i,
-    .px-xbtn:hover > .px-xbtn__panel > .px-hatch i,
-    .nav a:hover > .nav__bar > .px-hatch i {
-      opacity: 1;
-      transition-duration: var(--px-cell-dur, var(--dur-cell));
-      transition-delay: var(--in, 0ms);
-    }
+    width: 100%;
+    height: 100%;
+    image-rendering: pixelated;
   }
 
   [disabled] > .px-hatch { display: none; }
 
-  .px-hatch--rest i { opacity: .14; }
+  .px-hatch--rest { --hatch-rest: .14; }
 
   /* Rolling label: two stacked copies, the second rolls up on activation */
   .roll { display: block; height: 100%; overflow: hidden; }
@@ -477,7 +449,6 @@
   .px-xbtn:focus-visible { outline: 0; clip-path: inset(0); }
   .px-xbtn:focus-visible .px-xbtn__panel,
   .px-xbtn:focus-visible .px-xbtn__label { clip-path: inset(0); }
-  .px-xbtn:focus-visible .px-xbtn__panel > .px-hatch i { opacity: 1; transition-delay: var(--in); }
   .px-xbtn:focus-visible .px-xbtn__corners span { --x: 0px; --y: 0px; opacity: 1; }
 
   /* Icon button */
@@ -1151,7 +1122,7 @@
     box-shadow: inset 0 0 0 1px var(--void-500);
   }
 
-  .strip--rest i { opacity: .12; }
+  .strip--rest { --hatch-rest: .12; }
   .strip--signal { --hatch: var(--signal); }
 
   .lab {
@@ -1801,7 +1772,49 @@
   const easeOut = (t) => 1 - (1 - t) ** 3;
   const rnd = Math.random;
 
-  /* ═════════════ Hatch: per-cell delays drive CSS transitions ═════════════ */
+  /* ═════════════ Hatch: per-cell delays, one canvas pixel per cell ═════════════ */
+
+  const HATCH_ON = [
+    '.is-on > .px-hatch',
+    '[aria-checked="true"] > .px-hatch',
+    '[aria-selected="true"] > .px-hatch',
+    ':focus-visible > .px-hatch',
+    '.px-xbtn:focus-visible .px-xbtn__panel > .px-hatch',
+    '.px-input:focus-within > .px-input__bar > .px-hatch',
+    '.px-input.is-error > .px-input__bar > .px-hatch',
+    '.nav a.is-active > .nav__bar > .px-hatch',
+    ...(FINE ? [
+      '[data-hover]:hover > .px-hatch',
+      '.px-xbtn:hover > .px-xbtn__panel > .px-hatch',
+      '.nav a:hover > .nav__bar > .px-hatch',
+    ] : []),
+  ].join(',');
+
+  function bezier(x1, y1, x2, y2) {
+    const N = 256, lut = new Float32Array(N + 1);
+    const at = (a, b, s) => 3 * a * s * (1 - s) ** 2 + 3 * b * s * s * (1 - s) + s ** 3;
+    for (let k = 0, s = 0; k <= N; k++) {
+      while (s < 1 && at(x1, x2, s) < k / N) s += 1 / 4096;
+      lut[k] = at(y1, y2, s);
+    }
+    return (t) => {
+      const f = t * N, k = f | 0;
+      return k >= N ? 1 : lut[k] + (lut[k + 1] - lut[k]) * (f - k);
+    };
+  }
+  const easeCell = bezier(.66, 0, .34, 1);
+
+  const toRGB = (() => {
+    const g = document.createElement('canvas').getContext('2d');
+    return (css) => {
+      g.fillStyle = '#000';
+      g.fillStyle = css;
+      const s = g.fillStyle;
+      if (s[0] === '#') return [1, 3, 5].map((k) => parseInt(s.slice(k, k + 2), 16));
+      return s.match(/[\d.]+/g).slice(0, 3).map(Number);
+    };
+  })();
+  const toMs = (v) => parseFloat(v) * (/[^m]s$/.test(v) ? 1000 : 1);
 
   function hatchParams(host) {
     const d = host.dataset;
@@ -1829,34 +1842,138 @@
       layer = document.createElement('span');
       layer.className = 'px-hatch';
       layer.setAttribute('aria-hidden', 'true');
+      layer.appendChild(document.createElement('canvas'));
       host.prepend(layer);
     }
-    layer.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
-    layer.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
+    const cv = layer.firstChild;
+    cv.width = cols;
+    cv.height = rows;
+    if (st) hatchLive.delete(st);
 
     const n = cols * rows;
-    const cells = new Array(n);
-    const frag = document.createDocumentFragment();
-    for (let i = 0; i < n; i++) {
-      const c = document.createElement('i');
-      if (p.tone && rnd() < p.tone) c.className = 'b';
-      cells[i] = c;
-      frag.appendChild(c);
-    }
-    layer.replaceChildren(frag);
-
-    host._hatch = {
-      layer, cells, cols, rows,
+    host._hatch = st = {
+      layer, cols, rows,
+      ctx: cv.getContext('2d'),
+      img: new ImageData(cols, rows),
+      tone: Uint8Array.from({ length: n }, () => (p.tone && rnd() < p.tone ? 1 : 0)),
+      from: new Float32Array(n),
       jIn: Float32Array.from({ length: n }, rnd),
       jOut: Float32Array.from({ length: n }, rnd),
       sIn: Float32Array.from({ length: n }, rnd),
       sOut: Float32Array.from({ length: n }, rnd),
       entry: [0, .5],
       exit: [1, .5],
+      on: layer.matches(HATCH_ON),
+      t0: -Infinity,
     };
     stagger(host);
+    readHatchStyle(st);
+    st.to = st.on ? 1 : st.rest;
+    st.delay = new Float32Array(n);
+    st.len = new Float32Array(n).fill(1);
+    st.quick = new Uint8Array(n);
+    drawHatch(st, 0);
     const lbl = host.dataset.countTarget && $(host.dataset.countTarget);
     if (lbl) lbl.textContent = `${n} cells`;
+  }
+
+  function readHatchStyle(st) {
+    const cs = getComputedStyle(st.layer);
+    const css = (k) => cs.getPropertyValue(k).trim();
+    const a = toRGB(css('--hatch') || css('--bone'));
+    const b = css('--hatch-b') ? toRGB(css('--hatch-b')) : a;
+    const d = st.img.data;
+    for (let i = 0, o = 0; i < st.tone.length; i++, o += 4) {
+      const c = st.tone[i] ? b : a;
+      d[o] = c[0]; d[o + 1] = c[1]; d[o + 2] = c[2];
+    }
+    st.rest = +css('--hatch-rest') || 0;
+    st.durIn = Math.max(1, toMs(css('--px-cell-dur') || css('--dur-cell')));
+  }
+
+  function cellValue(st, i, now) {
+    const p = (now - st.t0 - st.delay[i]) / st.len[i];
+    if (p <= 0) return st.from[i];
+    if (p >= 1) return st.to;
+    return st.from[i] + (st.to - st.from[i]) * (st.quick[i] ? easeOut(p) : easeCell(p));
+  }
+
+  function drawHatch(st, now) {
+    const d = st.img.data;
+    for (let i = 0, o = 3; i < st.from.length; i++, o += 4) d[o] = cellValue(st, i, now) * 255;
+    st.ctx.putImageData(st.img, 0, 0);
+  }
+
+  const hatchLive = new Set();
+  let hatchRaf = 0;
+  function tickHatches(now) {
+    hatchRaf = 0;
+    for (const st of hatchLive) {
+      drawHatch(st, now);
+      if (now >= st.end) hatchLive.delete(st);
+    }
+    if (hatchLive.size) hatchRaf = requestAnimationFrame(tickHatches);
+  }
+
+  // Settled cells follow the sweep, starting from the first one that has to move.
+  // Cells caught mid-fade turn around at once, so an interrupted fill reverses without a pause.
+  function setHatchState(st, on, now) {
+    const n = st.from.length, prev = st.to;
+    for (let i = 0; i < n; i++) st.from[i] = cellValue(st, i, now);
+    readHatchStyle(st);
+    st.on = on;
+    const to = st.to = on ? 1 : st.rest;
+    const base = on ? st.dIn : st.dOut;
+    const dur = on ? st.durIn : st.durIn * .8;
+    const range = Math.abs(1 - st.rest) || 1;
+    const delay = new Float32Array(n), len = new Float32Array(n), quick = new Uint8Array(n);
+
+    let skip = Infinity;
+    for (let i = 0; i < n; i++) {
+      if (Math.abs(st.from[i] - prev) <= .01 && Math.abs(st.from[i] - to) > .01 && base[i] < skip) skip = base[i];
+    }
+    if (skip === Infinity) skip = 0;
+
+    let span = 0;
+    for (let i = 0; i < n; i++) {
+      const gap = Math.abs(st.from[i] - to);
+      if (gap > .01 && Math.abs(st.from[i] - prev) > .01) {
+        quick[i] = 1;
+        len[i] = dur * clamp(gap / range, .3, 1);
+      } else {
+        delay[i] = Math.max(0, base[i] - skip);
+        len[i] = dur;
+      }
+      if (delay[i] + len[i] > span) span = delay[i] + len[i];
+    }
+    st.delay = delay; st.len = len; st.quick = quick;
+    st.t0 = REDUCE ? -Infinity : now;
+    st.end = st.t0 + span;
+    hatchLive.add(st);
+    if (!hatchRaf) hatchRaf = requestAnimationFrame(tickHatches);
+  }
+
+  const hatchHosts = new Set();
+  let hatchSync = 0;
+  function queueHatchSync() { if (!hatchSync) hatchSync = requestAnimationFrame(syncHatches); }
+  function syncHatches(now) {
+    hatchSync = 0;
+    for (const host of hatchHosts) {
+      const st = host._hatch;
+      if (st && st.layer.matches(HATCH_ON) !== st.on) setHatchState(st, !st.on, now);
+    }
+  }
+  ['pointerover', 'pointerout', 'focusin', 'focusout'].forEach((t) => document.addEventListener(t, queueHatchSync, { passive: true }));
+  new MutationObserver(queueHatchSync).observe(document.body, {
+    subtree: true, attributes: true, attributeFilter: ['class', 'aria-checked', 'aria-selected'],
+  });
+
+  // Shifts delays so the earliest cell starts at once.
+  function lead(d) {
+    let lo = Infinity;
+    for (let i = 0; i < d.length; i++) if (d[i] < lo) lo = d[i];
+    for (let i = 0; i < d.length; i++) d[i] -= lo;
+    return d;
   }
 
   // phase: 'both' | 'in' | 'out'
@@ -1864,7 +1981,8 @@
     const st = host._hatch;
     if (!st) return;
     const p = hatchParams(host);
-    const { cols, rows, cells } = st;
+    const { cols, rows } = st;
+    const dIn = new Float32Array(cols * rows), dOut = new Float32Array(cols * rows);
     const steps = p.mode === 'x' ? cols : p.mode === 'y' ? rows : Math.hypot(cols, rows) * .7;
     const sweep = p.sweep !== null ? p.sweep : clamp(steps * 7, 120, 520);
     const jit = p.jitter;
@@ -1891,11 +2009,12 @@
             break;
           default: tIn = nx; tOut = 1 - nx;
         }
-        const s = cells[i].style;
-        if (phase !== 'out') s.setProperty('--in', `${Math.round(tIn * sweep + st.jIn[i] * jit)}ms`);
-        if (phase !== 'in') s.setProperty('--out', `${Math.round(tOut * sweep * .78 + st.jOut[i] * jit * .78)}ms`);
+        dIn[i] = tIn * sweep + st.jIn[i] * jit;
+        dOut[i] = (tOut * sweep + st.jOut[i] * jit) * .78;
       }
     }
+    if (phase !== 'out') st.dIn = lead(dIn);
+    if (phase !== 'in') st.dOut = lead(dOut);
   }
 
   function localPoint(host, e) {
@@ -1910,6 +2029,7 @@
 
   function initHatch(host) {
     buildHatch(host);
+    hatchHosts.add(host);
     hatchRO.observe(host);
     host.addEventListener('pointerenter', (e) => {
       if (hatchParams(host).mode === 'entry' && host.dataset.hover !== undefined) setEntry(host, localPoint(host, e));
@@ -1998,7 +2118,7 @@
     const NB = COLORS.length;
 
     let dpr = 1, vw = 0, vh = 0, ox = 0, cols = 0, rows = 0;
-    let mask = new Float32Array(0), heat = new Float32Array(0);
+    let mask = new Float32Array(0), heat = new Float32Array(0), heatR0 = Infinity, heatR1 = -1;
     let gCov = new Float32Array(0), gDelay = new Float32Array(0), gId = new Uint8Array(0);
     const glyphs = [];
     let bufs = [], counts = new Int32Array(NB);
@@ -2023,10 +2143,15 @@
       const u = xf * xf * (3 - 2 * xf), v = yf * yf * (3 - 2 * yf);
       return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v;
     }
-    function flow(c, r, t) {
-      const x = c * .085, y = r * .085;
-      const wx = x + .9 * Math.sin(y * .9 + t * .35);
-      const wy = y + .9 * Math.cos(x * .7 - t * .28);
+    // Domain warp is separable: x shifts by a per-row sine, y by a per-column cosine.
+    let colWarp = new Float32Array(0);
+    const rowWarp = (r, t) => .9 * Math.sin(r * .085 * .9 + t * .35);
+    function warpCols(t) {
+      if (colWarp.length !== cols) colWarp = new Float32Array(cols);
+      for (let c = 0; c < cols; c++) colWarp[c] = .9 * Math.cos(c * .085 * .7 - t * .28);
+    }
+    function flow(c, r, t, rw) {
+      const wx = c * .085 + rw, wy = r * .085 + colWarp[c];
       return .62 * vnoise(wx + t * .11, wy - t * .07) + .38 * vnoise(wx * 2.1 - t * .19, wy * 2.1 + t * .13);
     }
 
@@ -2103,8 +2228,9 @@
         gDelay = new Float32Array(n);
         gId = new Uint8Array(n);
       } else {
-        mask.fill(0); gCov.fill(0); gId.fill(0);
+        mask.fill(0); heat.fill(0); gCov.fill(0); gId.fill(0);
       }
+      heatR0 = Infinity; heatR1 = -1;
 
       const vis = (Math.ceil(vh / U) + 3) * cols;
       if (!bufs[0] || bufs[0].length < vis * 3) bufs = COLORS.map(() => new Float32Array(vis * 3));
@@ -2181,6 +2307,8 @@
       const rr = yDoc / U - .5;
       const c0 = Math.max(0, Math.floor(cc - R)), c1 = Math.min(cols - 1, Math.ceil(cc + R));
       const r0 = Math.max(0, Math.floor(rr - R)), r1 = Math.min(rows - 1, Math.ceil(rr + R));
+      if (r0 < heatR0) heatR0 = r0;
+      if (r1 > heatR1) heatR1 = r1;
       for (let r = r0; r <= r1; r++) {
         for (let c = c0; c <= c1; c++) {
           const d = Math.hypot(c - cc, r - rr);
@@ -2218,16 +2346,18 @@
       ctx.fillRect(0, 0, cv.width, cv.height);
       counts.fill(0);
 
+      warpCols(t);
       const r0 = Math.max(0, Math.floor(sy / U)), r1 = Math.min(rows - 1, Math.ceil((sy + vh) / U));
       for (let r = r0; r <= r1; r++) {
         const y = r * U - sy;
         if (y + U <= HEADER) continue;
         const yc = r * U + U / 2;
+        const rw = rowWarp(r, t);
         for (let c = 0; c < cols; c++) {
           const i = r * cols + c;
           const x = ox - U + c * U;
           const m = mask[i];
-          const n = flow(c, r, t);
+          const n = flow(c, r, t, rw);
           let v = smooth(.5, .92, n) * (1 - m * .95);
           let size = REST + (MAX - REST) * v;
           let b = v < .06 ? 0 : v < .25 ? 1 : v < .5 ? 2 : v < .78 ? 3 : 4;
@@ -2285,7 +2415,13 @@
         ctx.fill();
       }
 
-      for (let i = 0; i < heat.length; i++) if (heat[i] > .001) heat[i] *= .9; else heat[i] = 0;
+      if (heatR1 >= heatR0) {
+        let live = false;
+        for (let i = heatR0 * cols, e = (heatR1 + 1) * cols; i < e; i++) {
+          if (heat[i] > .001) { heat[i] *= .9; live = true; } else heat[i] = 0;
+        }
+        if (!live) { heatR0 = Infinity; heatR1 = -1; }
+      }
     }
 
     window.addEventListener('pointermove', (e) => {
