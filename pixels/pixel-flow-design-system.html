@@ -2107,17 +2107,17 @@
         </div>
 
         <!-- Cards -->
-        <a href="#components" class="px-card s-4" data-panel data-snap data-hatch="entry" data-hatch-cell="12" data-hatch-tone=".22" data-hover>
+        <a href="#components" class="px-card s-4" data-panel data-snap data-hatch="entry" data-hatch-cell="12" data-hatch-tone=".22" data-hatch-breathe=".28" data-hover>
           <div class="px-card__top"><span class="px-card__idx t-micro">04 / Sector</span><span class="px-tag px-tag--live"><span class="px-tag__dot"><i></i><i></i><i></i><i></i></span>Live</span></div>
           <div><h3>Ridgeline North</h3><p>Relief survey, 1 m cells. Updated two hours ago.</p></div>
           <div class="px-card__foot"><span class="bars" data-bars="2,3,3,4,6,5,4,5,6,6,5,3,2,3,4,4,3,2,1,2,3,5,6,4"></span><span class="px-card__arrow" data-arrow="↗"></span></div>
         </a>
-        <a href="#components" class="px-card s-4" data-panel data-snap data-hatch="entry" data-hatch-cell="12" data-hatch-tone=".22" data-hover>
+        <a href="#components" class="px-card s-4" data-panel data-snap data-hatch="entry" data-hatch-cell="12" data-hatch-tone=".22" data-hatch-breathe=".28" data-hover>
           <div class="px-card__top"><span class="px-card__idx t-micro">07 / Basin</span><span class="px-tag px-tag--sync"><span class="px-tag__dot"><i></i><i></i><i></i><i></i></span>Syncing</span></div>
           <div><h3>Lower Tarn</h3><p>Hydrology layer, 912k cells. Sweep follows your cursor in.</p></div>
           <div class="px-card__foot"><span class="bars" data-bars="1,1,2,2,3,2,2,3,3,4,4,5,5,4,4,3,3,4,5,5,6,6,5,5"></span><span class="px-card__arrow" data-arrow="↗"></span></div>
         </a>
-        <a href="#components" class="px-card s-4" data-panel data-snap data-hatch="entry" data-hatch-cell="12" data-hatch-tone=".22" data-hover>
+        <a href="#components" class="px-card s-4" data-panel data-snap data-hatch="entry" data-hatch-cell="12" data-hatch-tone=".22" data-hatch-breathe=".28" data-hover>
           <div class="px-card__top"><span class="px-card__idx t-micro">12 / Ridge</span><span class="px-tag px-tag--idle"><span class="px-tag__dot"><i></i><i></i><i></i><i></i></span>Idle</span></div>
           <div><h3>Col de Verre</h3><p>Section cut, 12,480 annotations. Leaves retract toward the exit.</p></div>
           <div class="px-card__foot"><span class="bars" data-bars="6,5,5,4,4,3,4,3,2,2,3,2,1,1,2,1,2,3,2,2,1,1,2,1"></span><span class="px-card__arrow" data-arrow="↗"></span></div>
@@ -3048,6 +3048,14 @@
     el.appendChild(frag);
   });
 
+  // Restored before hatches build, so the toggle doesn't replay its sweep on load.
+  const FOCUS_KEY = 'pixel-flow:focus-effect';
+  const savedFocus = (() => { try { return localStorage.getItem(FOCUS_KEY); } catch { return null; } })();
+  if (savedFocus === 'grid' || savedFocus === 'bar') {
+    document.documentElement.dataset.focus = savedFocus;
+    $$('#focus-style [role="tab"]').forEach((t) => t.setAttribute('aria-selected', String(t.dataset.value === savedFocus)));
+  }
+
   $$('.px-input__box').forEach((box) => {
     const grid = document.createElement('span');
     grid.className = 'px-input__grid';
@@ -3641,6 +3649,7 @@
 
   initSeg($('#focus-style'), (v) => {
     document.documentElement.dataset.focus = v;
+    try { localStorage.setItem(FOCUS_KEY, v); } catch { /* storage blocked: choice lasts for this visit */ }
     queueHatchSync();
   });
 
