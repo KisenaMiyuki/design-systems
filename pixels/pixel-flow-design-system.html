@@ -1508,8 +1508,10 @@
     .px-media:hover img { filter: none; }
   }
 
-  /* Veil of cells that holds while loading and dissolves once the image is in */
-  .px-media__veil { --hatch: var(--void-800); --hatch-b: var(--void-700); position: absolute; inset: 0; z-index: 1; }
+  /* Veil of cells that breathes while loading (the input focus grid, at 1u cells) and dissolves once the
+     image is in. The old image hides once the veil has assembled, so breathing cells never show it. */
+  .px-media__veil { --hatch: var(--void-700); --hatch-b: var(--void-600); position: absolute; inset: 0; z-index: 1; }
+  .px-media[aria-busy="true"] img { opacity: 0; transition: filter 480ms linear, opacity 0s linear 700ms; }
 
   .px-media__status {
     position: absolute;
@@ -1519,6 +1521,7 @@
     transition: opacity 120ms linear;
   }
   .px-media[aria-busy="false"] .px-media__status { opacity: 0; }
+  .px-media.is-failed .px-media__status { color: var(--signal); }
 
   /* ═══════════════════════════ Skeleton ═══════════════════════════ */
   /* Placeholder blocks drawn as 5px cells; a band steps across them rather than gliding. */
@@ -2330,11 +2333,12 @@
           <div class="panel__head t-micro"><b>Image</b><span id="media-meta">Openverse · mountain landscape</span></div>
           <figure class="px-media" id="media" aria-busy="true">
             <img alt="" width="960" height="540" decoding="async">
-            <span class="px-media__veil is-on" data-hatch="scatter" data-hatch-cell="12" data-hatch-sweep="560" data-hatch-tone=".3"></span>
+            <span class="px-media__veil is-on" data-hatch="scatter" data-hatch-cell="12" data-hatch-sweep="560" data-hatch-tone=".3" data-hatch-breathe=".3"></span>
             <figcaption class="px-media__status t-micro" id="media-status">Loading</figcaption>
           </figure>
           <div class="row" style="justify-content: space-between; margin-top: 24px">
             <span class="muted" id="media-credit" style="flex: 1; min-width: 20ch">Random terrain photo. Cells hold while it loads, then dissolve; greyscale until hovered.</span>
+            <label class="opt t-micro muted"><button type="button" class="px-check" role="checkbox" aria-checked="false" id="media-fail" data-hatch="scatter" data-hatch-cell="4" data-hatch-sweep="140" aria-label="Simulate failure"><svg viewBox="0 0 6 6" aria-hidden="true"><rect x="4" y="1" width="1" height="1"/><rect x="1" y="2" width="1" height="1"/><rect x="3" y="2" width="1" height="1"/><rect x="2" y="3" width="1" height="1"/></svg></button><span>Simulate failure</span></label>
             <button type="button" class="px-ibtn" data-hatch="center" data-hover data-tip="Shuffle image" aria-label="Shuffle image" id="media-shuffle"><span data-arrow="↻"></span></button>
           </div>
         </div>
@@ -3970,12 +3974,19 @@
 
     const licence = (p) => (p.license === 'cc0' || p.license === 'pdm' ? p.license.toUpperCase() : `CC ${p.license.toUpperCase()} ${p.license_version || ''}`.trim());
 
+    const fail = $('#media-fail');
+
     async function load() {
       const mine = ++token;
       if (!veil.classList.contains('is-on')) { veil.classList.add('is-on'); coveredAt = performance.now(); }
       media.setAttribute('aria-busy', 'true');
+      media.classList.remove('is-failed');
       status.textContent = 'Loading';
       try {
+        if (fail.getAttribute('aria-checked') === 'true') {
+          await new Promise((r) => setTimeout(r, 900 + rnd() * 600));
+          throw new Error('simulated');
+        }
         const photo = await nextPhoto();
         await new Promise((resolve, reject) => {
           const probe = new Image();
@@ -3988,15 +3999,20 @@
         if (mine !== token) return;
         img.src = photo.url;
         img.alt = photo.title || 'Mountain landscape';
-        credit.innerHTML = `<a class="px-link" href="${esc(photo.foreign_landing_url || photo.url)}" target="_blank" rel="noopener">${esc(photo.title || 'Untitled')}</a> by ${esc(photo.creator || 'unknown')} · ${esc(licence(photo))}`;
+        const title = photo.title || 'Untitled';
+        const short = title.length > 48 ? `${title.slice(0, 47).trimEnd()}…` : title;
+        credit.innerHTML = `<a class="px-link" href="${esc(photo.foreign_landing_url || photo.url)}" target="_blank" rel="noopener" title="${esc(title)}">${esc(short)}</a> by ${esc(photo.creator || 'unknown')} · ${esc(licence(photo))}`;
         media.setAttribute('aria-busy', 'false');
         veil.classList.remove('is-on');
       } catch {
-        if (mine === token) status.textContent = 'Image unavailable offline';
+        if (mine !== token) return;
+        media.classList.add('is-failed');
+        status.textContent = 'Couldn’t load image · shuffle to retry';
       }
     }
 
     $('#media-shuffle').addEventListener('click', load);
+    fail.addEventListener('px:change', load);
     load();
   })();
 
