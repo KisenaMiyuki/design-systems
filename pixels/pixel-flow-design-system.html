@@ -307,6 +307,7 @@
   [data-arrow="↺"] { --spin: -360deg; --lean: -20deg; }
   [data-arrow="↻"] { --spin: 360deg; --lean: 20deg; }
   [data-arrow="×"], [data-arrow="+"] { --spin: 90deg; --lean: 15deg; }
+  [data-arrow="−"] { --dx: 0; --dy: 0; --fade: 1; }
 
   @media (hover: hover) and (pointer: fine) {
     [data-hover]:hover .roll__track { transform: translate3d(0, -50%, 0); }
@@ -401,11 +402,12 @@
   /* Expand variant */
   .px-xbtn {
     --h: 48px;
+    --fix: var(--h);
     --ink: var(--bone);
     --on: var(--void);
     position: relative;
     display: inline-flex;
-    width: calc(var(--h) + var(--u) * 16);
+    width: calc(var(--fix) + var(--u) * 16);
     height: var(--h);
     padding: 0;
     border: 0;
@@ -416,14 +418,14 @@
     letter-spacing: .02em;
     text-transform: uppercase;
     cursor: pointer;
-    clip-path: inset(0 calc(100% - var(--h)) 0 0);
+    clip-path: inset(0 calc(100% - var(--fix)) 0 0);
     transition: clip-path var(--dur-exit) var(--ease-out);
   }
 
   .px-xbtn__icon {
     position: relative;
     z-index: 2;
-    flex: 0 0 var(--h);
+    flex: 0 0 var(--fix);
     height: var(--h);
     overflow: hidden;
     background: var(--ink);
@@ -492,6 +494,66 @@
   .px-xbtn:focus-visible .px-xbtn__panel,
   .px-xbtn:focus-visible .px-xbtn__label { clip-path: inset(0); }
   .px-xbtn:focus-visible .px-xbtn__corners span { --x: 0px; --y: 0px; opacity: 1; }
+
+  /* Held open while a stateful button is working or reporting */
+  .px-xbtn.is-open,
+  .px-xbtn.is-open .px-xbtn__panel,
+  .px-xbtn.is-open .px-xbtn__label { clip-path: inset(0); transition-duration: var(--dur-base); }
+
+  /* Submit: a slightly rectangular fixed part (5u × 4u) */
+  .px-xbtn--submit { --fix: calc(var(--u) * 5); width: calc(var(--fix) + var(--u) * 13); }
+
+  /* Stateful: idle bone → busy ash → done signal / fail signal on brown. Each state shows its own glyph and label. */
+  .px-xbtn[data-state="busy"] { --ink: var(--ash); cursor: progress; }
+  .px-xbtn[data-state="done"] { --ink: var(--signal); }
+  .px-xbtn[data-state="fail"] { --ink: var(--signal-900); --on: var(--signal-300); }
+  .px-xbtn__icon > [data-show] { position: absolute; inset: 0; z-index: 1; display: grid; place-items: center; color: var(--on); }
+  .px-xbtn__label > [data-show] { grid-area: 1 / 1; white-space: nowrap; }
+  .px-xbtn [data-show] { opacity: 0; transition: opacity 120ms linear; }
+  .px-xbtn[data-state="idle"] [data-show="idle"],
+  .px-xbtn[data-state="busy"] [data-show="busy"],
+  .px-xbtn[data-state="done"] [data-show="done"],
+  .px-xbtn[data-state="fail"] [data-show="fail"] { opacity: 1; transition-delay: 90ms; }
+  .px-xbtn__check { width: 18px; height: 18px; fill: currentColor; shape-rendering: crispEdges; }
+
+  /* Busy glyph: a lit cell runs clockwise round a 3×3 ring, trailing a fading tail */
+  .px-spin { display: grid; grid-template-columns: repeat(3, 4px); gap: 1px; }
+  .px-spin i {
+    width: 4px;
+    height: 4px;
+    background: currentColor;
+    opacity: .15;
+    animation: spin-cell 800ms steps(1, end) infinite;
+    animation-delay: calc(var(--k) * 100ms - 800ms);
+  }
+  .px-spin i:nth-child(1) { --k: 0; }
+  .px-spin i:nth-child(2) { --k: 1; }
+  .px-spin i:nth-child(3) { --k: 2; }
+  .px-spin i:nth-child(6) { --k: 3; }
+  .px-spin i:nth-child(9) { --k: 4; }
+  .px-spin i:nth-child(8) { --k: 5; }
+  .px-spin i:nth-child(7) { --k: 6; }
+  .px-spin i:nth-child(4) { --k: 7; }
+  .px-spin i:nth-child(5) { animation: none; opacity: 0; }
+
+  @keyframes spin-cell {
+    0% { opacity: 1; }
+    12.5% { opacity: .6; }
+    25% { opacity: .3; }
+    37.5%, 100% { opacity: .15; }
+  }
+
+  .px-dots { display: inline-block; width: 3ch; text-align: left; }
+  .px-dots::after {
+    content: "...";
+    display: inline-block;
+    width: 0;
+    overflow: hidden;
+    vertical-align: bottom;
+    animation: dots 1.2s steps(4, jump-none) infinite;
+  }
+
+  @keyframes dots { to { width: 3ch; } }
 
   /* Icon button */
   .px-ibtn {
@@ -780,7 +842,7 @@
 
   .px-input__box:focus-within { box-shadow: inset 0 0 0 1px var(--bone-700); }
 
-  .px-input input {
+  .px-input__box input {
     flex: 1;
     min-width: 0;
     height: 100%;
@@ -793,7 +855,8 @@
     caret-color: var(--signal);
   }
 
-  .px-input input::placeholder { color: var(--ash-700); }
+  .px-input__box input::placeholder { color: var(--ash-700); }
+  .px-input__box input[type="search"]::-webkit-search-cancel-button { display: none; }
 
   .px-input__bar {
     --hatch: var(--signal);
@@ -806,6 +869,203 @@
   .px-input__help { color: var(--ash); }
   .px-input.is-error .px-input__help { color: var(--signal); }
   .px-input.is-error .px-input__box { box-shadow: inset 0 0 0 1px var(--signal-700); }
+
+  .px-field { display: grid; gap: 6px; }
+
+  .px-input__prefix { flex: 0 0 auto; padding-left: var(--u); color: var(--ash-700); white-space: nowrap; }
+  .px-input__prefix + input { padding-left: 2px; }
+  .px-input__prefix--icon + input { padding-left: var(--u); }
+  .px-input__prefix svg { display: block; width: 14px; height: 14px; fill: currentColor; shape-rendering: crispEdges; }
+
+  .px-input__kbd { margin-right: var(--u); padding: 0 5px; box-shadow: inset 0 0 0 1px var(--void-500); color: var(--ash-700); line-height: 18px; }
+  .px-input__box:focus-within .px-input__kbd { visibility: hidden; }
+
+  /* In-box buttons: reveal, clear, steppers */
+  .px-input__btn {
+    --hatch: var(--bone);
+    --text: var(--ash-300);
+    --on: var(--void);
+    position: relative;
+    display: grid;
+    place-items: center;
+    flex: 0 0 auto;
+    align-self: stretch;
+    min-width: 48px;
+    padding: 0 var(--u);
+    overflow: hidden;
+    border: 0;
+    background: transparent;
+    box-shadow: inset 1px 0 0 var(--void-500);
+    color: var(--text);
+    font: inherit;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .px-input__btn.t-micro { font-size: 10px; }
+  .px-input__btn[hidden] { display: none; }
+  .px-input__btn > :not(.px-hatch) { position: relative; z-index: 1; }
+  .px-input__btn > [data-arrow] { width: 24px; height: 24px; overflow: hidden; }
+  .px-input__btn:focus-visible { outline: 1px solid var(--signal); outline-offset: -5px; }
+  .px-input__btn.is-pressed { color: var(--on); }
+
+  @media (hover: hover) and (pointer: fine) {
+    .px-input__btn:hover { color: var(--on); transition: color 120ms linear 90ms; }
+  }
+
+  /* Password strength: eight cells, signal while weak */
+  .px-meter { display: flex; align-items: center; gap: var(--u); }
+  .px-meter__cells { display: grid; grid-template-columns: repeat(8, 8px); gap: 1px; }
+  .px-meter__cells i { height: 6px; background: var(--void-600); transition: background-color 90ms linear; }
+  .px-meter__cells i.on { background: var(--c, var(--bone-500)); transition-delay: var(--d, 0ms); }
+  .px-meter[data-level="1"] { --c: var(--signal); }
+  .px-meter[data-level="2"] { --c: var(--ash-300); }
+  .px-meter[data-level="3"] { --c: var(--bone); }
+
+  /* Select, combobox and tag input share one dropdown */
+  .px-dd { position: relative; }
+
+  .px-select {
+    width: 100%;
+    padding: 0 0 0 var(--u);
+    border: 0;
+    background: transparent;
+    color: var(--bone);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+  .px-select:focus-visible { outline: 0; }
+  .px-select__value { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  .px-dd__caret {
+    --text: var(--ash);
+    --on: var(--bone);
+    position: relative;
+    flex: 0 0 48px;
+    align-self: stretch;
+    padding: 0;
+    overflow: hidden;
+    border: 0;
+    background: transparent;
+    box-shadow: inset 1px 0 0 var(--void-500);
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .px-dd.is-open .px-dd__caret .arrow { --t: 1; transform: var(--go); }
+
+  .px-menu {
+    --hatch: var(--void-600);
+    position: absolute;
+    top: calc(100% - 1px);
+    right: 0;
+    left: 0;
+    z-index: 30;
+    max-height: calc(36px * 5 + 2px);
+    margin: 0;
+    padding: 1px;
+    overflow-y: auto;
+    list-style: none;
+    background: var(--void);
+    box-shadow: inset 0 0 0 1px var(--bone-700);
+    visibility: hidden;
+    clip-path: inset(0 0 100% 0);
+    transition: clip-path 160ms steps(4, end), visibility 0s linear 160ms;
+    scrollbar-width: thin;
+    scrollbar-color: var(--void-500) transparent;
+  }
+
+  .px-dd.is-open .px-menu { visibility: visible; clip-path: inset(0); transition: clip-path 160ms steps(4, end), visibility 0s; }
+
+  .px-menu [role="option"],
+  .px-menu__empty {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: var(--u);
+    height: 36px;
+    padding: 0 var(--u) 0 calc(var(--u) * 2);
+    overflow: hidden;
+    color: var(--ash-300);
+    white-space: nowrap;
+    cursor: pointer;
+  }
+  .px-menu [role="option"][hidden],
+  .px-menu__empty[hidden] { display: none; }
+  .px-menu [role="option"] > :not(.px-hatch) { position: relative; z-index: 1; }
+  .px-menu [role="option"].is-on,
+  .px-menu [role="option"][aria-selected="true"] { color: var(--bone); }
+  .px-menu [role="option"][aria-selected="true"]::before {
+    content: "";
+    position: absolute;
+    top: 15px;
+    left: 9px;
+    z-index: 1;
+    width: 6px;
+    height: 6px;
+    background: var(--signal);
+  }
+  .px-menu mark { background: none; color: var(--signal); }
+  .px-menu__empty { color: var(--ash-700); cursor: default; }
+  .px-menu__add .t-micro { margin-left: auto; color: var(--ash); }
+
+  /* Tag input: rows of 24px chips on a 36px pitch keep the box on whole units */
+  .px-tags {
+    flex-wrap: wrap;
+    align-content: center;
+    gap: var(--u) 6px;
+    height: auto;
+    min-height: 48px;
+    padding: var(--u) 6px;
+    cursor: text;
+  }
+  .px-tags input { flex: 1 0 12ch; height: 24px; padding: 0 6px; }
+
+  .px-chip {
+    display: inline-flex;
+    align-items: center;
+    height: 24px;
+    padding-left: 6px;
+    box-shadow: inset 0 0 0 1px var(--bone-700);
+    color: var(--bone);
+    font-size: 11px;
+    line-height: 1;
+    white-space: nowrap;
+    animation: chip-in 160ms steps(4, end);
+  }
+  .px-chip button {
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--ash);
+    font: inherit;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .px-chip button:hover,
+  .px-chip button:focus-visible { color: var(--signal); outline: 0; }
+
+  @keyframes chip-in { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0); } }
+
+  /* Radio: a square that assembles a 2px-cell dot from the centre */
+  .px-radio {
+    --hatch: var(--signal);
+    position: relative;
+    flex: 0 0 auto;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    overflow: hidden;
+    border: 0;
+    background: transparent;
+    box-shadow: inset 0 0 0 1px var(--void-500);
+    cursor: pointer;
+    transition: box-shadow var(--dur-cell) linear;
+  }
+  .px-radio > .px-hatch { inset: 6px; }
+  .px-radio[aria-checked="true"] { box-shadow: inset 0 0 0 1px var(--bone-700); }
+  .px-radio:focus-visible { outline: 1px solid var(--signal); outline-offset: 3px; }
 
   .px-switch {
     --hatch: var(--signal);
@@ -929,6 +1189,60 @@
   }
 
   .px-slider__track:focus-within { box-shadow: inset 0 0 0 1px var(--signal); }
+
+  /* Continuous range: a solid fill with a signal thumb line over a dotted rail */
+  .px-range { --p: .5; display: grid; gap: 6px; }
+
+  .px-range__track {
+    position: relative;
+    height: 24px;
+    box-shadow: inset 0 0 0 1px var(--void-500);
+  }
+  .px-range__track::before {
+    content: "";
+    position: absolute;
+    inset: 11px 6px;
+    background: linear-gradient(90deg, var(--void-500) 1px, transparent 0) 0 0 / 6px 2px;
+  }
+  .px-range__track:focus-within { box-shadow: inset 0 0 0 1px var(--signal); }
+
+  .px-range__fill {
+    position: absolute;
+    top: 6px;
+    bottom: 6px;
+    left: 6px;
+    width: calc((100% - 12px) * var(--p));
+    background: var(--bone-500);
+  }
+  .px-range__fill::after {
+    content: "";
+    position: absolute;
+    top: -6px;
+    right: -1px;
+    bottom: -6px;
+    width: 2px;
+    background: var(--signal);
+    transition: width 90ms var(--ease-out), right 90ms var(--ease-out);
+  }
+  .px-range__track:hover .px-range__fill::after,
+  .px-range__track:focus-within .px-range__fill::after { right: -2px; width: 4px; }
+
+  .px-range input {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    opacity: 0;
+    cursor: ew-resize;
+  }
+  .px-range__scale { display: flex; justify-content: space-between; color: var(--ash-700); }
+
+  .submit-demo {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(calc(var(--u) * 18), 1fr));
+    gap: calc(var(--u) * 2);
+  }
 
   /* ═══════════════════════════ Feedback ═══════════════════════════ */
   .loader {
@@ -1151,6 +1465,136 @@
     .px-list__row { grid-template-columns: calc(var(--u) * 3) 1fr auto; }
     .px-list__row > :nth-child(4), .px-list__row > :nth-child(5) { display: none; }
   }
+
+  /* ═══════════════════════════ Image ═══════════════════════════ */
+  .px-media {
+    position: relative;
+    height: calc(var(--u) * 24);
+    margin: 0 calc(var(--u) * -2);
+    overflow: hidden;
+    background: var(--void-800);
+    box-shadow: inset 0 1px 0 var(--void-500), inset 0 -1px 0 var(--void-500);
+  }
+
+  .px-media img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: grayscale(1) contrast(1.08);
+    transition: filter 480ms linear;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .px-media:hover img { filter: none; }
+  }
+
+  /* Veil of cells that holds while loading and dissolves once the image is in */
+  .px-media__veil { --hatch: var(--void-800); --hatch-b: var(--void-700); position: absolute; inset: 0; z-index: 1; }
+
+  .px-media__status {
+    position: absolute;
+    inset: auto calc(var(--u) * 2) var(--u);
+    z-index: 2;
+    color: var(--ash);
+    transition: opacity 120ms linear;
+  }
+  .px-media[aria-busy="false"] .px-media__status { opacity: 0; }
+
+  /* ═══════════════════════════ Skeleton ═══════════════════════════ */
+  /* Placeholder blocks drawn as 5px cells; a band steps across them rather than gliding. */
+  .px-skel {
+    display: block;
+    height: 12px;
+    background: linear-gradient(90deg, var(--void-600) 0 35%, var(--void-500) 50%, var(--void-600) 65%) 0 0 / 300% 100%;
+    -webkit-mask: conic-gradient(from 270deg at 5px 5px, #000 25%, transparent 0) 0 0 / 6px 6px;
+            mask: conic-gradient(from 270deg at 5px 5px, #000 25%, transparent 0) 0 0 / 6px 6px;
+    animation: skel 1.6s steps(24) infinite;
+  }
+
+  @keyframes skel {
+    from { background-position: 100% 0; }
+    to { background-position: 0 0; }
+  }
+
+  .skel { display: grid; }
+  .skel__layer {
+    display: grid;
+    grid-area: 1 / 1;
+    grid-template-columns: calc(var(--u) * 6) 1fr;
+    gap: calc(var(--u) * 2);
+    align-items: start;
+    transition: opacity 180ms steps(3, end);
+  }
+  .skel__lines { display: grid; gap: var(--u); }
+  .skel__real { opacity: 0; }
+  .skel__real h3 { font-size: 20px; line-height: 24px; letter-spacing: -.01em; }
+  .skel__real p { color: var(--ash); }
+  .skel__thumb { width: calc(var(--u) * 6); height: calc(var(--u) * 6); background: var(--void-700); box-shadow: inset 0 0 0 1px var(--void-500); display: grid; place-items: center; }
+  .skel[data-state="loaded"] .skel__ghost { opacity: 0; }
+  .skel[data-state="loaded"] .skel__real { opacity: 1; transition-delay: 120ms; }
+  .skel__rows { display: grid; gap: var(--u); }
+  .skel__row { display: grid; grid-template-columns: calc(var(--u) * 2) 1fr calc(var(--u) * 6); gap: var(--u); align-items: center; height: 24px; }
+
+  /* ═══════════════════════════ Text ═══════════════════════════ */
+  .prose { color: var(--ash-300); }
+
+  /* Dotted pixel underline; on hover a solid signal line wipes across it in steps */
+  .px-link {
+    color: var(--bone);
+    text-decoration: none;
+    background:
+      linear-gradient(currentColor, currentColor) 0 100% / 0 1px no-repeat,
+      linear-gradient(90deg, currentColor 1px, transparent 1px) 0 100% / 2px 1px repeat-x;
+    transition: color 120ms linear, background-size 240ms steps(8, end);
+  }
+  .px-link:hover,
+  .px-link:focus-visible { color: var(--signal); background-size: 100% 1px, 2px 1px; outline: 0; }
+  .px-link:focus-visible { box-shadow: 0 0 0 1px var(--signal); }
+  .px-link[target="_blank"]::after {
+    content: "↗";
+    display: inline-block;
+    margin-left: 2px;
+    font-size: .85em;
+    transition: transform 160ms var(--ease-out);
+  }
+  .px-link[target="_blank"]:hover::after { transform: translate(2px, -2px); }
+
+  .px-term { border-bottom: 1px dashed var(--ash-700); color: var(--bone); cursor: help; }
+  .px-term:focus-visible { outline: 1px solid var(--signal); outline-offset: 2px; }
+
+  /* Tooltip: one shared element that assembles as a small bone surface */
+  .px-tip {
+    --hatch: var(--bone);
+    --px-cell-dur: 120ms;
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 40;
+    max-width: 32ch;
+    min-height: 24px;
+    padding: 6px var(--u);
+    color: var(--void);
+    font-size: 11px;
+    line-height: 12px;
+    letter-spacing: .02em;
+    pointer-events: none;
+  }
+  .px-tip__text { position: relative; z-index: 1; display: block; opacity: 0; transition: opacity 90ms linear; }
+  .px-tip.is-on .px-tip__text { opacity: 1; transition-delay: 110ms; }
+  .px-tip::after {
+    content: "";
+    position: absolute;
+    left: var(--ax, 50%);
+    width: 6px;
+    height: 6px;
+    background: var(--bone);
+    opacity: 0;
+    transition: opacity 90ms linear;
+  }
+  .px-tip[data-side="top"]::after { bottom: -6px; }
+  .px-tip[data-side="bottom"]::after { top: -6px; }
+  .px-tip.is-on::after { opacity: 1; transition-delay: 60ms; }
 
   /* ═══════════════════════════ Motion ═══════════════════════════ */
   .principle { display: grid; gap: calc(var(--u) * 2); align-content: start; }
@@ -1651,6 +2095,278 @@
             <div class="px-list__row" data-hatch="diag" data-hatch-cell="12" data-hatch-tone=".2" data-hover><span class="idx t-micro">04</span><span>Annotations</span><span class="num muted">12,480</span><span class="num muted">03:40:00</span><span class="px-tag px-tag--idle"><span class="px-tag__dot"><i></i><i></i><i></i><i></i></span>Idle</span></div>
           </div>
         </div>
+
+        <!-- Fields -->
+        <div class="panel s-6" data-panel data-snap>
+          <div class="panel__head t-micro"><b>Fields</b><span>Email · URL · password · search · number</span></div>
+          <div class="stack">
+            <label class="px-input" data-validate="email" data-error="Needs a name, an @ and a domain.">
+              <span class="t-micro muted">Email</span>
+              <span class="px-input__box">
+                <input type="email" inputmode="email" autocomplete="email" placeholder="surveyor@field.org" spellcheck="false">
+                <span class="px-input__bar" data-hatch="x" data-hatch-cell="6"></span>
+              </span>
+              <span class="px-input__help t-micro">Checked when you leave the field.</span>
+            </label>
+
+            <label class="px-input" data-validate="url" data-error="Use a domain like example.org; a path is optional.">
+              <span class="t-micro muted">Website</span>
+              <span class="px-input__box">
+                <span class="px-input__prefix">https://</span>
+                <input type="url" inputmode="url" autocomplete="url" placeholder="topography.webflow.io" spellcheck="false">
+                <span class="px-input__bar" data-hatch="x" data-hatch-cell="6"></span>
+              </span>
+              <span class="px-input__help t-micro">Paste a full link; the protocol is dropped.</span>
+            </label>
+
+            <div class="px-input" data-password>
+              <label class="t-micro muted" for="f-pass">Password</label>
+              <span class="px-input__box">
+                <input id="f-pass" type="password" autocomplete="new-password" placeholder="12+ characters">
+                <button type="button" class="px-input__btn t-micro" data-hatch="x" data-hatch-cell="6" data-hover aria-pressed="false" aria-controls="f-pass">Show</button>
+                <span class="px-input__bar" data-hatch="x" data-hatch-cell="6"></span>
+              </span>
+              <span class="px-input__help t-micro px-meter" data-level="0">
+                <span class="px-meter__cells" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+                <span class="px-meter__label" aria-live="polite">12+ characters, mixed case and a digit.</span>
+              </span>
+            </div>
+
+            <div class="px-input" data-search>
+              <label class="t-micro muted" for="f-search">Search</label>
+              <span class="px-input__box">
+                <span class="px-input__prefix px-input__prefix--icon" aria-hidden="true"><svg viewBox="0 0 7 7"><rect x="1" y="0" width="3" height="1"/><rect x="0" y="1" width="1" height="3"/><rect x="4" y="1" width="1" height="3"/><rect x="1" y="4" width="3" height="1"/><rect x="4" y="4" width="1" height="1"/><rect x="5" y="5" width="1" height="1"/><rect x="6" y="6" width="1" height="1"/></svg></span>
+                <input id="f-search" type="search" placeholder="Layers, sectors, surveys" autocomplete="off" spellcheck="false">
+                <span class="px-input__kbd t-micro" aria-hidden="true">/</span>
+                <button type="button" class="px-input__btn" data-hatch="center" data-hatch-cell="6" data-hover aria-label="Clear search" hidden><span data-arrow="×"></span></button>
+                <span class="px-input__bar" data-hatch="x" data-hatch-cell="6"></span>
+              </span>
+              <span class="px-input__help t-micro">Press / anywhere to jump here · Esc clears.</span>
+            </div>
+
+            <div class="px-input" data-number data-min="1" data-max="100">
+              <label class="t-micro muted" for="f-num">Contour interval</label>
+              <span class="px-input__box">
+                <input id="f-num" type="text" inputmode="numeric" value="10" role="spinbutton" aria-valuemin="1" aria-valuemax="100" aria-valuenow="10">
+                <span class="px-input__suffix t-micro">m</span>
+                <button type="button" class="px-input__btn" data-hatch="center" data-hatch-cell="6" data-hover data-step="-1" tabindex="-1" aria-label="Decrease"><span data-arrow="−"></span></button>
+                <button type="button" class="px-input__btn" data-hatch="center" data-hatch-cell="6" data-hover data-step="1" tabindex="-1" aria-label="Increase"><span data-arrow="+"></span></button>
+                <span class="px-input__bar" data-hatch="x" data-hatch-cell="6"></span>
+              </span>
+              <span class="px-input__help t-micro">↑ ↓ step by 1 · Shift steps by 10.</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pickers -->
+        <div class="panel s-6" data-panel data-snap>
+          <div class="panel__head t-micro"><b>Pickers</b><span>Select · combobox · tags · radio</span></div>
+          <div class="stack">
+            <div class="px-field">
+              <span class="t-micro muted" id="sel-proj-label">Projection</span>
+              <div class="px-dd" data-select>
+                <button type="button" class="px-input__box px-select" data-hover aria-haspopup="listbox" aria-expanded="false" aria-controls="sel-proj-list" aria-labelledby="sel-proj-label sel-proj-value">
+                  <span class="px-select__value" id="sel-proj-value">Web Mercator</span>
+                  <span class="px-dd__caret" data-arrow="↓"></span>
+                  <span class="px-input__bar" data-hatch="x" data-hatch-cell="6"></span>
+                </button>
+                <ul class="px-menu" id="sel-proj-list" role="listbox" aria-labelledby="sel-proj-label" tabindex="-1" data-hatch-group>
+                  <li role="option" aria-selected="true" data-hatch="x" data-hatch-cell="6"><span>Web Mercator</span></li>
+                  <li role="option" aria-selected="false" data-hatch="x" data-hatch-cell="6"><span>Equal Earth</span></li>
+                  <li role="option" aria-selected="false" data-hatch="x" data-hatch-cell="6"><span>Lambert conformal</span></li>
+                  <li role="option" aria-selected="false" data-hatch="x" data-hatch-cell="6"><span>Transverse Mercator</span></li>
+                  <li role="option" aria-selected="false" data-hatch="x" data-hatch-cell="6"><span>Polar stereographic</span></li>
+                  <li role="option" aria-selected="false" data-hatch="x" data-hatch-cell="6"><span>Robinson</span></li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="px-field">
+              <label class="t-micro muted" for="cb-region">Region</label>
+              <div class="px-dd" data-combobox>
+                <div class="px-input__box">
+                  <input id="cb-region" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="cb-region-list" autocomplete="off" spellcheck="false" placeholder="Type to filter ranges">
+                  <button type="button" class="px-dd__caret" data-arrow="↓" data-hover tabindex="-1" aria-label="Show ranges"></button>
+                  <span class="px-input__bar" data-hatch="x" data-hatch-cell="6"></span>
+                </div>
+                <ul class="px-menu" id="cb-region-list" role="listbox" aria-label="Mountain ranges" data-hatch-group>
+                  <li role="option" aria-selected="false" data-hatch="x" data-hatch-cell="6"><span class="px-menu__text">Alps</span></li>
+                  <li role="option" aria-selected="false" data-hatch="x" data-hatch-cell="6"><span class="px-menu__text">Andes</span></li>
+                  <li role="option" aria-selected="false" data-hatch="x" data-hatch-cell="6"><span class="px-menu__text">Atlas</span></li>
+                  <li role="option" aria-selected="false" data-hatch="x" data-hatch-cell="6"><span class="px-menu__text">Carpathians</span></li>
+                  <li role="option" aria-selected="false" data-hatch="x" data-hatch-cell="6"><span class="px-menu__text">Caucasus</span></li>
+                  <li role="option" aria-selected="false" data-hatch="x" data-hatch-cell="6"><span class="px-menu__text">Dolomites</span></li>
+                  <li role="option" aria-selected="false" data-hatch="x" data-hatch-cell="6"><span class="px-menu__text">Himalaya</span></li>
+                  <li role="option" aria-selected="false" data-hatch="x" data-hatch-cell="6"><span class="px-menu__text">Pyrenees</span></li>
+                  <li role="option" aria-selected="false" data-hatch="x" data-hatch-cell="6"><span class="px-menu__text">Rockies</span></li>
+                  <li role="option" aria-selected="false" data-hatch="x" data-hatch-cell="6"><span class="px-menu__text">Tatra</span></li>
+                  <li role="option" aria-selected="false" data-hatch="x" data-hatch-cell="6"><span class="px-menu__text">Urals</span></li>
+                  <li class="px-menu__empty t-micro" role="presentation" hidden>No matching range</li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="px-field">
+              <label class="t-micro muted" for="tags-input">Layers</label>
+              <div class="px-dd" data-tags>
+                <div class="px-input__box px-tags">
+                  <span class="px-chip" data-value="Relief">Relief<button type="button" aria-label="Remove Relief">×</button></span>
+                  <span class="px-chip" data-value="Contours">Contours<button type="button" aria-label="Remove Contours">×</button></span>
+                  <input id="tags-input" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="tags-list" autocomplete="off" spellcheck="false" placeholder="Add layer">
+                  <span class="px-input__bar" data-hatch="x" data-hatch-cell="6"></span>
+                </div>
+                <ul class="px-menu" id="tags-list" role="listbox" aria-label="Layer suggestions" data-hatch-group>
+                  <li role="option" aria-selected="false" data-hatch="x" data-hatch-cell="6"><span class="px-menu__text">Relief</span></li>
+                  <li role="option" aria-selected="false" data-hatch="x" data-hatch-cell="6"><span class="px-menu__text">Contours</span></li>
+                  <li role="option" aria-selected="false" data-hatch="x" data-hatch-cell="6"><span class="px-menu__text">Hillshade</span></li>
+                  <li role="option" aria-selected="false" data-hatch="x" data-hatch-cell="6"><span class="px-menu__text">Hydrology</span></li>
+                  <li role="option" aria-selected="false" data-hatch="x" data-hatch-cell="6"><span class="px-menu__text">Vegetation</span></li>
+                  <li role="option" aria-selected="false" data-hatch="x" data-hatch-cell="6"><span class="px-menu__text">Roads</span></li>
+                  <li role="option" aria-selected="false" data-hatch="x" data-hatch-cell="6"><span class="px-menu__text">Buildings</span></li>
+                  <li role="option" aria-selected="false" data-hatch="x" data-hatch-cell="6"><span class="px-menu__text">Labels</span></li>
+                  <li role="option" aria-selected="false" class="px-menu__add" data-add data-hatch="x" data-hatch-cell="6" hidden><span class="px-menu__text"></span><span class="t-micro">Add new</span></li>
+                  <li class="px-menu__empty t-micro" role="presentation" hidden>Every layer is added</li>
+                </ul>
+              </div>
+              <span class="px-input__help t-micro">Enter or comma adds · Backspace removes the last.</span>
+            </div>
+
+            <div class="px-field">
+              <span class="t-micro muted" id="units-label">Units</span>
+              <div class="row" role="radiogroup" aria-labelledby="units-label">
+                <label class="opt"><button type="button" class="px-radio" role="radio" aria-checked="true" data-hatch="center" data-hatch-cell="4" data-hatch-sweep="120" aria-label="Metric"></button><span>Metric</span></label>
+                <label class="opt"><button type="button" class="px-radio" role="radio" aria-checked="false" data-hatch="center" data-hatch-cell="4" data-hatch-sweep="120" aria-label="Imperial"></button><span>Imperial</span></label>
+                <label class="opt"><button type="button" class="px-radio" role="radio" aria-checked="false" data-hatch="center" data-hatch-cell="4" data-hatch-sweep="120" aria-label="Nautical"></button><span>Nautical</span></label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Submit -->
+        <div class="panel s-6" data-panel data-snap>
+          <div class="panel__head t-micro"><b>Submit</b><span>Expand · stateful</span></div>
+          <form class="stack" id="req-form" novalidate>
+            <label class="px-input" id="req-email" data-validate="email" data-required data-error="Needs a name, an @ and a domain.">
+              <span class="t-micro muted">Contact email</span>
+              <span class="px-input__box">
+                <input type="email" name="email" inputmode="email" autocomplete="email" placeholder="surveyor@field.org" spellcheck="false">
+                <span class="px-input__bar" data-hatch="x" data-hatch-cell="6"></span>
+              </span>
+              <span class="px-input__help t-micro">Where the survey report goes.</span>
+            </label>
+
+            <div class="px-range" data-min="0.5" data-max="12" data-value="3.2" data-unit=" km" data-decimals="2">
+              <div class="px-slider__head t-micro"><span>Survey radius</span><output></output></div>
+              <div class="px-range__track"><span class="px-range__fill"></span><input type="range" name="radius" aria-label="Survey radius"></div>
+              <div class="px-range__scale t-micro"><span>0.5</span><span>12 km</span></div>
+            </div>
+
+            <div class="submit-demo">
+              <div class="px-field">
+                <span class="t-micro muted">Normal</span>
+                <button type="submit" class="px-xbtn px-xbtn--submit" id="req-send">
+                  <span class="px-xbtn__icon" data-arrow="→" data-hatch="x" data-hatch-cell="6"></span>
+                  <span class="px-xbtn__panel" data-hatch="x" data-hatch-cell="6"><span class="px-xbtn__label">Send request</span></span>
+                  <span class="px-xbtn__corners"><span></span><span></span><span></span><span></span></span>
+                </button>
+              </div>
+              <div class="px-field">
+                <span class="t-micro muted">Stateful</span>
+                <button type="submit" class="px-xbtn px-xbtn--submit" id="req-deploy" data-state="idle" aria-disabled="false">
+                  <span class="px-xbtn__icon" data-hatch="x" data-hatch-cell="6">
+                    <span data-show="idle" data-arrow="↑"></span>
+                    <span data-show="busy"><span class="px-spin"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span></span>
+                    <span data-show="done"><svg class="px-xbtn__check" viewBox="0 0 6 6"><rect x="4" y="1" width="1" height="1"/><rect x="1" y="2" width="1" height="1"/><rect x="3" y="2" width="1" height="1"/><rect x="2" y="3" width="1" height="1"/></svg></span>
+                    <span data-show="fail" data-arrow="×"></span>
+                  </span>
+                  <span class="px-xbtn__panel" data-hatch="x" data-hatch-cell="6">
+                    <span class="px-xbtn__label" aria-hidden="true">
+                      <span data-show="idle">Deploy survey</span>
+                      <span data-show="busy">Processing<span class="px-dots"></span></span>
+                      <span data-show="done">Deployed</span>
+                      <span data-show="fail">Failed · retry</span>
+                    </span>
+                  </span>
+                  <span class="sr-only">Deploy survey</span>
+                  <span class="px-xbtn__corners"><span></span><span></span><span></span><span></span></span>
+                </button>
+              </div>
+            </div>
+
+            <label class="opt t-micro muted"><button type="button" class="px-check" role="checkbox" aria-checked="false" id="req-fail" data-hatch="scatter" data-hatch-cell="4" data-hatch-sweep="140" aria-label="Simulate failure"><svg viewBox="0 0 6 6" aria-hidden="true"><rect x="4" y="1" width="1" height="1"/><rect x="1" y="2" width="1" height="1"/><rect x="3" y="2" width="1" height="1"/><rect x="2" y="3" width="1" height="1"/></svg></button><span>Simulate failure</span></label>
+            <span class="t-micro muted" role="status" id="req-status">Idle bone · processing ash · deployed signal · failed signal on brown.</span>
+          </form>
+        </div>
+
+        <!-- Image -->
+        <div class="panel s-6" data-panel data-snap>
+          <div class="panel__head t-micro"><b>Image</b><span id="media-meta">Openverse · mountain landscape</span></div>
+          <figure class="px-media" id="media" aria-busy="true">
+            <img alt="" width="960" height="540" decoding="async">
+            <span class="px-media__veil is-on" data-hatch="scatter" data-hatch-cell="12" data-hatch-sweep="560" data-hatch-tone=".3"></span>
+            <figcaption class="px-media__status t-micro" id="media-status">Loading</figcaption>
+          </figure>
+          <div class="row" style="justify-content: space-between; margin-top: 24px">
+            <span class="muted" id="media-credit" style="flex: 1; min-width: 20ch">Random terrain photo. Cells hold while it loads, then dissolve; greyscale until hovered.</span>
+            <button type="button" class="px-ibtn" data-hatch="center" data-hover data-tip="Shuffle image" aria-label="Shuffle image" id="media-shuffle"><span data-arrow="↻"></span></button>
+          </div>
+        </div>
+
+        <!-- Skeleton -->
+        <div class="panel s-6" data-panel data-snap>
+          <div class="panel__head t-micro"><b>Skeleton</b><span>Stepped shimmer</span></div>
+          <div class="stack">
+            <div class="skel" id="skel" data-state="loading" aria-busy="true">
+              <div class="skel__layer skel__ghost" aria-hidden="true">
+                <span class="px-skel" style="height: 72px"></span>
+                <div class="skel__lines">
+                  <span class="px-skel" style="width: 55%; height: 18px"></span>
+                  <span class="px-skel"></span>
+                  <span class="px-skel" style="width: 80%"></span>
+                  <span class="px-skel" style="width: 35%"></span>
+                </div>
+              </div>
+              <div class="skel__layer skel__real">
+                <span class="skel__thumb"><span class="bars" data-bars="1,2,3,5,4,6,5,3"></span></span>
+                <div>
+                  <h3>Lower Tarn</h3>
+                  <p>Hydrology layer, 912k cells. Synced four minutes ago from the field unit.</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="skel" data-skel-rows data-state="loading" aria-busy="true">
+              <div class="skel__layer skel__ghost skel__rows" aria-hidden="true" style="grid-template-columns: 1fr">
+                <div class="skel__row"><span class="px-skel"></span><span class="px-skel" style="width: 70%"></span><span class="px-skel"></span></div>
+                <div class="skel__row"><span class="px-skel"></span><span class="px-skel" style="width: 50%"></span><span class="px-skel"></span></div>
+                <div class="skel__row"><span class="px-skel"></span><span class="px-skel" style="width: 60%"></span><span class="px-skel"></span></div>
+              </div>
+              <div class="skel__layer skel__real skel__rows" style="grid-template-columns: 1fr">
+                <div class="skel__row"><span class="t-micro muted">01</span><span>Terrain / relief</span><span class="num muted">2.18M</span></div>
+                <div class="skel__row"><span class="t-micro muted">02</span><span>Contours / 10 m</span><span class="num muted">912k</span></div>
+                <div class="skel__row"><span class="t-micro muted">03</span><span>Hydrology</span><span class="num muted">302k</span></div>
+              </div>
+            </div>
+
+            <label class="opt t-micro muted">Loading <button type="button" class="px-switch" role="switch" aria-checked="true" data-hatch="x" data-hatch-cell="6" id="skel-toggle" aria-label="Show loading skeleton"><span class="px-switch__knob"></span></button></label>
+          </div>
+        </div>
+
+        <!-- Text -->
+        <div class="panel s-6" data-panel data-snap>
+          <div class="panel__head t-micro"><b>Text</b><span>Inline link · tooltip</span></div>
+          <div class="stack">
+            <p class="prose">Every surface follows the <a class="px-link" href="#motion">motion rule</a>: delay is position times sweep, plus a little jitter. The idea comes from the <a class="px-link" href="https://topography.webflow.io" target="_blank" rel="noopener">Topography preloader</a>. Cells rest at <span class="px-term" tabindex="0" data-tip="Resting cells are 2px squares inside a 12px unit.">2px</span> and swell under the pointer, while panels mute the <span class="px-term" tabindex="0" data-tip="The page-wide grid of cells drawn behind everything, driven by drifting noise.">field</span> beneath them.</p>
+
+            <span class="sub t-micro">Tooltips</span>
+            <div class="row row--tight">
+              <button type="button" class="px-ibtn" data-hatch="center" data-hover data-tip="Zoom in" aria-label="Zoom in"><span data-arrow="+"></span></button>
+              <button type="button" class="px-ibtn" data-hatch="center" data-hover data-tip="Recentre on the survey" aria-label="Recentre"><span data-arrow="↺"></span></button>
+              <button type="button" class="px-ibtn px-ibtn--signal" data-hatch="center" data-hover data-tip="Share a link to this view" aria-label="Share"><span data-arrow="↗"></span></button>
+              <span class="muted" style="flex: 1; min-width: 20ch">Hover waits 400 ms; moving to a neighbour switches at once. Keyboard focus shows it straight away.</span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </section>
@@ -1802,6 +2518,8 @@
   </div>
 </div>
 
+<div class="px-tip" id="px-tip" role="tooltip" data-side="top" data-hatch="x" data-hatch-cell="6" data-hatch-sweep="90" data-hatch-jitter="30"><span class="px-tip__text"></span></div>
+
 <script>
 (() => {
   const U = 12;
@@ -1819,11 +2537,13 @@
   const HATCH_ON = [
     '.is-on > .px-hatch',
     '[aria-checked="true"] > .px-hatch',
-    '[aria-selected="true"] > .px-hatch',
+    '[aria-selected="true"]:not([role="option"]) > .px-hatch',
     ':focus-visible > .px-hatch',
     '.px-xbtn:focus-visible .px-xbtn__panel > .px-hatch',
-    '.px-input:focus-within > .px-input__bar > .px-hatch',
-    '.px-input.is-error > .px-input__bar > .px-hatch',
+    '.px-xbtn.is-open .px-xbtn__panel > .px-hatch',
+    '.px-input__box:focus-within > .px-input__bar > .px-hatch',
+    '.px-input.is-error .px-input__bar > .px-hatch',
+    '.px-dd.is-open .px-input__bar > .px-hatch',
     '.nav a.is-active > .nav__bar > .px-hatch',
     ...(FINE ? [
       '[data-hover]:hover > .px-hatch',
@@ -1971,7 +2691,7 @@
         if (rad >= 0) {
           const dist = Math.max(Math.abs((c + .5) * pu.cw - pu.x), Math.abs((r + .5) * pu.ch - pu.y));
           const s = clamp((dist - rad) / (PULSE_W * pu.cell) + .5, 0, 1);
-          const n = st.tone[i] ? st.cb : st.ca, p = st.tone[i] ? st.pb : st.pa;
+          const n = st.tone[i] ? st.cb : st.ca, p = st.tone[i] ? pu.fb : pu.fa;
           d[o] = n[0] + (p[0] - n[0]) * s;
           d[o + 1] = n[1] + (p[1] - n[1]) * s;
           d[o + 2] = n[2] + (p[2] - n[2]) * s;
@@ -2071,18 +2791,47 @@
 
   const PRESS_HOSTS = '[data-hover], .px-xbtn__panel, .px-xbtn__icon';
 
+  const hatchesIn = (el, sel) => [...hatchHosts]
+    .filter((h) => h._hatch && el.contains(h) && (!sel || h.matches(sel)))
+    .map((h) => h._hatch);
+
+  // One square front across several hatches, from a viewport point. `ahead(st)` gives the colours the front
+  // replaces; cells it has passed show the hatch's current colours. The farthest reach and finest cell set
+  // its size and speed, so neighbouring hatches share a single seamless edge.
+  function sweepFront(sts, px, py, ahead) {
+    const now = performance.now();
+    const geo = sts.map((st) => {
+      const r = st.layer.getBoundingClientRect();
+      return { st, x: px - r.left, y: py - r.top, w: r.width, h: r.height };
+    });
+    const reach = Math.max(...geo.map((g) => Math.max(g.x, g.w - g.x, g.y, g.h - g.y)));
+    const cell = Math.min(...geo.map((g) => g.w / g.st.cols));
+    const dur = clamp(reach / cell * 14, 160, 320);
+    for (const { st, x, y, w, h } of geo) {
+      const [fa, fb] = ahead(st);
+      st.pulse = { x, y, cw: w / st.cols, ch: h / st.rows, cell, reach, t0: now, dur, fa, fb };
+      animateHatch(st);
+    }
+  }
+
+  // Re-read hatch colours after a style change and wipe the new ones in from the left edge.
+  function recolorHatches(el) {
+    const sts = hatchesIn(el);
+    const shown = new Map(sts.map((st) => [st, st.pulse ? [st.pulse.fa, st.pulse.fb] : [st.ca, st.cb]]));
+    sts.forEach(readHatchStyle);
+    const r = el.getBoundingClientRect();
+    if (!REDUCE) sweepFront(sts, r.left, r.top + r.height / 2, (st) => shown.get(st));
+    sts.forEach((st) => drawHatch(st, performance.now()));
+  }
+
   function pressControl(ctl, e) {
-    const sts = [...hatchHosts]
-      .filter((h) => h._hatch && ctl.contains(h) && h.matches(PRESS_HOSTS))
-      .map((h) => h._hatch);
+    const sts = hatchesIn(ctl, PRESS_HOSTS);
     if (!sts.length) return;
     const now = performance.now();
     const cr = ctl.getBoundingClientRect();
     const px = e && e.clientX !== undefined ? e.clientX : cr.left + cr.width / 2;
     const py = e && e.clientY !== undefined ? e.clientY : cr.top + cr.height / 2;
     for (const st of sts) {
-      const lr = st.layer.getBoundingClientRect();
-      st.press = { x: px - lr.left, y: py - lr.top, w: lr.width, h: lr.height };
       st.pressed = true;
       st.pulse = null;
       st.on = true;
@@ -2093,23 +2842,15 @@
       drawHatch(st, now);
     }
     ctl.classList.add('is-pressed');
-    pressing = { ctl, sts };
+    pressing = { ctl, sts, px, py };
   }
 
   function releaseControl(pulse) {
     if (!pressing) return;
     const now = performance.now();
-    const { sts } = pressing;
-    // One front for the whole control: the farthest reach and the finest cell set its size and speed.
-    const reach = Math.max(...sts.map(({ press: p }) => Math.max(p.x, p.w - p.x, p.y, p.h - p.y)));
-    const cell = Math.min(...sts.map((st) => st.press.w / st.cols));
-    const dur = clamp(reach / cell * 14, 160, 320);
+    const { sts, px, py } = pressing;
+    if (pulse && !REDUCE) sweepFront(sts, px, py, (st) => [st.pa, st.pb]);
     for (const st of sts) {
-      if (pulse && !REDUCE) {
-        const { x, y, w, h } = st.press;
-        st.pulse = { x, y, cw: w / st.cols, ch: h / st.rows, cell, reach, t0: now, dur };
-        animateHatch(st);
-      }
       st.pressed = false;
       if (!st.pulse) paintHatch(st, false);
       drawHatch(st, now);
@@ -2121,7 +2862,7 @@
 
   const pressable = (t) => {
     const ctl = t instanceof Element && t.closest('a, button');
-    return ctl && !ctl.disabled ? ctl : null;
+    return ctl && !ctl.disabled && ctl.getAttribute('aria-disabled') !== 'true' ? ctl : null;
   };
 
   document.addEventListener('pointerdown', (e) => {
@@ -2725,6 +3466,560 @@
     new ResizeObserver(build).observe(cellsEl);
     build();
   });
+
+  /* ═════════════ Fields: validation, reveal, search, stepper ═════════════ */
+
+  const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+
+  const VALID = {
+    email: (v) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v),
+    url: (v) => /^([\w-]+\.)+[\w-]{2,}(:\d+)?(\/\S*)?$/.test(v),
+  };
+
+  $$('[data-validate]').forEach((field) => {
+    const input = $('input', field);
+    const help = $('.px-input__help', field);
+    const hint = help.textContent;
+    const kind = field.dataset.validate;
+    // Errors appear on leaving the field (or submitting) and clear as soon as the value is fixed.
+    const check = (strict) => {
+      const v = input.value.trim();
+      const empty = !v;
+      const ok = empty ? field.dataset.required === undefined || !strict : VALID[kind](v);
+      if (strict || field.classList.contains('is-error')) {
+        field.classList.toggle('is-error', !ok);
+        input.setAttribute('aria-invalid', String(!ok));
+        help.textContent = ok ? hint : empty ? 'Required.' : field.dataset.error;
+      }
+      return ok && !empty;
+    };
+    if (kind === 'url') {
+      input.addEventListener('input', () => {
+        const bare = input.value.replace(/^\s*https?:\/\//i, '');
+        if (bare !== input.value) input.value = bare;
+      });
+    }
+    input.addEventListener('input', () => check(false));
+    input.addEventListener('blur', () => { if (input.value.trim()) check(true); });
+    field.validate = () => check(true);
+  });
+
+  $$('[data-password]').forEach((field) => {
+    const input = $('input', field);
+    const btn = $('.px-input__btn', field);
+    const meter = $('.px-meter', field);
+    const cells = $$('.px-meter__cells i', field);
+    const label = $('.px-meter__label', field);
+    const hint = label.textContent;
+    btn.addEventListener('click', () => {
+      const show = input.type === 'password';
+      input.type = show ? 'text' : 'password';
+      btn.textContent = show ? 'Hide' : 'Show';
+      btn.setAttribute('aria-pressed', String(show));
+      input.focus({ preventScroll: true });
+    });
+    input.addEventListener('input', () => {
+      const v = input.value;
+      const score = [v.length >= 8, v.length >= 12, /[a-z]/.test(v) && /[A-Z]/.test(v), /\d/.test(v), /[^\w\s]/.test(v)].filter(Boolean).length;
+      const level = !v ? 0 : score <= 2 ? 1 : score <= 3 ? 2 : 3;
+      const lit = !v ? 0 : Math.max(1, Math.round((score / 5) * cells.length));
+      meter.dataset.level = level;
+      cells.forEach((c, i) => { c.classList.toggle('on', i < lit); c.style.setProperty('--d', `${i * 20}ms`); });
+      label.textContent = ['', 'Weak', 'Fair', 'Strong'][level] || hint;
+    });
+  });
+
+  $$('[data-search]').forEach((field) => {
+    const input = $('input', field);
+    const clear = $('.px-input__btn', field);
+    const sync = () => { clear.hidden = !input.value; };
+    input.addEventListener('input', sync);
+    input.addEventListener('keydown', (e) => { if (e.key === 'Escape' && input.value) { e.preventDefault(); input.value = ''; sync(); } });
+    clear.addEventListener('click', () => { input.value = ''; sync(); input.focus(); });
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== '/' || e.ctrlKey || e.metaKey || e.altKey) return;
+      if (e.target.closest('input, textarea, select, [contenteditable="true"]')) return;
+      e.preventDefault();
+      input.focus();
+    });
+  });
+
+  $$('[data-number]').forEach((field) => {
+    const input = $('input', field);
+    const min = +field.dataset.min, max = +field.dataset.max;
+    let value = +input.value;
+    const set = (v) => {
+      value = clamp(Math.round(v), min, max);
+      input.value = value;
+      input.setAttribute('aria-valuenow', value);
+    };
+    input.addEventListener('keydown', (e) => {
+      const d = e.key === 'ArrowUp' ? 1 : e.key === 'ArrowDown' ? -1 : 0;
+      if (d) { e.preventDefault(); set(value + d * (e.shiftKey ? 10 : 1)); }
+    });
+    input.addEventListener('change', () => set(Number.isFinite(+input.value) && input.value.trim() ? +input.value : value));
+    $$('[data-step]', field).forEach((b) => b.addEventListener('click', () => set(value + +b.dataset.step)));
+  });
+
+  $$('.px-range').forEach((el) => {
+    const input = $('input', el);
+    const out = $('output', el);
+    const d = el.dataset;
+    input.min = d.min;
+    input.max = d.max;
+    input.step = 'any';
+    input.value = d.value;
+    const paint = () => {
+      const v = +input.value;
+      el.style.setProperty('--p', (v - d.min) / (d.max - d.min));
+      out.textContent = `${v.toFixed(+d.decimals || 0)}${d.unit || ''}`;
+      input.setAttribute('aria-valuetext', out.textContent);
+    };
+    input.addEventListener('input', paint);
+    paint();
+  });
+
+  /* ═════════════ Radio ═════════════ */
+
+  $$('[role="radiogroup"]').forEach((group) => {
+    const radios = $$('[role="radio"]', group);
+    const pick = (r, focus) => {
+      radios.forEach((x) => {
+        const on = x === r;
+        x.setAttribute('aria-checked', String(on));
+        x.tabIndex = on ? 0 : -1;
+      });
+      if (focus) r.focus();
+    };
+    radios.forEach((r, i) => {
+      r.tabIndex = r.getAttribute('aria-checked') === 'true' ? 0 : -1;
+      r.addEventListener('click', () => pick(r));
+      r.addEventListener('keydown', (e) => {
+        const d = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : 0;
+        if (d) { e.preventDefault(); pick(radios[(i + d + radios.length) % radios.length], true); }
+      });
+    });
+  });
+
+  /* ═════════════ Listbox: shared by select, combobox and tag input ═════════════ */
+
+  let menuSeq = 0;
+
+  // `field` owns focus and aria-activedescendant; the highlighted option carries .is-on, which lights its hatch.
+  function listbox(dd, field, pick) {
+    const menu = $('.px-menu', dd);
+    const base = menu.id || (menu.id = `px-menu-${++menuSeq}`);
+    const name = (o) => { if (!o.id) o.id = `${base}-${++menuSeq}`; };
+    $$('[role="option"]', menu).forEach(name);
+    let active = null;
+    const visible = () => $$('[role="option"]', menu).filter((o) => !o.hidden);
+    const reveal = (o) => {
+      const top = o.offsetTop, bottom = top + o.offsetHeight;
+      if (top < menu.scrollTop) menu.scrollTop = top;
+      else if (bottom > menu.scrollTop + menu.clientHeight) menu.scrollTop = bottom - menu.clientHeight;
+    };
+    const api = {
+      menu,
+      visible,
+      name,
+      get isOpen() { return dd.classList.contains('is-open'); },
+      get active() { return active; },
+      setActive(o) {
+        if (o === active) return;
+        if (active) active.classList.remove('is-on');
+        active = o || null;
+        if (active) {
+          active.classList.add('is-on');
+          field.setAttribute('aria-activedescendant', active.id);
+          reveal(active);
+        } else field.removeAttribute('aria-activedescendant');
+      },
+      open(start) {
+        dd.classList.add('is-open');
+        field.setAttribute('aria-expanded', 'true');
+        const list = visible();
+        api.setActive(start !== undefined ? start : list.find((o) => o.getAttribute('aria-selected') === 'true') || list[0]);
+      },
+      close() {
+        dd.classList.remove('is-open');
+        field.setAttribute('aria-expanded', 'false');
+        api.setActive(null);
+      },
+      move(d) {
+        const list = visible();
+        if (!api.isOpen) return api.open();
+        if (!list.length) return;
+        const i = list.indexOf(active);
+        api.setActive(list[i < 0 ? (d > 0 ? 0 : list.length - 1) : clamp(i + d, 0, list.length - 1)]);
+      },
+      edge(last) { const list = visible(); api.setActive(last ? list[list.length - 1] : list[0]); },
+    };
+    menu.addEventListener('pointerdown', (e) => e.preventDefault());
+    menu.addEventListener('pointermove', (e) => {
+      const o = e.target.closest('[role="option"]');
+      if (o) api.setActive(o);
+    });
+    menu.addEventListener('click', (e) => {
+      const o = e.target.closest('[role="option"]');
+      if (o) pick(o);
+    });
+    dd.addEventListener('focusout', (e) => { if (!dd.contains(e.relatedTarget)) api.close(); });
+    document.addEventListener('pointerdown', (e) => { if (api.isOpen && !dd.contains(e.target)) api.close(); });
+    return api;
+  }
+
+  // Keys every listbox field shares; returns true when handled.
+  function listKeys(lb, e, pickActive) {
+    switch (e.key) {
+      case 'ArrowDown': case 'ArrowUp':
+        e.preventDefault();
+        lb.move(e.key === 'ArrowDown' ? 1 : -1);
+        return true;
+      case 'Home': case 'End':
+        if (!lb.isOpen) return false;
+        e.preventDefault();
+        lb.edge(e.key === 'End');
+        return true;
+      case 'Enter':
+        if (!lb.isOpen || !lb.active) return false;
+        e.preventDefault();
+        pickActive();
+        return true;
+      case 'Escape':
+        if (!lb.isOpen) return false;
+        e.preventDefault();
+        lb.close();
+        return true;
+      case 'Tab':
+        lb.close();
+        return false;
+      default:
+        return false;
+    }
+  }
+
+  const optionLabel = (o) => o.dataset.label || (o.dataset.label = o.textContent.trim());
+
+  function highlight(o, q) {
+    const t = optionLabel(o), i = q ? t.toLowerCase().indexOf(q) : -1;
+    $('.px-menu__text', o).innerHTML = i < 0 ? esc(t)
+      : `${esc(t.slice(0, i))}<mark>${esc(t.slice(i, i + q.length))}</mark>${esc(t.slice(i + q.length))}`;
+  }
+
+  $$('[data-select]').forEach((dd) => {
+    const btn = $('.px-select', dd);
+    const value = $('.px-select__value', dd);
+    let swallowClick = false;
+    const choose = (o) => {
+      $$('[role="option"]', lb.menu).forEach((x) => x.setAttribute('aria-selected', String(x === o)));
+      value.textContent = optionLabel(o);
+      lb.close();
+      btn.focus({ preventScroll: true });
+    };
+    const lb = listbox(dd, btn, choose);
+    btn.addEventListener('click', () => {
+      if (swallowClick) { swallowClick = false; return; }
+      lb.isOpen ? lb.close() : lb.open();
+    });
+    btn.addEventListener('keydown', (e) => {
+      // Space picks while open; its keyup would otherwise click the button and reopen the menu.
+      if (lb.isOpen && e.key === ' ') { e.preventDefault(); swallowClick = true; if (lb.active) choose(lb.active); return; }
+      if (listKeys(lb, e, () => choose(lb.active))) return;
+      if (e.key.length === 1 && /\S/.test(e.key)) {
+        const list = lb.visible();
+        const from = list.indexOf(lb.active) + 1;
+        const hit = [...list.slice(from), ...list.slice(0, from)].find((o) => optionLabel(o).toLowerCase().startsWith(e.key.toLowerCase()));
+        if (hit) { if (!lb.isOpen) lb.open(hit); else lb.setActive(hit); }
+      }
+    });
+    btn.addEventListener('keyup', (e) => {
+      if (e.key !== ' ' || !swallowClick) return;
+      e.preventDefault();
+      setTimeout(() => { swallowClick = false; });
+    });
+  });
+
+  $$('[data-combobox]').forEach((dd) => {
+    const input = $('input', dd);
+    const caret = $('.px-dd__caret', dd);
+    const empty = $('.px-menu__empty', dd);
+    const opts = $$('[role="option"]', dd);
+    const filter = () => {
+      const q = input.value.trim().toLowerCase();
+      let shown = 0;
+      opts.forEach((o) => {
+        o.hidden = !!q && !optionLabel(o).toLowerCase().includes(q);
+        if (!o.hidden) shown++;
+        highlight(o, q);
+      });
+      empty.hidden = shown > 0;
+    };
+    const choose = (o) => {
+      opts.forEach((x) => x.setAttribute('aria-selected', String(x === o)));
+      input.value = optionLabel(o);
+      filter();
+      lb.close();
+    };
+    const lb = listbox(dd, input, choose);
+    input.addEventListener('input', () => { filter(); lb.open(lb.visible()[0]); });
+    input.addEventListener('click', () => { if (!lb.isOpen) lb.open(); });
+    input.addEventListener('keydown', (e) => {
+      if (listKeys(lb, e, () => choose(lb.active))) return;
+      if (e.key === 'Escape' && input.value) { e.preventDefault(); input.value = ''; filter(); }
+    });
+    caret.addEventListener('click', () => { input.focus(); lb.isOpen ? lb.close() : lb.open(); });
+    opts.forEach((o) => highlight(o, ''));
+  });
+
+  $$('[data-tags]').forEach((dd) => {
+    const box = $('.px-tags', dd);
+    const input = $('input', dd);
+    const add = $('[data-add]', dd);
+    const empty = $('.px-menu__empty', dd);
+    const known = () => $$('[role="option"]:not([data-add])', lb.menu);
+    const taken = () => $$('.px-chip', box).map((c) => c.dataset.value.toLowerCase());
+
+    function addChip(v) {
+      const chip = document.createElement('span');
+      chip.className = 'px-chip';
+      chip.dataset.value = v;
+      chip.textContent = v;
+      const x = document.createElement('button');
+      x.type = 'button';
+      x.textContent = '×';
+      x.setAttribute('aria-label', `Remove ${v}`);
+      chip.append(x);
+      box.insertBefore(chip, input);
+    }
+
+    function addKnown(v) {
+      const li = document.createElement('li');
+      li.setAttribute('role', 'option');
+      li.setAttribute('aria-selected', 'false');
+      li.dataset.label = v;
+      li.dataset.hatch = 'x';
+      li.dataset.hatchCell = '6';
+      li.innerHTML = `<span class="px-menu__text">${esc(v)}</span>`;
+      lb.menu.insertBefore(li, add);
+      lb.name(li);
+      initHatch(li);
+    }
+
+    function commit(raw) {
+      const v = raw.trim().replace(/,+$/, '').trim();
+      if (!v) return;
+      const lower = v.toLowerCase();
+      if (!taken().includes(lower)) {
+        const match = known().find((o) => optionLabel(o).toLowerCase() === lower);
+        addChip(match ? optionLabel(match) : v);
+        if (!match) addKnown(v);
+      }
+      input.value = '';
+      refresh();
+    }
+
+    function refresh() {
+      const q = input.value.trim(), ql = q.toLowerCase(), have = taken();
+      let exact = have.includes(ql);
+      known().forEach((o) => {
+        const l = optionLabel(o).toLowerCase();
+        if (l === ql) exact = true;
+        o.hidden = have.includes(l) || (!!ql && !l.includes(ql));
+        highlight(o, ql);
+      });
+      add.hidden = !q || exact;
+      $('.px-menu__text', add).textContent = `“${q}”`;
+      const list = lb.visible();
+      empty.hidden = list.length > 0 || !!q;
+      if (document.activeElement === input) lb.open(list[0] || null);
+    }
+
+    const lb = listbox(dd, input, (o) => commit(o.hasAttribute('data-add') ? input.value : optionLabel(o)));
+    input.addEventListener('focus', refresh);
+    input.addEventListener('input', refresh);
+    input.addEventListener('keydown', (e) => {
+      if (listKeys(lb, e, () => lb.active.click())) return;
+      if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); commit(input.value); }
+      else if (e.key === 'Backspace' && !input.value) {
+        const last = $$('.px-chip', box).pop();
+        if (last) { last.remove(); refresh(); }
+      }
+    });
+    box.addEventListener('click', (e) => {
+      const x = e.target.closest('.px-chip button');
+      if (x) { x.parentElement.remove(); input.focus(); refresh(); }
+      else if (e.target === box) input.focus();
+    });
+    known().forEach((o) => highlight(o, ''));
+  });
+
+  /* ═════════════ Submit: normal + stateful ═════════════ */
+
+  (() => {
+    const form = $('#req-form');
+    const email = $('#req-email');
+    const deploy = $('#req-deploy');
+    const fail = $('#req-fail');
+    const status = $('#req-status');
+    const name = $('.sr-only', deploy);
+    const LABEL = { idle: 'Deploy survey', busy: 'Processing', done: 'Deployed', fail: 'Failed, retry' };
+    let timer = 0;
+
+    function setState(state) {
+      deploy.dataset.state = state;
+      deploy.classList.toggle('is-open', state !== 'idle');
+      deploy.setAttribute('aria-disabled', String(state === 'busy'));
+      deploy.setAttribute('aria-busy', String(state === 'busy'));
+      name.textContent = LABEL[state];
+      if (state !== 'idle') status.textContent = `${LABEL[state]}.`;
+      recolorHatches(deploy);
+    }
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      if (!email.validate()) { $('input', email).focus(); return; }
+      if (e.submitter !== deploy) {
+        toast('Request sent', `We’ll reply to ${$('input', email).value.trim()}.`);
+        return;
+      }
+      if (deploy.dataset.state === 'busy') return;
+      clearTimeout(timer);
+      setState('busy');
+      timer = setTimeout(() => {
+        setState(fail.getAttribute('aria-checked') === 'true' ? 'fail' : 'done');
+        timer = setTimeout(() => setState('idle'), 2400);
+      }, 2600);
+    });
+  })();
+
+  /* ═════════════ Image ═════════════ */
+
+  (() => {
+    const media = $('#media');
+    const img = $('img', media);
+    const veil = $('.px-media__veil', media);
+    const status = $('#media-status');
+    const credit = $('#media-credit');
+    // Openverse: keyword search over openly licensed images, no key needed. Results carry attribution.
+    const QUERY = 'mountain landscape';
+    const api = (page) => `https://api.openverse.org/v1/images/?q=${encodeURIComponent(QUERY)}&page_size=20&page=${page}&aspect_ratio=wide&mature=false`;
+    let pool = [];
+    let coveredAt = performance.now();
+    let token = 0;
+
+    async function nextPhoto() {
+      if (!pool.length) {
+        const res = await fetch(api(1 + ((rnd() * 10) | 0)));
+        if (!res.ok) throw new Error(res.status);
+        pool = (await res.json()).results.filter((r) => r.url).sort(() => rnd() - .5);
+      }
+      return pool.pop();
+    }
+
+    const licence = (p) => (p.license === 'cc0' || p.license === 'pdm' ? p.license.toUpperCase() : `CC ${p.license.toUpperCase()} ${p.license_version || ''}`.trim());
+
+    async function load() {
+      const mine = ++token;
+      if (!veil.classList.contains('is-on')) { veil.classList.add('is-on'); coveredAt = performance.now(); }
+      media.setAttribute('aria-busy', 'true');
+      status.textContent = 'Loading';
+      try {
+        const photo = await nextPhoto();
+        await new Promise((resolve, reject) => {
+          const probe = new Image();
+          probe.onload = resolve;
+          probe.onerror = reject;
+          probe.src = photo.url;
+        });
+        // Let the veil finish assembling before swapping, so the old image never shows mid-change.
+        await new Promise((r) => setTimeout(r, Math.max(0, 700 - (performance.now() - coveredAt))));
+        if (mine !== token) return;
+        img.src = photo.url;
+        img.alt = photo.title || 'Mountain landscape';
+        credit.innerHTML = `<a class="px-link" href="${esc(photo.foreign_landing_url || photo.url)}" target="_blank" rel="noopener">${esc(photo.title || 'Untitled')}</a> by ${esc(photo.creator || 'unknown')} · ${esc(licence(photo))}`;
+        media.setAttribute('aria-busy', 'false');
+        veil.classList.remove('is-on');
+      } catch {
+        if (mine === token) status.textContent = 'Image unavailable offline';
+      }
+    }
+
+    $('#media-shuffle').addEventListener('click', load);
+    load();
+  })();
+
+  /* ═════════════ Skeleton ═════════════ */
+
+  $('#skel-toggle').addEventListener('px:change', (e) => {
+    $$('.skel').forEach((s) => {
+      s.dataset.state = e.detail ? 'loading' : 'loaded';
+      s.setAttribute('aria-busy', String(e.detail));
+    });
+  });
+
+  /* ═════════════ Tooltip ═════════════ */
+
+  (() => {
+    const tip = $('#px-tip');
+    const text = $('.px-tip__text', tip);
+    const DELAY = 400, WARM = 300;
+    let owner = null, timer = 0, warmUntil = 0;
+
+    function place(el) {
+      const r = el.getBoundingClientRect();
+      const w = tip.offsetWidth, h = tip.offsetHeight;
+      const below = r.top - h - U < U * 5;
+      const x = clamp(r.left + r.width / 2 - w / 2, U, innerWidth - w - U);
+      const y = below ? r.bottom + U : r.top - h - U;
+      tip.dataset.side = below ? 'bottom' : 'top';
+      tip.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px)`;
+      tip.style.setProperty('--ax', `${Math.round(clamp(r.left + r.width / 2 - x - 3, 6, w - 12))}px`);
+    }
+
+    function show(el) {
+      clearTimeout(timer);
+      if (owner && owner !== el) owner.removeAttribute('aria-describedby');
+      owner = el;
+      text.textContent = el.dataset.tip;
+      buildHatch(tip);
+      place(el);
+      el.setAttribute('aria-describedby', 'px-tip');
+      tip.classList.add('is-on');
+    }
+
+    function hide() {
+      clearTimeout(timer);
+      if (!owner) return;
+      owner.removeAttribute('aria-describedby');
+      owner = null;
+      tip.classList.remove('is-on');
+      warmUntil = performance.now() + WARM;
+    }
+
+    // First hover waits; once a tip is up (or just went down), neighbours switch without the wait.
+    function queue(el) {
+      clearTimeout(timer);
+      if (owner || performance.now() < warmUntil) show(el);
+      else timer = setTimeout(() => show(el), DELAY);
+    }
+
+    document.addEventListener('pointerover', (e) => {
+      if (e.pointerType !== 'mouse') return;
+      const el = e.target.closest('[data-tip]');
+      if (el && el !== owner) queue(el);
+    });
+    document.addEventListener('pointerout', (e) => {
+      const el = e.target.closest('[data-tip]');
+      if (el && !el.contains(e.relatedTarget)) hide();
+    });
+    document.addEventListener('focusin', (e) => {
+      const el = e.target.closest('[data-tip]');
+      if (el && el.matches(':focus-visible')) show(el);
+    });
+    document.addEventListener('focusout', (e) => { if (e.target.closest('[data-tip]')) hide(); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') hide(); });
+    window.addEventListener('scroll', hide, { passive: true });
+  })();
 
   /* ═════════════ Motion lab ═════════════ */
 
