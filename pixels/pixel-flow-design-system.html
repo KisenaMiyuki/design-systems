@@ -891,6 +891,12 @@
 
   .px-field { display: grid; gap: 6px; }
 
+  /* Field labels sit a step above help text (ash) and light up with their field */
+  .px-input > .t-micro:first-child,
+  .px-field > .t-micro:first-child { color: var(--ash-300); transition: color var(--dur-cell) linear; }
+  .px-input:focus-within > .t-micro:first-child,
+  .px-field:focus-within > .t-micro:first-child { color: var(--bone); }
+
   .px-input__prefix { flex: 0 0 auto; padding-left: var(--u); color: var(--ash-700); white-space: nowrap; }
   .px-input__prefix + input { padding-left: 2px; }
   .px-input__prefix--icon + input { padding-left: var(--u); }
