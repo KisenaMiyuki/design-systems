@@ -858,13 +858,15 @@
   .px-input__box input::placeholder { color: var(--ash-700); }
   .px-input__box input[type="search"]::-webkit-search-cancel-button { display: none; }
 
+  /* Focus bar matches the focused border; only an error turns it to the accent */
   .px-input__bar {
-    --hatch: var(--signal);
+    --hatch: var(--bone-700);
     --px-cell-dur: 140ms;
     position: absolute;
     inset: auto 0 0;
     height: 6px;
   }
+  .px-input.is-error .px-input__bar { --hatch: var(--signal); }
 
   /* Grid focus style (html[data-focus="grid"]): the box fills with dim cells that breathe slightly.
      Cells stay near-black (or deep signal on error) so bone text keeps well above 4.5:1. */
@@ -2013,7 +2015,7 @@
             <div class="px-field">
               <span class="t-micro muted" id="focus-style-label">Focus effect · every input on the page</span>
               <div class="px-seg px-seg--block" role="tablist" aria-labelledby="focus-style-label" id="focus-style">
-                <button role="tab" aria-selected="true" data-hatch="entry" data-hatch-cell="6" data-value="bar"><span>Signal bar</span></button>
+                <button role="tab" aria-selected="true" data-hatch="entry" data-hatch-cell="6" data-value="bar"><span>Focus bar</span></button>
                 <button role="tab" aria-selected="false" data-hatch="entry" data-hatch-cell="6" data-value="grid"><span>Breathing grid</span></button>
               </div>
             </div>
