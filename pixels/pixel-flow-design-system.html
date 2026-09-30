@@ -503,10 +503,11 @@
   /* Submit: a slightly rectangular fixed part (5u × 4u) */
   .px-xbtn--submit { --fix: calc(var(--u) * 5); width: calc(var(--fix) + var(--u) * 13); }
 
-  /* Stateful: idle bone → busy ash → done signal / fail signal on brown. Each state shows its own glyph and label. */
+  /* Stateful: idle bone → busy ash → done bright bone / fail signal. Signal stays reserved for errors, as on inputs;
+     success is told from idle by its glyph, label and the wipe it lands with, not by a new hue. */
   .px-xbtn[data-state="busy"] { --ink: var(--ash); cursor: progress; }
-  .px-xbtn[data-state="done"] { --ink: var(--signal); }
-  .px-xbtn[data-state="fail"] { --ink: var(--signal-900); --on: var(--signal-300); }
+  .px-xbtn[data-state="done"] { --ink: var(--bone-100); }
+  .px-xbtn[data-state="fail"] { --ink: var(--signal); }
   .px-xbtn__icon > [data-show] { position: absolute; inset: 0; z-index: 1; display: grid; place-items: center; color: var(--on); }
   .px-xbtn__label > [data-show] { grid-area: 1 / 1; white-space: nowrap; }
   .px-xbtn [data-show] { opacity: 0; transition: opacity 120ms linear; }
@@ -2333,7 +2334,7 @@
             </div>
 
             <label class="opt t-micro muted"><button type="button" class="px-check" role="checkbox" aria-checked="false" id="req-fail" data-hatch="scatter" data-hatch-cell="4" data-hatch-sweep="140" aria-label="Simulate failure"><svg viewBox="0 0 6 6" aria-hidden="true"><rect x="4" y="1" width="1" height="1"/><rect x="1" y="2" width="1" height="1"/><rect x="3" y="2" width="1" height="1"/><rect x="2" y="3" width="1" height="1"/></svg></button><span>Simulate failure</span></label>
-            <span class="t-micro muted" role="status" id="req-status">Idle bone · processing ash · deployed signal · failed signal on brown.</span>
+            <span class="t-micro muted" role="status" id="req-status">Idle bone · processing ash · deployed bright bone · failed signal.</span>
           </form>
         </div>
 
