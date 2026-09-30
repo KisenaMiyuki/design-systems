@@ -1,0 +1,2807 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pixel/Flow — Design System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  /* ═══════════════════════════ Tokens ═══════════════════════════ */
+  :root {
+    --u: 12px;
+    --cell: 6px;
+
+    --void: #000000;
+    --void-900: #080808;
+    --void-800: #0f0f0e;
+    --void-700: #171716;
+    --void-600: #232322;
+    --void-500: #30302f;
+
+    --ash-700: #5c5c5d;
+    --ash: #888889;
+    --ash-300: #b0b0b1;
+
+    --bone-700: #a8a296;
+    --bone-500: #cdc6b9;
+    --bone: #ece5d8;
+    --bone-100: #f6f2ea;
+
+    --signal-900: #3b1609;
+    --signal-700: #a33c17;
+    --signal: #e85622;
+    --signal-300: #ff8757;
+
+    --font-mono: "PP Supply Mono", "DM Mono", ui-monospace, monospace;
+
+    --dur-cell: 220ms;
+    --dur-exit: 320ms;
+    --dur-base: 420ms;
+    --dur-roll: 525ms;
+    --ease-out: cubic-bezier(.22, 1, .36, 1);
+    --ease-snap: cubic-bezier(.625, .05, 0, 1);
+    --ease-cell: cubic-bezier(.66, 0, .34, 1);
+
+    --cols: 12;
+    --gap: calc(var(--u) * 2);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; scroll-padding-top: calc(var(--u) * 6); }
+
+  body {
+    margin: 0;
+    background: var(--void);
+    color: var(--bone);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    line-height: 24px;
+    font-weight: 400;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  ::selection { background: var(--signal); color: var(--void); }
+
+  h1, h2, h3, h4, p { margin: 0; font-weight: 400; }
+  a { color: inherit; }
+  button { font: inherit; color: inherit; }
+
+  .sr-only {
+    position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+    overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+  }
+
+  .t-label { font-size: 11px; line-height: 12px; letter-spacing: .06em; text-transform: uppercase; }
+  .t-micro { font-size: 10px; line-height: 12px; letter-spacing: .08em; text-transform: uppercase; }
+  .muted { color: var(--ash); }
+  .signal { color: var(--signal); }
+  .num { font-variant-numeric: tabular-nums; }
+
+  /* ═══════════════════════════ Field ═══════════════════════════ */
+  #field {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+
+  .page { position: relative; z-index: 1; }
+
+  /* ═══════════════════════════ Layout ═══════════════════════════ */
+  .wrap { width: 1128px; margin-inline: auto; }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+    gap: var(--gap);
+  }
+
+  .s-12 { grid-column: span 12; }
+  .s-9 { grid-column: span 9; }
+  .s-8 { grid-column: span 8; }
+  .s-6 { grid-column: span 6; }
+  .s-4 { grid-column: span 4; }
+  .s-3 { grid-column: span 3; }
+
+  @media (max-width: 1175px) {
+    :root { --cols: 8; }
+    .wrap { width: 744px; }
+    .s-12, .s-9, .s-8 { grid-column: span 8; }
+    .s-6, .s-4, .s-3 { grid-column: span 4; }
+  }
+
+  @media (max-width: 791px) {
+    :root { --cols: 6; }
+    .wrap { width: 552px; }
+    .s-12, .s-9, .s-8, .s-6 { grid-column: span 6; }
+    .s-4, .s-3 { grid-column: span 3; }
+  }
+
+  @media (max-width: 599px) {
+    :root { --cols: 4; }
+    .wrap { width: calc(100% - var(--u) * 2); }
+    .s-12, .s-9, .s-8, .s-6, .s-4, .s-3 { grid-column: span 4; }
+  }
+
+  section { padding-top: calc(var(--u) * 12); }
+
+  .sec-head {
+    display: grid;
+    grid-template-columns: calc(var(--u) * 8) 1fr;
+    gap: 0 var(--gap);
+    align-items: start;
+    margin-bottom: calc(var(--u) * 4);
+  }
+
+  .sec-head__idx {
+    color: var(--signal);
+    font-size: 11px;
+    line-height: 36px;
+    letter-spacing: .06em;
+  }
+
+  .sec-head h2 {
+    font-size: 32px;
+    line-height: 36px;
+    letter-spacing: -.02em;
+  }
+
+  .sec-head p {
+    grid-column: 2;
+    max-width: 62ch;
+    margin-top: var(--u);
+    color: var(--ash);
+  }
+
+  @media (max-width: 599px) {
+    .sec-head { grid-template-columns: 1fr; }
+    .sec-head p { grid-column: 1; }
+  }
+
+  /* ═══════════════════════════ Panel ═══════════════════════════ */
+  .panel {
+    position: relative;
+    padding: calc(var(--u) * 2);
+    background: rgba(0, 0, 0, .62);
+    box-shadow: inset 0 0 0 1px var(--void-500);
+  }
+
+  .panel::before,
+  .panel::after {
+    content: "";
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    pointer-events: none;
+  }
+
+  .panel::before { top: -3px; left: -3px; border-top: 1px solid var(--ash); border-left: 1px solid var(--ash); }
+  .panel::after { right: -3px; bottom: -3px; border-right: 1px solid var(--ash); border-bottom: 1px solid var(--ash); }
+
+  .panel__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--u);
+    height: calc(var(--u) * 2);
+    margin: calc(var(--u) * -2) calc(var(--u) * -2) calc(var(--u) * 2);
+    padding: 0 calc(var(--u) * 2);
+    box-shadow: inset 0 -1px 0 var(--void-500);
+    color: var(--ash);
+  }
+
+  .panel__head b { color: var(--bone); font-weight: 400; }
+
+  .panel h3 {
+    font-size: 20px;
+    line-height: 24px;
+    letter-spacing: -.01em;
+  }
+
+  .panel h3 + p { margin-top: var(--u); color: var(--ash); }
+
+  .stack { display: grid; gap: calc(var(--u) * 2); }
+  .row { display: flex; flex-wrap: wrap; align-items: center; gap: calc(var(--u) * 2); }
+  .row--tight { gap: var(--u); }
+
+  .sub {
+    display: flex;
+    align-items: center;
+    gap: var(--u);
+    color: var(--ash);
+  }
+
+  .sub::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--void-500);
+  }
+
+  /* ═══════════════════════════ Hatch ═══════════════════════════ */
+  .px-hatch {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    display: grid;
+    pointer-events: none;
+  }
+
+  .px-hatch i {
+    display: block;
+    background: var(--hatch, var(--bone));
+    opacity: 0;
+    outline: .6px solid var(--hatch, var(--bone));
+    outline-offset: -.4px;
+    transition: opacity calc(var(--px-cell-dur, var(--dur-cell)) * .8) var(--ease-cell) var(--out, 0ms);
+  }
+
+  .px-hatch i.b {
+    background: var(--hatch-b, var(--hatch));
+    outline-color: var(--hatch-b, var(--hatch));
+  }
+
+  .is-on > .px-hatch i,
+  [aria-checked="true"] > .px-hatch i,
+  [aria-selected="true"] > .px-hatch i,
+  :focus-visible > .px-hatch i,
+  .px-input:focus-within > .px-input__bar > .px-hatch i,
+  .px-input.is-error > .px-input__bar > .px-hatch i,
+  .nav a.is-active > .nav__bar > .px-hatch i {
+    opacity: 1;
+    transition-duration: var(--px-cell-dur, var(--dur-cell));
+    transition-delay: var(--in, 0ms);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    [data-hover]:hover > .px-hatch i,
+    .px-xbtn:hover > .px-xbtn__panel > .px-hatch i,
+    .nav a:hover > .nav__bar > .px-hatch i {
+      opacity: 1;
+      transition-duration: var(--px-cell-dur, var(--dur-cell));
+      transition-delay: var(--in, 0ms);
+    }
+  }
+
+  [disabled] > .px-hatch { display: none; }
+
+  .px-hatch--rest i { opacity: .14; }
+
+  /* Rolling label: two stacked copies, the second rolls up on activation */
+  .roll { display: block; height: 100%; overflow: hidden; }
+
+  .roll__track {
+    display: grid;
+    grid-template-rows: repeat(2, 50%);
+    height: 200%;
+    transition: transform var(--dur-roll) var(--ease-snap);
+  }
+
+  .roll__track > * { display: grid; place-items: center; white-space: nowrap; }
+  .roll__track > :first-child { color: var(--text, currentColor); }
+  .roll__track > :nth-child(2) { color: var(--on, var(--void)); }
+
+  .arrow {
+    position: relative;
+    display: block;
+    width: 100%;
+    height: 100%;
+    transition: transform var(--dur-roll) var(--ease-snap) 55ms;
+  }
+
+  .arrow > span { position: absolute; inset: 0; display: grid; place-items: center; }
+  .arrow > :first-child { color: var(--text, currentColor); }
+  .arrow > :nth-child(2) { color: var(--on, var(--void)); transform: translate3d(-100%, 100%, 0); }
+
+  @media (hover: hover) and (pointer: fine) {
+    [data-hover]:hover .roll__track { transform: translate3d(0, -50%, 0); }
+    [data-hover]:hover .arrow { transform: translate3d(100%, -100%, 0); }
+  }
+
+  :focus-visible .roll__track,
+  .is-on .roll__track { transform: translate3d(0, -50%, 0); }
+  :focus-visible .arrow,
+  .is-on .arrow { transform: translate3d(100%, -100%, 0); }
+
+  /* ═══════════════════════════ Button ═══════════════════════════ */
+  .px-btn {
+    --h: 48px;
+    --fs: 11px;
+    --line: var(--bone);
+    --text: var(--bone);
+    --hatch: var(--bone);
+    --on: var(--void);
+    --bg: transparent;
+    position: relative;
+    display: inline-grid;
+    grid-template-columns: auto var(--h);
+    height: var(--h);
+    padding: 0;
+    overflow: hidden;
+    border: 0;
+    border-radius: 0;
+    background: var(--bg);
+    box-shadow: inset 0 0 0 1px var(--line);
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: var(--fs);
+    line-height: 1;
+    letter-spacing: .02em;
+    text-transform: uppercase;
+    text-decoration: none;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .px-btn:focus-visible { outline: 1px solid var(--signal); outline-offset: 4px; }
+
+  .px-btn__label {
+    position: relative;
+    z-index: 1;
+    padding: 0 calc(var(--h) * .375);
+  }
+
+  .px-btn__icon {
+    position: relative;
+    z-index: 1;
+    width: var(--h);
+    overflow: hidden;
+    font-size: calc(var(--h) * .3);
+  }
+
+  .px-btn__icon::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    z-index: 2;
+    width: 1px;
+    background: var(--line);
+    transition: background-color var(--dur-roll) var(--ease-snap);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .px-btn:hover .px-btn__icon::before { background: var(--on); }
+  }
+
+  .px-btn:focus-visible .px-btn__icon::before { background: var(--on); }
+
+  .px-btn--s { --h: 36px; --fs: 10px; }
+  .px-btn--l { --h: 60px; --fs: 13px; }
+
+  .px-btn--signal { --line: var(--signal); --text: var(--signal); --hatch: var(--signal); }
+  .px-btn--solid { --bg: var(--bone); --text: var(--void); --hatch: var(--signal); --line: var(--bone); }
+  .px-btn--quiet { --line: var(--void-500); --text: var(--ash-300); --hatch: var(--void-600); --on: var(--bone); }
+
+  .px-btn[disabled] {
+    --line: var(--void-600);
+    --text: var(--ash-700);
+    cursor: not-allowed;
+    background:
+      repeating-linear-gradient(135deg, transparent 0 5px, var(--void-700) 5px 6px);
+  }
+
+  /* Expand variant */
+  .px-xbtn {
+    --h: 48px;
+    --ink: var(--bone);
+    --on: var(--void);
+    position: relative;
+    display: inline-flex;
+    width: calc(var(--h) + var(--u) * 16);
+    height: var(--h);
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--on);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: .02em;
+    text-transform: uppercase;
+    cursor: pointer;
+    clip-path: inset(0 calc(100% - var(--h)) 0 0);
+    transition: clip-path var(--dur-exit) var(--ease-out);
+  }
+
+  .px-xbtn__icon {
+    position: relative;
+    z-index: 2;
+    flex: 0 0 var(--h);
+    height: var(--h);
+    overflow: hidden;
+    background: var(--ink);
+    font-size: 14px;
+  }
+
+  .px-xbtn__icon .arrow > span { color: var(--on); }
+
+  .px-xbtn__panel {
+    --hatch: var(--ink);
+    position: relative;
+    flex: 1;
+    margin-left: -1px;
+    overflow: hidden;
+    box-shadow: inset 0 0 0 1px var(--ink);
+    clip-path: inset(0 100% 0 0);
+    transition: clip-path var(--dur-exit) var(--ease-out);
+  }
+
+  .px-xbtn__label {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    place-items: center;
+    height: 100%;
+    clip-path: inset(0 100% 0 0);
+    transition: clip-path .34s var(--ease-out) 70ms;
+  }
+
+  .px-xbtn__corners { position: absolute; inset: -6px; z-index: 3; pointer-events: none; }
+
+  .px-xbtn__corners span {
+    --x: 0; --y: 0;
+    position: absolute;
+    width: 5px;
+    height: 5px;
+    opacity: 0;
+    border-color: var(--ash);
+    border-style: solid;
+    border-width: 0;
+    transform: translate3d(var(--x), var(--y), 0);
+    transition: opacity 110ms linear, transform 180ms var(--ease-out);
+  }
+
+  .px-xbtn__corners span:nth-child(1) { --x: -3px; --y: -3px; top: 0; left: 0; border-top-width: 1px; border-left-width: 1px; }
+  .px-xbtn__corners span:nth-child(2) { --x: 3px; --y: -3px; top: 0; right: 0; border-top-width: 1px; border-right-width: 1px; }
+  .px-xbtn__corners span:nth-child(3) { --x: 3px; --y: 3px; right: 0; bottom: 0; border-right-width: 1px; border-bottom-width: 1px; }
+  .px-xbtn__corners span:nth-child(4) { --x: -3px; --y: 3px; bottom: 0; left: 0; border-bottom-width: 1px; border-left-width: 1px; }
+
+  @media (hover: hover) and (pointer: fine) {
+    .px-xbtn:hover,
+    .px-xbtn:hover .px-xbtn__panel,
+    .px-xbtn:hover .px-xbtn__label { clip-path: inset(0); transition-duration: var(--dur-base); }
+    .px-xbtn:hover .arrow { transform: translate3d(100%, -100%, 0); }
+    .px-xbtn:hover .px-xbtn__corners span {
+      --x: 0px; --y: 0px;
+      opacity: 1;
+      transition: opacity 160ms linear 140ms, transform 280ms var(--ease-out) 110ms;
+    }
+  }
+
+  .px-xbtn:focus-visible { outline: 0; clip-path: inset(0); }
+  .px-xbtn:focus-visible .px-xbtn__panel,
+  .px-xbtn:focus-visible .px-xbtn__label { clip-path: inset(0); }
+  .px-xbtn:focus-visible .px-xbtn__panel > .px-hatch i { opacity: 1; transition-delay: var(--in); }
+  .px-xbtn:focus-visible .px-xbtn__corners span { --x: 0px; --y: 0px; opacity: 1; }
+
+  /* Icon button */
+  .px-ibtn {
+    --line: var(--void-500);
+    --text: var(--bone);
+    --hatch: var(--bone);
+    --on: var(--void);
+    position: relative;
+    width: 48px;
+    height: 48px;
+    padding: 0;
+    overflow: hidden;
+    border: 0;
+    background: transparent;
+    box-shadow: inset 0 0 0 1px var(--line);
+    font-size: 14px;
+    cursor: pointer;
+  }
+
+  .px-ibtn .arrow { z-index: 1; }
+  .px-ibtn--signal { --line: var(--signal); --text: var(--signal); --hatch: var(--signal); }
+  .px-ibtn:focus-visible { outline: 1px solid var(--signal); outline-offset: 4px; }
+
+  /* ═══════════════════════════ Header ═══════════════════════════ */
+  .header {
+    position: fixed;
+    inset: 0 0 auto;
+    z-index: 10;
+    height: calc(var(--u) * 4);
+    background: rgba(0, 0, 0, .9);
+    box-shadow: inset 0 -1px 0 var(--void-600);
+  }
+
+  .header .wrap {
+    display: flex;
+    align-items: center;
+    gap: calc(var(--u) * 3);
+    height: 100%;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: var(--u);
+    text-decoration: none;
+  }
+
+  .brand__mark {
+    display: grid;
+    grid-template-columns: repeat(3, 6px);
+    gap: 1px;
+  }
+
+  .brand__mark i {
+    width: 6px;
+    height: 6px;
+    background: var(--bone);
+    animation: mark 2.4s steps(1) infinite;
+  }
+
+  .brand__mark i:nth-child(2n) { background: var(--void-600); }
+  .brand__mark i:nth-child(5) { background: var(--signal); }
+  .brand__mark i:nth-child(1) { animation-delay: -.6s; }
+  .brand__mark i:nth-child(6) { animation-delay: -1.2s; }
+  .brand__mark i:nth-child(8) { animation-delay: -1.8s; }
+
+  @keyframes mark {
+    0%, 100% { opacity: 1; }
+    50% { opacity: .25; }
+  }
+
+  .nav {
+    display: flex;
+    height: 100%;
+    margin-left: auto;
+  }
+
+  .nav a {
+    position: relative;
+    display: grid;
+    place-items: center;
+    height: 100%;
+    padding: 0 var(--u);
+    color: var(--ash);
+    text-decoration: none;
+    transition: color var(--dur-cell) linear;
+  }
+
+  .nav a:hover,
+  .nav a.is-active { color: var(--bone); }
+
+  .nav__bar {
+    --hatch: var(--signal);
+    position: absolute;
+    inset: auto var(--u) 0;
+    height: 6px;
+  }
+
+  .header__field {
+    display: flex;
+    align-items: center;
+    gap: var(--u);
+    color: var(--ash);
+  }
+
+  @media (max-width: 791px) {
+    .nav { display: none; }
+    .header__field { margin-left: auto; }
+  }
+
+  /* ═══════════════════════════ Hero ═══════════════════════════ */
+  .hero { padding-top: calc(var(--u) * 12); }
+
+  .hero__kicker {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--u);
+    color: var(--ash);
+  }
+
+  .hero__glyph {
+    position: relative;
+    height: calc(var(--u) * 14);
+    margin: calc(var(--u) * 2) 0 calc(var(--u) * 3);
+  }
+
+  @media (max-width: 1175px) { .hero__glyph { height: calc(var(--u) * 26); } }
+  @media (max-width: 599px) { .hero__glyph { height: calc(var(--u) * 18); } }
+
+  .hero__lede {
+    font-size: 16px;
+    line-height: 24px;
+    letter-spacing: -.01em;
+  }
+
+  .hero__lede em { color: var(--signal); font-style: normal; }
+
+  .hero__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-content: start;
+    justify-content: flex-end;
+    gap: calc(var(--u) * 2);
+  }
+
+  @media (max-width: 791px) { .hero__actions { justify-content: flex-start; } }
+
+  .hero__hint {
+    display: flex;
+    gap: calc(var(--u) * 2);
+    margin-top: calc(var(--u) * 2);
+    color: var(--ash-700);
+  }
+
+  .stat { display: grid; gap: var(--u); }
+
+  .stat__value {
+    font-size: 32px;
+    line-height: 36px;
+    letter-spacing: -.02em;
+  }
+
+  .stat__value small { color: var(--ash); font-size: 13px; letter-spacing: 0; }
+
+  /* ═══════════════════════════ Colour ═══════════════════════════ */
+  .swatches {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--u);
+  }
+
+  @media (max-width: 791px) { .swatches { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+  .swatch {
+    --hatch: var(--c);
+    position: relative;
+    display: grid;
+    grid-template-rows: calc(var(--u) * 10) auto;
+    overflow: hidden;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: inset 0 0 0 1px var(--void-500);
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .swatch__chip {
+    position: relative;
+    z-index: 1;
+    background: var(--c);
+    box-shadow: inset 0 0 0 1px rgba(236, 229, 216, .08);
+  }
+
+  .swatch__info {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    gap: 0;
+    padding: var(--u) var(--u) calc(var(--u) * 2);
+    color: var(--bone);
+    transition: color 180ms linear 90ms;
+  }
+
+  .swatch__info .muted { transition: color 180ms linear 90ms; }
+
+  .swatch__name { font-size: 20px; line-height: 36px; letter-spacing: -.01em; }
+
+  @media (hover: hover) and (pointer: fine) {
+    .swatch:hover .swatch__info,
+    .swatch:hover .swatch__info .muted { color: var(--c-on); }
+  }
+
+  .ramps { display: grid; gap: var(--u); margin-top: calc(var(--u) * 2); }
+
+  .ramp {
+    display: grid;
+    grid-template-columns: calc(var(--u) * 8) 1fr;
+    align-items: center;
+    gap: var(--u);
+  }
+
+  .ramp__chips { display: flex; gap: 1px; }
+
+  .chip {
+    position: relative;
+    flex: 1;
+    height: calc(var(--u) * 4);
+    padding: 0 6px 6px;
+    border: 0;
+    background: var(--c);
+    color: var(--c-on, var(--bone));
+    font-family: var(--font-mono);
+    font-size: 10px;
+    line-height: 12px;
+    text-align: left;
+    cursor: copy;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    box-shadow: inset 0 0 0 1px rgba(236, 229, 216, .06);
+  }
+
+  .chip span { opacity: 0; transition: opacity 120ms linear; }
+  .chip:hover span, .chip:focus-visible span { opacity: 1; }
+
+  /* ═══════════════════════════ Grid + Type ═══════════════════════════ */
+  .spec {
+    display: grid;
+    grid-template-columns: calc(var(--u) * 6) calc(var(--u) * 5) 1fr;
+    align-items: center;
+    gap: var(--u);
+    min-height: calc(var(--u) * 4);
+    box-shadow: inset 0 -1px 0 var(--void-600);
+  }
+
+  .spec__viz {
+    height: 12px;
+    background:
+      conic-gradient(from 90deg at 1px 1px, transparent 25%, rgba(236, 229, 216, .22) 0) 0 0 / 6px 6px;
+    box-shadow: inset 0 0 0 1px var(--bone-700);
+  }
+
+  .type-row {
+    display: grid;
+    grid-template-columns: calc(var(--u) * 9) 1fr;
+    align-items: baseline;
+    gap: var(--u);
+    padding: var(--u) 0;
+    box-shadow: inset 0 -1px 0 var(--void-600);
+  }
+
+  .type-row:last-child { box-shadow: none; }
+
+  /* ═══════════════════════════ Controls ═══════════════════════════ */
+  .px-input { display: grid; gap: 6px; }
+
+  .px-input__box {
+    position: relative;
+    display: flex;
+    align-items: center;
+    height: 48px;
+    box-shadow: inset 0 0 0 1px var(--void-500);
+    transition: box-shadow var(--dur-cell) linear;
+  }
+
+  .px-input__box:focus-within { box-shadow: inset 0 0 0 1px var(--bone-700); }
+
+  .px-input input {
+    flex: 1;
+    min-width: 0;
+    height: 100%;
+    padding: 0 var(--u);
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: var(--bone);
+    font: inherit;
+    caret-color: var(--signal);
+  }
+
+  .px-input input::placeholder { color: var(--ash-700); }
+
+  .px-input__bar {
+    --hatch: var(--signal);
+    position: absolute;
+    inset: auto 0 0;
+    height: 6px;
+  }
+
+  .px-input__suffix { padding-right: var(--u); color: var(--ash-700); }
+  .px-input__help { color: var(--ash); }
+  .px-input.is-error .px-input__help { color: var(--signal); }
+  .px-input.is-error .px-input__box { box-shadow: inset 0 0 0 1px var(--signal-700); }
+
+  .px-switch {
+    --hatch: var(--signal);
+    position: relative;
+    flex: 0 0 auto;
+    width: 48px;
+    height: 24px;
+    padding: 0;
+    overflow: hidden;
+    border: 0;
+    background: transparent;
+    box-shadow: inset 0 0 0 1px var(--void-500);
+    cursor: pointer;
+  }
+
+  .px-switch__knob {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    z-index: 1;
+    width: 12px;
+    height: 12px;
+    background: var(--ash);
+    transition: transform var(--dur-roll) var(--ease-snap), background-color var(--dur-cell) linear;
+  }
+
+  .px-switch[aria-checked="true"] { box-shadow: inset 0 0 0 1px var(--signal); }
+  .px-switch[aria-checked="true"] .px-switch__knob { transform: translateX(24px); background: var(--void); }
+  .px-switch:focus-visible, .px-check:focus-visible, .px-seg button:focus-visible { outline: 1px solid var(--signal); outline-offset: 3px; }
+
+  .opt { display: inline-flex; align-items: center; gap: var(--u); cursor: pointer; }
+
+  .px-check {
+    --hatch: var(--bone);
+    position: relative;
+    flex: 0 0 auto;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    overflow: hidden;
+    border: 0;
+    background: transparent;
+    box-shadow: inset 0 0 0 1px var(--void-500);
+    cursor: pointer;
+  }
+
+  .px-check svg {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    width: 100%;
+    height: 100%;
+    fill: var(--void);
+    opacity: 0;
+    shape-rendering: crispEdges;
+    transition: opacity 120ms linear;
+  }
+
+  .px-check[aria-checked="true"] svg { opacity: 1; transition-delay: 160ms; }
+
+  .px-seg {
+    display: inline-flex;
+    box-shadow: inset 0 0 0 1px var(--void-500);
+  }
+
+  .px-seg--block { display: flex; }
+  .px-seg--block button { flex: 1; }
+
+  .px-seg button {
+    --hatch: var(--bone);
+    position: relative;
+    height: 36px;
+    padding: 0 var(--u);
+    overflow: hidden;
+    border: 0;
+    background: transparent;
+    color: var(--ash);
+    font-size: 10px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: color 160ms linear;
+  }
+
+  .px-seg button + button { box-shadow: inset 1px 0 0 var(--void-500); }
+  .px-seg button > span:not(.px-hatch) { position: relative; z-index: 1; }
+  .px-seg button:hover { color: var(--bone); }
+  .px-seg button[aria-selected="true"] { color: var(--void); transition-delay: 90ms; }
+
+  .px-slider { display: grid; gap: 6px; }
+
+  .px-slider__head { display: flex; justify-content: space-between; color: var(--ash); }
+  .px-slider__head output { color: var(--bone); }
+
+  .px-slider__track {
+    position: relative;
+    height: 24px;
+    box-shadow: inset 0 0 0 1px var(--void-500);
+  }
+
+  .px-slider__cells {
+    position: absolute;
+    inset: 6px;
+    display: grid;
+    grid-auto-flow: column;
+    gap: 1px;
+  }
+
+  .px-slider__cells i { background: var(--void-600); transition: background-color 90ms linear; }
+  .px-slider__cells i.on { background: var(--bone-500); }
+  .px-slider__cells i.head { background: var(--signal); }
+
+  .px-slider input {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    opacity: 0;
+    cursor: ew-resize;
+  }
+
+  .px-slider__track:focus-within { box-shadow: inset 0 0 0 1px var(--signal); }
+
+  /* ═══════════════════════════ Feedback ═══════════════════════════ */
+  .loader {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: var(--u);
+  }
+
+  .loader__count {
+    color: var(--signal);
+    font-size: 48px;
+    line-height: 48px;
+    letter-spacing: -.04em;
+  }
+
+  .px-progress {
+    position: relative;
+    height: 24px;
+    box-shadow: inset 0 0 0 1px var(--void-500);
+  }
+
+  .px-progress__cells {
+    position: absolute;
+    inset: 6px;
+    display: grid;
+    grid-template-rows: repeat(2, 1fr);
+    grid-auto-flow: column;
+    gap: 1px;
+  }
+
+  .px-progress__cells i { background: var(--void-700); transition: background-color 120ms linear; }
+  .px-progress__cells i.on { background: var(--bone); }
+  .px-progress__cells i.head { background: var(--signal); }
+
+  .px-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 24px;
+    padding: 0 var(--u) 0 6px;
+    box-shadow: inset 0 0 0 1px var(--void-500);
+    color: var(--ash-300);
+    font-size: 10px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .px-tag__dot {
+    display: grid;
+    grid-template-columns: repeat(2, 5px);
+    gap: 2px;
+  }
+
+  .px-tag__dot i { width: 5px; height: 5px; background: var(--c, var(--ash)); }
+
+  .px-tag--live { --c: var(--signal); color: var(--signal); box-shadow: inset 0 0 0 1px var(--signal-700); }
+  .px-tag--live .px-tag__dot i { animation: live 1.2s steps(1) infinite; }
+  .px-tag--live .px-tag__dot i:nth-child(2) { animation-delay: -.3s; }
+  .px-tag--live .px-tag__dot i:nth-child(4) { animation-delay: -.6s; }
+  .px-tag--live .px-tag__dot i:nth-child(3) { animation-delay: -.9s; }
+  .px-tag--sync { --c: var(--bone); color: var(--bone); }
+  .px-tag--sync .px-tag__dot i { animation: live 1.8s steps(1) infinite; }
+  .px-tag--sync .px-tag__dot i:nth-child(2n) { animation-delay: -.9s; }
+  .px-tag--idle { --c: var(--void-500); }
+
+  @keyframes live {
+    0%, 100% { opacity: 1; }
+    50% { opacity: .2; }
+  }
+
+  /* Toast */
+  .px-toast {
+    --hatch: var(--bone);
+    position: fixed;
+    right: calc(var(--u) * 2);
+    bottom: calc(var(--u) * 2);
+    z-index: 20;
+    width: min(360px, calc(100vw - var(--u) * 4));
+    height: 72px;
+    overflow: hidden;
+    pointer-events: none;
+  }
+
+  .px-toast.is-on { pointer-events: auto; }
+
+  .px-toast__body {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: 1fr 48px;
+    align-items: center;
+    height: 100%;
+    padding-left: calc(var(--u) * 2);
+    color: var(--void);
+    opacity: 0;
+    transition: opacity 140ms linear;
+  }
+
+  .px-toast.is-on .px-toast__body { opacity: 1; transition-delay: 260ms; }
+  .px-toast__body .t-micro { color: var(--signal-700); }
+
+  .px-toast__close {
+    height: 100%;
+    border: 0;
+    background: transparent;
+    box-shadow: inset 1px 0 0 rgba(0, 0, 0, .15);
+    color: var(--void);
+    font-size: 14px;
+    cursor: pointer;
+  }
+
+  /* ═══════════════════════════ Matrix + Signal ═══════════════════════════ */
+  .matrix {
+    position: relative;
+    height: calc(var(--u) * 24);
+    margin: 0 calc(var(--u) * -2);
+    box-shadow: inset 0 1px 0 var(--void-500), inset 0 -1px 0 var(--void-500);
+  }
+
+  .matrix canvas, .beacon canvas { display: block; width: 100%; height: 100%; }
+
+  .matrix__meta {
+    position: absolute;
+    inset: var(--u) calc(var(--u) * 2) auto;
+    display: flex;
+    justify-content: space-between;
+    color: var(--ash-700);
+    pointer-events: none;
+  }
+
+  .beacon {
+    width: calc(var(--u) * 20);
+    height: calc(var(--u) * 20);
+    margin: 0 auto;
+  }
+
+  /* ═══════════════════════════ Card ═══════════════════════════ */
+  .px-card {
+    --hatch: var(--void-700);
+    --hatch-b: var(--void-600);
+    position: relative;
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    gap: calc(var(--u) * 2);
+    min-height: calc(var(--u) * 24);
+    padding: calc(var(--u) * 2);
+    overflow: hidden;
+    background: rgba(0, 0, 0, .62);
+    box-shadow: inset 0 0 0 1px var(--void-500);
+    color: var(--bone);
+    text-decoration: none;
+    transition: box-shadow var(--dur-cell) linear;
+  }
+
+  .px-card > :not(.px-hatch) { position: relative; z-index: 1; }
+  .px-card > .px-hatch { inset: 1px; }
+
+  .px-card__top { display: flex; justify-content: space-between; align-items: center; }
+  .px-card__idx { color: var(--ash); transition: color var(--dur-cell) linear; }
+  .px-card h3 { font-size: 20px; line-height: 24px; letter-spacing: -.01em; }
+  .px-card p { margin-top: var(--u); color: var(--ash); }
+
+  .px-card__foot {
+    display: grid;
+    grid-template-columns: 1fr 24px;
+    align-items: end;
+    gap: var(--u);
+  }
+
+  .px-card__arrow { width: 24px; height: 24px; overflow: hidden; --text: var(--ash); --on: var(--signal); }
+
+  .bars {
+    display: grid;
+    grid-auto-flow: column;
+    grid-template-rows: repeat(6, 5px);
+    gap: 1px;
+    justify-content: start;
+  }
+
+  .bars i { width: 5px; background: var(--void-600); transition: background-color 160ms linear; }
+  .bars i.on { background: var(--ash-700); }
+
+  @media (hover: hover) and (pointer: fine) {
+    .px-card:hover { box-shadow: inset 0 0 0 1px var(--bone-700); }
+    .px-card:hover .px-card__idx { color: var(--signal); }
+    .px-card:hover .bars i.on { background: var(--bone-500); transition-delay: var(--d, 0ms); }
+    .px-card:hover .bars i.on.hot { background: var(--signal); }
+  }
+
+  /* ═══════════════════════════ List ═══════════════════════════ */
+  .px-list { margin: 0 calc(var(--u) * -2) calc(var(--u) * -2); }
+
+  .px-list__row {
+    --hatch: var(--void-700);
+    --hatch-b: var(--void-600);
+    position: relative;
+    display: grid;
+    grid-template-columns: calc(var(--u) * 4) 2fr 1fr 1fr calc(var(--u) * 8);
+    align-items: center;
+    gap: var(--u);
+    height: 48px;
+    padding: 0 calc(var(--u) * 2);
+    overflow: hidden;
+    box-shadow: inset 0 -1px 0 var(--void-600);
+  }
+
+  .px-list__row > :not(.px-hatch) { position: relative; z-index: 1; }
+  .px-list__row > .px-tag { justify-self: start; }
+  .px-list__row:last-child { box-shadow: none; }
+  .px-list__row--head { height: 36px; color: var(--ash-700); }
+  .px-list__row .idx { color: var(--ash-700); transition: color var(--dur-cell) linear; }
+
+  @media (hover: hover) and (pointer: fine) {
+    .px-list__row[data-hover]:hover .idx { color: var(--signal); }
+  }
+
+  @media (max-width: 791px) {
+    .px-list__row { grid-template-columns: calc(var(--u) * 3) 1fr auto; }
+    .px-list__row > :nth-child(4), .px-list__row > :nth-child(5) { display: none; }
+  }
+
+  /* ═══════════════════════════ Motion ═══════════════════════════ */
+  .principle { display: grid; gap: calc(var(--u) * 2); align-content: start; }
+  .principle p { color: var(--ash); }
+
+  .strip {
+    --hatch: var(--bone);
+    position: relative;
+    height: 48px;
+    overflow: hidden;
+    box-shadow: inset 0 0 0 1px var(--void-500);
+  }
+
+  .strip--rest i { opacity: .12; }
+  .strip--signal { --hatch: var(--signal); }
+
+  .lab {
+    display: grid;
+    grid-template-columns: calc(var(--u) * 30) 1fr;
+    gap: calc(var(--u) * 2);
+  }
+
+  @media (max-width: 1175px) { .lab { grid-template-columns: 1fr; } }
+
+  .lab__stage {
+    --hatch: var(--bone);
+    --hatch-b: var(--bone-500);
+    position: relative;
+    height: calc(var(--u) * 20);
+    overflow: hidden;
+    box-shadow: inset 0 0 0 1px var(--void-500);
+    cursor: crosshair;
+  }
+
+  .lab__stage-label {
+    position: absolute;
+    inset: auto var(--u) var(--u);
+    z-index: 1;
+    display: flex;
+    justify-content: space-between;
+    color: var(--ash);
+    mix-blend-mode: difference;
+    pointer-events: none;
+  }
+
+  .lab__out {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: start;
+    gap: calc(var(--u) * 2);
+    margin-top: calc(var(--u) * 2);
+  }
+
+  .code {
+    margin: 0;
+    padding: var(--u) calc(var(--u) * 2);
+    overflow-x: auto;
+    background: var(--void-800);
+    box-shadow: inset 0 0 0 1px var(--void-600);
+    color: var(--ash-300);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    line-height: 24px;
+  }
+
+  .code b { color: var(--signal); font-weight: 400; }
+  .code em { color: var(--bone); font-style: normal; }
+
+  /* ═══════════════════════════ References ═══════════════════════════ */
+  .ref { display: grid; gap: calc(var(--u) * 2); align-content: start; }
+
+  .ref__media {
+    position: relative;
+    height: calc(var(--u) * 16);
+    margin: 0 calc(var(--u) * -2);
+    overflow: hidden;
+    background: var(--void-800);
+    box-shadow: inset 0 1px 0 var(--void-500), inset 0 -1px 0 var(--void-500);
+  }
+
+  .ref__media video,
+  .ref__media img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .ref__media--live { display: grid; place-items: center; background: #3b3c3b; }
+
+  .ref p { color: var(--ash); }
+  .ref .takeaway { color: var(--bone); }
+  .ref .takeaway::before { content: "→ "; color: var(--signal); }
+
+  /* ═══════════════════════════ Footer ═══════════════════════════ */
+  .footer { padding: calc(var(--u) * 12) 0 calc(var(--u) * 4); }
+
+  .footer__glyph {
+    display: block;
+    width: 100%;
+    height: calc(var(--u) * 20);
+    border: 0;
+    background: transparent;
+    cursor: n-resize;
+  }
+
+  .footer__row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: var(--u) calc(var(--u) * 3);
+    margin-top: calc(var(--u) * 4);
+    padding-top: var(--u);
+    box-shadow: inset 0 1px 0 var(--void-600);
+    color: var(--ash-700);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    *, *::before, *::after {
+      animation-duration: 0ms !important;
+      transition-duration: 0ms !important;
+      transition-delay: 0ms !important;
+    }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="field" aria-hidden="true"></canvas>
+
+<header class="header">
+  <div class="wrap">
+    <a class="brand t-label" href="#top">
+      <span class="brand__mark" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+      Pixel/Flow
+    </a>
+    <nav class="nav t-label" aria-label="Sections">
+      <a href="#foundations">Foundations<span class="nav__bar" data-hatch="x" data-hatch-cell="6"></span></a>
+      <a href="#components">Components<span class="nav__bar" data-hatch="x" data-hatch-cell="6"></span></a>
+      <a href="#motion">Motion<span class="nav__bar" data-hatch="x" data-hatch-cell="6"></span></a>
+      <a href="#references">References<span class="nav__bar" data-hatch="x" data-hatch-cell="6"></span></a>
+    </nav>
+    <label class="header__field t-micro">
+      Field
+      <button class="px-switch" role="switch" aria-checked="true" aria-label="Animate background field" data-hatch="x" data-hatch-cell="6" id="field-toggle"><span class="px-switch__knob"></span></button>
+    </label>
+  </div>
+</header>
+
+<main class="page" id="top">
+
+  <!-- ───────────── Hero ───────────── -->
+  <section class="hero">
+    <div class="wrap">
+      <div class="hero__kicker t-micro" data-quiet>
+        <span>Design system · v0.1</span>
+        <span>12px field · 4 colours · 1 motion rule</span>
+      </div>
+
+      <div class="hero__glyph" data-glyph="PIXEL/FLOW" data-glyph-alt="PIXEL|FLOW" data-glyph-mask=".7">
+        <h1 class="sr-only">Pixel/Flow</h1>
+      </div>
+
+      <div class="grid">
+        <div class="s-6" data-quiet>
+          <p class="hero__lede">Surfaces don’t appear — they <em>assemble</em>. Every state change is a field of cells switching on with a sweep, a little jitter, and a faster, reversed exit.</p>
+          <div class="hero__hint t-micro">
+            <span>Move → disturb the field</span>
+            <span>Click empty space → pulse</span>
+          </div>
+        </div>
+        <div class="s-6 hero__actions" data-quiet>
+          <a href="#components" class="px-btn px-btn--signal px-btn--l" data-hatch="x" data-hover>
+            <span class="px-btn__label" data-roll>Explore components</span>
+            <span class="px-btn__icon" data-arrow="↓"></span>
+          </a>
+          <a href="https://topography.webflow.io" target="_blank" rel="noopener" class="px-btn px-btn--l" data-hatch="x" data-hover>
+            <span class="px-btn__label" data-roll>Enter website</span>
+            <span class="px-btn__icon" data-arrow="↗"></span>
+          </a>
+        </div>
+
+        <div class="panel s-3 stat" data-panel data-snap>
+          <span class="t-micro muted">Base unit · 1u</span>
+          <span class="stat__value">12<small>px</small></span>
+        </div>
+        <div class="panel s-3 stat" data-panel data-snap>
+          <span class="t-micro muted">Hatch cell · ½u</span>
+          <span class="stat__value">6<small>px</small></span>
+        </div>
+        <div class="panel s-3 stat" data-panel data-snap>
+          <span class="t-micro muted">Default sweep</span>
+          <span class="stat__value">200<small>ms</small></span>
+        </div>
+        <div class="panel s-3 stat" data-panel data-snap>
+          <span class="t-micro muted">Cell jitter</span>
+          <span class="stat__value signal">±55<small>ms</small></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────────── Foundations ───────────── -->
+  <section id="foundations">
+    <div class="wrap">
+      <header class="sec-head" data-quiet>
+        <span class="sec-head__idx">01 /</span>
+        <h2>Foundations</h2>
+        <p>Colour, grid and type. The palette is four colours; every other value is a tint for depth or state, never a new hue.</p>
+      </header>
+
+      <div class="grid">
+        <div class="panel s-12" data-panel data-snap>
+          <div class="panel__head t-micro"><b>Colour</b><span>Click a tint to copy</span></div>
+
+          <div class="swatches">
+            <button class="swatch" style="--c: var(--void); --hatch: var(--void-600); --c-on: var(--bone);" data-hatch="entry" data-hatch-cell="12" data-hover data-copy="#000000">
+              <span class="swatch__chip"></span>
+              <span class="swatch__info">
+                <span class="swatch__name">Void</span>
+                <span class="t-micro muted">#000000 · --void</span>
+                <span class="muted">Ground. The field and every surface.</span>
+              </span>
+            </button>
+            <button class="swatch" style="--c: var(--ash); --c-on: var(--void);" data-hatch="entry" data-hatch-cell="12" data-hover data-copy="#888889">
+              <span class="swatch__chip"></span>
+              <span class="swatch__info">
+                <span class="swatch__name">Ash</span>
+                <span class="t-micro muted">#888889 · --ash</span>
+                <span class="muted">Secondary text, idle and resting cells.</span>
+              </span>
+            </button>
+            <button class="swatch" style="--c: var(--bone); --c-on: var(--void);" data-hatch="entry" data-hatch-cell="12" data-hover data-copy="#ECE5D8">
+              <span class="swatch__chip"></span>
+              <span class="swatch__info">
+                <span class="swatch__name">Bone</span>
+                <span class="t-micro muted">#ECE5D8 · --bone</span>
+                <span class="muted">Primary ink. Fills, glyphs, borders.</span>
+              </span>
+            </button>
+            <button class="swatch" style="--c: var(--signal); --c-on: var(--void);" data-hatch="entry" data-hatch-cell="12" data-hover data-copy="#E85622">
+              <span class="swatch__chip"></span>
+              <span class="swatch__info">
+                <span class="swatch__name">Signal</span>
+                <span class="t-micro muted">#E85622 · --signal</span>
+                <span class="muted">Action, focus, the leading edge.</span>
+              </span>
+            </button>
+          </div>
+
+          <div class="ramps">
+            <div class="ramp">
+              <span class="t-micro muted">Void</span>
+              <div class="ramp__chips">
+                <button class="chip" style="--c:#000000" data-copy="#000000"><span>000</span></button>
+                <button class="chip" style="--c:#080808" data-copy="#080808"><span>900</span></button>
+                <button class="chip" style="--c:#0f0f0e" data-copy="#0F0F0E"><span>800</span></button>
+                <button class="chip" style="--c:#171716" data-copy="#171716"><span>700</span></button>
+                <button class="chip" style="--c:#232322" data-copy="#232322"><span>600</span></button>
+                <button class="chip" style="--c:#30302f" data-copy="#30302F"><span>500</span></button>
+              </div>
+            </div>
+            <div class="ramp">
+              <span class="t-micro muted">Ash</span>
+              <div class="ramp__chips">
+                <button class="chip" style="--c:#5c5c5d" data-copy="#5C5C5D"><span>700</span></button>
+                <button class="chip" style="--c:#888889; --c-on:#000" data-copy="#888889"><span>500 · core</span></button>
+                <button class="chip" style="--c:#b0b0b1; --c-on:#000" data-copy="#B0B0B1"><span>300</span></button>
+              </div>
+            </div>
+            <div class="ramp">
+              <span class="t-micro muted">Bone</span>
+              <div class="ramp__chips">
+                <button class="chip" style="--c:#a8a296; --c-on:#000" data-copy="#A8A296"><span>700</span></button>
+                <button class="chip" style="--c:#cdc6b9; --c-on:#000" data-copy="#CDC6B9"><span>500</span></button>
+                <button class="chip" style="--c:#ece5d8; --c-on:#000" data-copy="#ECE5D8"><span>300 · core</span></button>
+                <button class="chip" style="--c:#f6f2ea; --c-on:#000" data-copy="#F6F2EA"><span>100</span></button>
+              </div>
+            </div>
+            <div class="ramp">
+              <span class="t-micro muted">Signal</span>
+              <div class="ramp__chips">
+                <button class="chip" style="--c:#3b1609" data-copy="#3B1609"><span>900</span></button>
+                <button class="chip" style="--c:#a33c17" data-copy="#A33C17"><span>700</span></button>
+                <button class="chip" style="--c:#e85622; --c-on:#000" data-copy="#E85622"><span>500 · core</span></button>
+                <button class="chip" style="--c:#ff8757; --c-on:#000" data-copy="#FF8757"><span>300</span></button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel s-6" data-panel data-snap>
+          <div class="panel__head t-micro"><b>Grid</b><span>1u = 12px</span></div>
+          <h3>One field, all the way through</h3>
+          <p>Panels, controls and line heights are whole units, so the background grid runs straight through the interface. Under a surface, cells drop to their resting size; a two-cell falloff around the edge gives it air.</p>
+          <div style="margin-top: 24px;">
+            <div class="spec"><span class="t-micro">½u</span><span class="muted">6px</span><span class="spec__viz" style="width: 6px"></span></div>
+            <div class="spec"><span class="t-micro">1u</span><span class="muted">12px</span><span class="spec__viz" style="width: 12px"></span></div>
+            <div class="spec"><span class="t-micro">2u</span><span class="muted">24px</span><span class="spec__viz" style="width: 24px"></span></div>
+            <div class="spec"><span class="t-micro">4u</span><span class="muted">48px</span><span class="spec__viz" style="width: 48px"></span></div>
+            <div class="spec"><span class="t-micro">Gutter</span><span class="muted">2u</span><span class="spec__viz" style="width: 24px; box-shadow: inset 0 0 0 1px var(--signal)"></span></div>
+            <div class="spec"><span class="t-micro">Control</span><span class="muted">4u</span><span class="spec__viz" style="width: 100%; height: 24px"></span></div>
+          </div>
+        </div>
+
+        <div class="panel s-6" data-panel data-snap>
+          <div class="panel__head t-micro"><b>Type</b><span>Mono only</span></div>
+          <div class="type-row"><span class="t-micro muted">Display · field</span><span style="font-size: 13px; color: var(--ash-300)">Rendered as cells in the background grid — see hero.</span></div>
+          <div class="type-row"><span class="t-micro muted">H1 · 32/36</span><span style="font-size: 32px; line-height: 36px; letter-spacing: -.02em">Every map</span></div>
+          <div class="type-row"><span class="t-micro muted">H2 · 20/24</span><span style="font-size: 20px; line-height: 24px; letter-spacing: -.01em">Begins with a walk</span></div>
+          <div class="type-row"><span class="t-micro muted">Body · 13/24</span><span>Cells rest as dots and rise when addressed.</span></div>
+          <div class="type-row"><span class="t-micro muted">Label · 11/12</span><span class="t-label">Enter website</span></div>
+          <div class="type-row"><span class="t-micro muted">Micro · 10/12</span><span class="t-micro muted">Sector 04 · 2,184 m</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────────── Components ───────────── -->
+  <section id="components">
+    <div class="wrap">
+      <header class="sec-head" data-quiet>
+        <span class="sec-head__idx">02 /</span>
+        <h2>Components</h2>
+        <p>Each one is a surface plus a hatch layer. The hatch is generated from the element’s size, so cells stay square at any width.</p>
+      </header>
+
+      <div class="grid">
+        <!-- Buttons -->
+        <div class="panel s-12" data-panel data-snap>
+          <div class="panel__head t-micro"><b>Button</b><span>Pixel hatch · fill</span></div>
+          <div class="stack">
+            <span class="sub t-micro">Variants</span>
+            <div class="row">
+              <button class="px-btn" data-hatch="x" data-hover><span class="px-btn__label" data-roll>Enter website</span><span class="px-btn__icon" data-arrow="↗"></span></button>
+              <button class="px-btn px-btn--signal" data-hatch="x" data-hover><span class="px-btn__label" data-roll>Deploy survey</span><span class="px-btn__icon" data-arrow="→"></span></button>
+              <button class="px-btn px-btn--solid" data-hatch="x" data-hover><span class="px-btn__label" data-roll>Continue</span><span class="px-btn__icon" data-arrow="→"></span></button>
+              <button class="px-btn px-btn--quiet" data-hatch="x" data-hover><span class="px-btn__label" data-roll>Cancel</span><span class="px-btn__icon" data-arrow="×"></span></button>
+              <button class="px-btn" disabled><span class="px-btn__label" data-roll>Disabled</span><span class="px-btn__icon" data-arrow="—"></span></button>
+            </div>
+
+            <span class="sub t-micro">Sizes · 3u / 4u / 5u</span>
+            <div class="row">
+              <button class="px-btn px-btn--s" data-hatch="x" data-hover><span class="px-btn__label" data-roll>Small</span><span class="px-btn__icon" data-arrow="↗"></span></button>
+              <button class="px-btn" data-hatch="x" data-hover><span class="px-btn__label" data-roll>Medium</span><span class="px-btn__icon" data-arrow="↗"></span></button>
+              <button class="px-btn px-btn--l" data-hatch="x" data-hover><span class="px-btn__label" data-roll>Large</span><span class="px-btn__icon" data-arrow="↗"></span></button>
+            </div>
+
+            <span class="sub t-micro">Expand · icon</span>
+            <div class="row">
+              <button class="px-xbtn" aria-label="Open survey">
+                <span class="px-xbtn__icon" data-arrow="↗"></span>
+                <span class="px-xbtn__panel" data-hatch="x" data-hatch-cell="6"><span class="px-xbtn__label">Open survey</span></span>
+                <span class="px-xbtn__corners"><span></span><span></span><span></span><span></span></span>
+              </button>
+              <button class="px-ibtn" data-hatch="center" data-hover aria-label="Next"><span data-arrow="→"></span></button>
+              <button class="px-ibtn px-ibtn--signal" data-hatch="center" data-hover aria-label="Up"><span data-arrow="↑"></span></button>
+              <button class="px-ibtn" data-hatch="scatter" data-hover aria-label="Add"><span data-arrow="+"></span></button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="panel s-6" data-panel data-snap>
+          <div class="panel__head t-micro"><b>Controls</b><span>Input · switch · check · segment</span></div>
+          <div class="stack">
+            <label class="px-input">
+              <span class="t-micro muted">Survey name</span>
+              <span class="px-input__box">
+                <input type="text" placeholder="Ridgeline North" value="">
+                <span class="px-input__suffix t-micro">↵</span>
+                <span class="px-input__bar" data-hatch="x" data-hatch-cell="6"></span>
+              </span>
+              <span class="px-input__help t-micro">Focus sweeps the signal bar in.</span>
+            </label>
+
+            <label class="px-input is-error">
+              <span class="t-micro muted">Resolution</span>
+              <span class="px-input__box">
+                <input type="text" value="0.5 m" aria-invalid="true">
+                <span class="px-input__suffix t-micro">m/cell</span>
+                <span class="px-input__bar" data-hatch="x" data-hatch-cell="6"></span>
+              </span>
+              <span class="px-input__help t-micro">Minimum is 1 m per cell.</span>
+            </label>
+
+            <div class="row">
+              <label class="opt"><button class="px-switch" role="switch" aria-checked="true" data-hatch="x" data-hatch-cell="6" aria-label="Contours"><span class="px-switch__knob"></span></button><span>Contours</span></label>
+              <label class="opt"><button class="px-switch" role="switch" aria-checked="false" data-hatch="x" data-hatch-cell="6" aria-label="Hillshade"><span class="px-switch__knob"></span></button><span>Hillshade</span></label>
+            </div>
+
+            <div class="row">
+              <label class="opt"><button class="px-check" role="checkbox" aria-checked="true" data-hatch="scatter" data-hatch-cell="4" data-hatch-sweep="140" aria-label="Relief"><svg viewBox="0 0 6 6" aria-hidden="true"><rect x="4" y="1" width="1" height="1"/><rect x="1" y="2" width="1" height="1"/><rect x="3" y="2" width="1" height="1"/><rect x="2" y="3" width="1" height="1"/></svg></button><span>Relief</span></label>
+              <label class="opt"><button class="px-check" role="checkbox" aria-checked="false" data-hatch="scatter" data-hatch-cell="4" data-hatch-sweep="140" aria-label="Water"><svg viewBox="0 0 6 6" aria-hidden="true"><rect x="4" y="1" width="1" height="1"/><rect x="1" y="2" width="1" height="1"/><rect x="3" y="2" width="1" height="1"/><rect x="2" y="3" width="1" height="1"/></svg></button><span>Water</span></label>
+              <label class="opt"><button class="px-check" role="checkbox" aria-checked="false" data-hatch="scatter" data-hatch-cell="4" data-hatch-sweep="140" aria-label="Labels"><svg viewBox="0 0 6 6" aria-hidden="true"><rect x="4" y="1" width="1" height="1"/><rect x="1" y="2" width="1" height="1"/><rect x="3" y="2" width="1" height="1"/><rect x="2" y="3" width="1" height="1"/></svg></button><span>Labels</span></label>
+            </div>
+
+            <div class="px-seg px-seg--block" role="tablist" aria-label="View">
+              <button role="tab" aria-selected="false" data-hatch="entry" data-hatch-cell="6"><span>Plan</span></button>
+              <button role="tab" aria-selected="true" data-hatch="entry" data-hatch-cell="6"><span>Relief</span></button>
+              <button role="tab" aria-selected="false" data-hatch="entry" data-hatch-cell="6"><span>Section</span></button>
+              <button role="tab" aria-selected="false" data-hatch="entry" data-hatch-cell="6"><span>3D</span></button>
+            </div>
+            <span class="t-micro muted">Segments flow toward the new selection.</span>
+          </div>
+        </div>
+
+        <!-- Feedback -->
+        <div class="panel s-6" data-panel data-snap>
+          <div class="panel__head t-micro"><b>Feedback</b><span>Progress · tag · toast</span></div>
+          <div class="stack">
+            <div class="loader">
+              <div>
+                <span class="t-micro muted">Loading terrain</span>
+                <div class="loader__count num" id="load-count">000</div>
+              </div>
+              <div class="row row--tight">
+                <button class="px-btn px-btn--s px-btn--signal" data-hatch="x" data-hover id="load-run"><span class="px-btn__label" data-roll>Run</span><span class="px-btn__icon" data-arrow="▸"></span></button>
+                <button class="px-btn px-btn--s px-btn--quiet" data-hatch="x" data-hover id="load-reset"><span class="px-btn__label" data-roll>Reset</span><span class="px-btn__icon" data-arrow="↺"></span></button>
+              </div>
+            </div>
+            <div class="px-progress" id="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Terrain loading"><div class="px-progress__cells"></div></div>
+
+            <span class="sub t-micro">Tags</span>
+            <div class="row row--tight">
+              <span class="px-tag px-tag--live"><span class="px-tag__dot"><i></i><i></i><i></i><i></i></span>Live</span>
+              <span class="px-tag px-tag--sync"><span class="px-tag__dot"><i></i><i></i><i></i><i></i></span>Syncing</span>
+              <span class="px-tag px-tag--idle"><span class="px-tag__dot"><i></i><i></i><i></i><i></i></span>Idle</span>
+              <span class="px-tag"><span class="px-tag__dot"><i></i><i style="background: var(--bone)"></i><i style="background: var(--bone)"></i><i></i></span>2,184 m</span>
+            </div>
+
+            <span class="sub t-micro">Toast</span>
+            <div class="row">
+              <button class="px-btn" data-hatch="x" data-hover id="toast-btn"><span class="px-btn__label" data-roll>Trigger toast</span><span class="px-btn__icon" data-arrow="↘"></span></button>
+              <span class="muted" style="flex: 1; min-width: 20ch">Assembles with a sweep, holds, then retracts the way it came.</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dot matrix -->
+        <div class="panel s-8" data-panel data-snap>
+          <div class="panel__head t-micro"><b>Dot matrix</b><span id="matrix-step">Step 01 / 05</span></div>
+          <div class="matrix" id="matrix">
+            <canvas aria-hidden="true"></canvas>
+            <div class="matrix__meta t-micro"><span>½u pitch · glyph sampled to cells</span><span id="matrix-mode-label">Sweep</span></div>
+          </div>
+          <div class="row" style="margin-top: 24px; justify-content: space-between">
+            <div class="px-seg" role="tablist" aria-label="Transition" id="matrix-mode">
+              <button role="tab" aria-selected="true" data-hatch="entry" data-hatch-cell="6" data-value="sweep"><span>Sweep</span></button>
+              <button role="tab" aria-selected="false" data-hatch="entry" data-hatch-cell="6" data-value="radial"><span>Radial</span></button>
+              <button role="tab" aria-selected="false" data-hatch="entry" data-hatch-cell="6" data-value="scatter"><span>Scatter</span></button>
+            </div>
+            <div class="row row--tight">
+              <label class="opt t-micro muted">Auto <button class="px-switch" role="switch" aria-checked="true" data-hatch="x" data-hatch-cell="6" id="matrix-auto" aria-label="Auto advance"><span class="px-switch__knob"></span></button></label>
+              <button class="px-ibtn" data-hatch="center" data-hover aria-label="Previous" id="matrix-prev"><span data-arrow="←"></span></button>
+              <button class="px-ibtn px-ibtn--signal" data-hatch="center" data-hover aria-label="Next" id="matrix-next"><span data-arrow="→"></span></button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Signal -->
+        <div class="panel s-4" data-panel data-snap>
+          <div class="panel__head t-micro"><b>Signal</b><span id="signal-label">Syncing</span></div>
+          <div class="beacon" id="signal"><canvas aria-hidden="true"></canvas></div>
+          <div class="px-seg px-seg--block" role="tablist" aria-label="Signal state" id="signal-state" style="margin-top: 24px">
+            <button role="tab" aria-selected="false" data-hatch="entry" data-hatch-cell="6" data-value="idle"><span>Idle</span></button>
+            <button role="tab" aria-selected="true" data-hatch="entry" data-hatch-cell="6" data-value="sync"><span>Sync</span></button>
+            <button role="tab" aria-selected="false" data-hatch="entry" data-hatch-cell="6" data-value="alert"><span>Alert</span></button>
+          </div>
+        </div>
+
+        <!-- Cards -->
+        <a href="#components" class="px-card s-4" data-panel data-snap data-hatch="entry" data-hatch-cell="12" data-hatch-tone=".22" data-hover>
+          <div class="px-card__top"><span class="px-card__idx t-micro">04 / Sector</span><span class="px-tag px-tag--live"><span class="px-tag__dot"><i></i><i></i><i></i><i></i></span>Live</span></div>
+          <div><h3>Ridgeline North</h3><p>Relief survey, 1 m cells. Updated two hours ago.</p></div>
+          <div class="px-card__foot"><span class="bars" data-bars="2,3,3,4,6,5,4,5,6,6,5,3,2,3,4,4,3,2,1,2,3,5,6,4"></span><span class="px-card__arrow" data-arrow="↗"></span></div>
+        </a>
+        <a href="#components" class="px-card s-4" data-panel data-snap data-hatch="entry" data-hatch-cell="12" data-hatch-tone=".22" data-hover>
+          <div class="px-card__top"><span class="px-card__idx t-micro">07 / Basin</span><span class="px-tag px-tag--sync"><span class="px-tag__dot"><i></i><i></i><i></i><i></i></span>Syncing</span></div>
+          <div><h3>Lower Tarn</h3><p>Hydrology layer, 912k cells. Sweep follows your cursor in.</p></div>
+          <div class="px-card__foot"><span class="bars" data-bars="1,1,2,2,3,2,2,3,3,4,4,5,5,4,4,3,3,4,5,5,6,6,5,5"></span><span class="px-card__arrow" data-arrow="↗"></span></div>
+        </a>
+        <a href="#components" class="px-card s-4" data-panel data-snap data-hatch="entry" data-hatch-cell="12" data-hatch-tone=".22" data-hover>
+          <div class="px-card__top"><span class="px-card__idx t-micro">12 / Ridge</span><span class="px-tag px-tag--idle"><span class="px-tag__dot"><i></i><i></i><i></i><i></i></span>Idle</span></div>
+          <div><h3>Col de Verre</h3><p>Section cut, 12,480 annotations. Leaves retract toward the exit.</p></div>
+          <div class="px-card__foot"><span class="bars" data-bars="6,5,5,4,4,3,4,3,2,2,3,2,1,1,2,1,2,3,2,2,1,1,2,1"></span><span class="px-card__arrow" data-arrow="↗"></span></div>
+        </a>
+
+        <!-- List -->
+        <div class="panel s-12" data-panel data-snap>
+          <div class="panel__head t-micro"><b>List</b><span>Rows hatch diagonally</span></div>
+          <div class="px-list">
+            <div class="px-list__row px-list__row--head t-micro"><span>#</span><span>Layer</span><span>Cells</span><span>Updated</span><span>Status</span></div>
+            <div class="px-list__row" data-hatch="diag" data-hatch-cell="12" data-hatch-tone=".2" data-hover><span class="idx t-micro">01</span><span>Terrain / relief</span><span class="num muted">2,184,320</span><span class="num muted">00:02:14</span><span class="px-tag px-tag--live"><span class="px-tag__dot"><i></i><i></i><i></i><i></i></span>Live</span></div>
+            <div class="px-list__row" data-hatch="diag" data-hatch-cell="12" data-hatch-tone=".2" data-hover><span class="idx t-micro">02</span><span>Contours / 10 m</span><span class="num muted">912,004</span><span class="num muted">00:14:51</span><span class="px-tag px-tag--sync"><span class="px-tag__dot"><i></i><i></i><i></i><i></i></span>Sync</span></div>
+            <div class="px-list__row" data-hatch="diag" data-hatch-cell="12" data-hatch-tone=".2" data-hover><span class="idx t-micro">03</span><span>Hydrology</span><span class="num muted">301,776</span><span class="num muted">01:02:09</span><span class="px-tag px-tag--idle"><span class="px-tag__dot"><i></i><i></i><i></i><i></i></span>Idle</span></div>
+            <div class="px-list__row" data-hatch="diag" data-hatch-cell="12" data-hatch-tone=".2" data-hover><span class="idx t-micro">04</span><span>Annotations</span><span class="num muted">12,480</span><span class="num muted">03:40:00</span><span class="px-tag px-tag--idle"><span class="px-tag__dot"><i></i><i></i><i></i><i></i></span>Idle</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────────── Motion ───────────── -->
+  <section id="motion">
+    <div class="wrap">
+      <header class="sec-head" data-quiet>
+        <span class="sec-head__idx">03 /</span>
+        <h2>Motion</h2>
+        <p>One rule: a cell’s delay is its position times the sweep, plus a random jitter. Exit mirrors it and runs a little faster. Everything else is a parameter.</p>
+      </header>
+
+      <div class="grid">
+        <div class="panel s-3 principle" data-panel data-snap>
+          <div class="panel__head t-micro"><b>Sweep</b><span>01</span></div>
+          <div class="strip" data-hatch="x" data-hatch-jitter="0" data-hatch-sweep="360" data-loop></div>
+          <p>Delay follows position, so the fill travels instead of fading.</p>
+        </div>
+        <div class="panel s-3 principle" data-panel data-snap>
+          <div class="panel__head t-micro"><b>Jitter</b><span>02</span></div>
+          <div class="strip" data-hatch="x" data-hatch-jitter="160" data-hatch-sweep="360" data-loop></div>
+          <p>A random offset per cell breaks the edge into pixels.</p>
+        </div>
+        <div class="panel s-3 principle" data-panel data-snap>
+          <div class="panel__head t-micro"><b>Mirror</b><span>03</span></div>
+          <div class="strip strip--signal" data-hatch="center" data-hatch-sweep="320" data-loop></div>
+          <p>Exit reverses the order and runs ~25% faster.</p>
+        </div>
+        <div class="panel s-3 principle" data-panel data-snap>
+          <div class="panel__head t-micro"><b>Rest</b><span>04</span></div>
+          <div class="strip strip--rest" data-hatch="diag" data-hatch-sweep="360" data-loop></div>
+          <p>Off is a resting cell, not nothing. The grid stays legible.</p>
+        </div>
+
+        <div class="panel s-12" data-panel data-snap>
+          <div class="panel__head t-micro"><b>Motion lab</b><span>Tune the rule · hover the stage</span></div>
+          <div class="lab">
+            <div class="stack">
+              <div class="px-slider" data-key="sweep" data-min="0" data-max="800" data-step="10" data-value="200" data-unit="ms">
+                <div class="px-slider__head t-micro"><span>Sweep</span><output></output></div>
+                <div class="px-slider__track"><div class="px-slider__cells"></div><input type="range" aria-label="Sweep"></div>
+              </div>
+              <div class="px-slider" data-key="jitter" data-min="0" data-max="300" data-step="5" data-value="55" data-unit="ms">
+                <div class="px-slider__head t-micro"><span>Jitter</span><output></output></div>
+                <div class="px-slider__track"><div class="px-slider__cells"></div><input type="range" aria-label="Jitter"></div>
+              </div>
+              <div class="px-slider" data-key="dur" data-min="40" data-max="800" data-step="10" data-value="220" data-unit="ms">
+                <div class="px-slider__head t-micro"><span>Cell fade</span><output></output></div>
+                <div class="px-slider__track"><div class="px-slider__cells"></div><input type="range" aria-label="Cell fade"></div>
+              </div>
+              <div class="stack" style="gap: 6px">
+                <span class="t-micro muted">Cell size</span>
+                <div class="px-seg px-seg--block" role="tablist" aria-label="Cell size" id="lab-cell">
+                  <button role="tab" aria-selected="false" data-hatch="entry" data-hatch-cell="6" data-value="4"><span>4</span></button>
+                  <button role="tab" aria-selected="true" data-hatch="entry" data-hatch-cell="6" data-value="6"><span>6</span></button>
+                  <button role="tab" aria-selected="false" data-hatch="entry" data-hatch-cell="6" data-value="12"><span>12</span></button>
+                  <button role="tab" aria-selected="false" data-hatch="entry" data-hatch-cell="6" data-value="24"><span>24</span></button>
+                </div>
+              </div>
+              <div class="stack" style="gap: 6px">
+                <span class="t-micro muted">Direction</span>
+                <div class="px-seg px-seg--block" role="tablist" aria-label="Direction" id="lab-dir">
+                  <button role="tab" aria-selected="true" data-hatch="entry" data-hatch-cell="6" data-value="x"><span>X</span></button>
+                  <button role="tab" aria-selected="false" data-hatch="entry" data-hatch-cell="6" data-value="y"><span>Y</span></button>
+                  <button role="tab" aria-selected="false" data-hatch="entry" data-hatch-cell="6" data-value="diag"><span>Diag</span></button>
+                  <button role="tab" aria-selected="false" data-hatch="entry" data-hatch-cell="6" data-value="center"><span>Ctr</span></button>
+                  <button role="tab" aria-selected="false" data-hatch="entry" data-hatch-cell="6" data-value="scatter"><span>Rnd</span></button>
+                  <button role="tab" aria-selected="false" data-hatch="entry" data-hatch-cell="6" data-value="entry"><span>Ptr</span></button>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <div class="lab__stage" id="lab-stage" data-hatch="x" data-hatch-tone=".12" data-hover>
+                <div class="lab__stage-label t-micro"><span>Auto-loops · hover to hold</span><span id="lab-count">0 cells</span></div>
+              </div>
+              <div class="lab__out">
+<pre class="code" id="lab-code"></pre>
+                <button class="px-btn" id="lab-btn" data-hatch="x" data-hover><span class="px-btn__label" data-roll>Preview</span><span class="px-btn__icon" data-arrow="↗"></span></button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────────── References ───────────── -->
+  <section id="references">
+    <div class="wrap">
+      <header class="sec-head" data-quiet>
+        <span class="sec-head__idx">04 /</span>
+        <h2>References</h2>
+        <p>Where each part of the system came from, and what was taken.</p>
+      </header>
+
+      <div class="grid">
+        <div class="panel s-3 ref" data-panel data-snap>
+          <div class="panel__head t-micro"><b>Hatch button</b><span>Web</span></div>
+          <div class="ref__media ref__media--live">
+            <a href="https://topography.webflow.io" target="_blank" rel="noopener" class="px-btn" data-hatch="x" data-hover><span class="px-btn__label" data-roll>Enter website</span><span class="px-btn__icon" data-arrow="↗"></span></a>
+          </div>
+          <p>topography.webflow.io preloader CTA.</p>
+          <p class="takeaway">Per-cell delay variables, mirrored exit, label roll. The core motion rule.</p>
+        </div>
+        <div class="panel s-3 ref" data-panel data-snap>
+          <div class="panel__head t-micro"><b>Flowing grid</b><span>MP4</span></div>
+          <div class="ref__media"><video src="flowing_grid.mp4" autoplay muted loop playsinline></video></div>
+          <p>Uniform grid, sizes driven by drifting noise.</p>
+          <p class="takeaway">The page field: resting dots, swelling cells, wandering voids.</p>
+        </div>
+        <div class="panel s-3 ref" data-panel data-snap>
+          <div class="panel__head t-micro"><b>Grid characters</b><span>MP4</span></div>
+          <div class="ref__media"><video src="grid_characters_motion.mp4" autoplay muted loop playsinline></video></div>
+          <p>Glyphs are full cells over resting dots; they erode between states.</p>
+          <p class="takeaway">Hero wordmark and the dot-matrix display.</p>
+        </div>
+        <div class="panel s-3 ref" data-panel data-snap>
+          <div class="panel__head t-micro"><b>Coloured flow</b><span>GIF</span></div>
+          <div class="ref__media"><img src="colored_flow.gif" alt="A 10 by 10 matrix of glowing dots with a colour wave passing through"></div>
+          <p>Round-dot matrix; a glowing wave shifts colour by phase.</p>
+          <p class="takeaway">Signal indicator, recoloured Bone → Signal.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="wrap">
+      <button class="footer__glyph" data-glyph="↑" data-glyph-align="center" data-glyph-mask=".6" data-glyph-stroke=".09" aria-label="Back to top" id="to-top"></button>
+      <div class="footer__row t-micro" data-quiet>
+        <span>Pixel/Flow · v0.1</span>
+        <span>Built on a 12px field</span>
+        <span>Void · Ash · Bone · Signal</span>
+        <span>Enter without sound</span>
+      </div>
+    </div>
+  </footer>
+</main>
+
+<div class="px-toast" id="toast" data-hatch="x" data-hatch-cell="12" data-hatch-sweep="260" role="status" aria-live="polite">
+  <div class="px-toast__body">
+    <div>
+      <div class="t-micro" id="toast-kicker">Signal</div>
+      <div id="toast-msg">Survey deployed to 4 layers.</div>
+    </div>
+    <button class="px-toast__close" id="toast-close" aria-label="Dismiss">×</button>
+  </div>
+</div>
+
+<script>
+(() => {
+  const U = 12;
+  const REDUCE = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const FINE = matchMedia('(hover: hover) and (pointer: fine)').matches;
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+  const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
+  const smooth = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+  const easeOut = (t) => 1 - (1 - t) ** 3;
+  const rnd = Math.random;
+
+  /* ═════════════ Hatch: per-cell delays drive CSS transitions ═════════════ */
+
+  function hatchParams(host) {
+    const d = host.dataset;
+    return {
+      mode: d.hatch || 'x',
+      cell: +d.hatchCell || 6,
+      sweep: d.hatchSweep !== undefined ? +d.hatchSweep : null,
+      jitter: d.hatchJitter !== undefined ? +d.hatchJitter : 55,
+      tone: +d.hatchTone || 0,
+    };
+  }
+
+  function buildHatch(host, force = false) {
+    const p = hatchParams(host);
+    const w = host.offsetWidth;
+    const h = host.offsetHeight;
+    if (!w || !h) return;
+    const cols = Math.max(1, Math.round(w / p.cell));
+    const rows = Math.max(1, Math.round(h / p.cell));
+    let st = host._hatch;
+    if (st && !force && st.cols === cols && st.rows === rows) return;
+
+    let layer = st && st.layer;
+    if (!layer) {
+      layer = document.createElement('span');
+      layer.className = 'px-hatch';
+      layer.setAttribute('aria-hidden', 'true');
+      host.prepend(layer);
+    }
+    layer.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+    layer.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
+
+    const n = cols * rows;
+    const cells = new Array(n);
+    const frag = document.createDocumentFragment();
+    for (let i = 0; i < n; i++) {
+      const c = document.createElement('i');
+      if (p.tone && rnd() < p.tone) c.className = 'b';
+      cells[i] = c;
+      frag.appendChild(c);
+    }
+    layer.replaceChildren(frag);
+
+    host._hatch = {
+      layer, cells, cols, rows,
+      jIn: Float32Array.from({ length: n }, rnd),
+      jOut: Float32Array.from({ length: n }, rnd),
+      sIn: Float32Array.from({ length: n }, rnd),
+      sOut: Float32Array.from({ length: n }, rnd),
+      entry: [0, .5],
+      exit: [1, .5],
+    };
+    stagger(host);
+    const lbl = host.dataset.countTarget && $(host.dataset.countTarget);
+    if (lbl) lbl.textContent = `${n} cells`;
+  }
+
+  // phase: 'both' | 'in' | 'out'
+  function stagger(host, phase = 'both') {
+    const st = host._hatch;
+    if (!st) return;
+    const p = hatchParams(host);
+    const { cols, rows, cells } = st;
+    const steps = p.mode === 'x' ? cols : p.mode === 'y' ? rows : Math.hypot(cols, rows) * .7;
+    const sweep = p.sweep !== null ? p.sweep : clamp(steps * 7, 120, 520);
+    const jit = p.jitter;
+    const cx = (cols - 1) / 2, cy = (rows - 1) / 2;
+    const maxC = Math.hypot(cx, cy) || 1;
+    const ex = st.entry[0] * (cols - 1), ey = st.entry[1] * (rows - 1);
+    const qx = st.exit[0] * (cols - 1), qy = st.exit[1] * (rows - 1);
+    const maxE = Math.max(Math.hypot(ex, ey), Math.hypot(cols - 1 - ex, ey), Math.hypot(ex, rows - 1 - ey), Math.hypot(cols - 1 - ex, rows - 1 - ey)) || 1;
+    const maxQ = Math.max(Math.hypot(qx, qy), Math.hypot(cols - 1 - qx, qy), Math.hypot(qx, rows - 1 - qy), Math.hypot(cols - 1 - qx, rows - 1 - qy)) || 1;
+
+    for (let r = 0, i = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++, i++) {
+        const nx = cols > 1 ? c / (cols - 1) : 0;
+        const ny = rows > 1 ? r / (rows - 1) : 0;
+        let tIn, tOut;
+        switch (p.mode) {
+          case 'y': tIn = ny; tOut = 1 - ny; break;
+          case 'diag': tIn = (nx + ny) / 2; tOut = 1 - tIn; break;
+          case 'center': tIn = Math.hypot(c - cx, r - cy) / maxC; tOut = 1 - tIn; break;
+          case 'scatter': tIn = st.sIn[i]; tOut = st.sOut[i]; break;
+          case 'entry':
+            tIn = Math.hypot(c - ex, r - ey) / maxE;
+            tOut = 1 - Math.hypot(c - qx, r - qy) / maxQ;
+            break;
+          default: tIn = nx; tOut = 1 - nx;
+        }
+        const s = cells[i].style;
+        if (phase !== 'out') s.setProperty('--in', `${Math.round(tIn * sweep + st.jIn[i] * jit)}ms`);
+        if (phase !== 'in') s.setProperty('--out', `${Math.round(tOut * sweep * .78 + st.jOut[i] * jit * .78)}ms`);
+      }
+    }
+  }
+
+  function localPoint(host, e) {
+    const r = host.getBoundingClientRect();
+    return [clamp((e.clientX - r.left) / r.width, 0, 1), clamp((e.clientY - r.top) / r.height, 0, 1)];
+  }
+
+  function setEntry(host, pt) { if (host._hatch) { host._hatch.entry = pt; stagger(host, 'in'); } }
+  function setExit(host, pt) { if (host._hatch) { host._hatch.exit = pt; stagger(host, 'out'); } }
+
+  const hatchRO = new ResizeObserver((entries) => entries.forEach((e) => buildHatch(e.target)));
+
+  function initHatch(host) {
+    buildHatch(host);
+    hatchRO.observe(host);
+    host.addEventListener('pointerenter', (e) => {
+      if (hatchParams(host).mode === 'entry' && host.dataset.hover !== undefined) setEntry(host, localPoint(host, e));
+    });
+    host.addEventListener('pointerleave', (e) => {
+      if (hatchParams(host).mode === 'entry' && host.dataset.hover !== undefined) setExit(host, localPoint(host, e));
+    });
+  }
+
+  /* ═════════════ Roll labels + arrows ═════════════ */
+
+  $$('[data-roll]').forEach((el) => {
+    const text = el.textContent.trim();
+    el.textContent = '';
+    el.classList.add('roll');
+    const track = document.createElement('span');
+    track.className = 'roll__track';
+    const a = document.createElement('span');
+    a.textContent = text;
+    const b = a.cloneNode(true);
+    b.setAttribute('aria-hidden', 'true');
+    track.append(a, b);
+    el.append(track);
+  });
+
+  $$('[data-arrow]').forEach((el) => {
+    const ch = el.dataset.arrow;
+    const track = document.createElement('span');
+    track.className = 'arrow';
+    track.setAttribute('aria-hidden', 'true');
+    track.innerHTML = `<span>${ch}</span><span>${ch}</span>`;
+    el.append(track);
+  });
+
+  $$('.bars').forEach((el) => {
+    const vals = el.dataset.bars.split(',').map(Number);
+    const max = Math.max(...vals);
+    const frag = document.createDocumentFragment();
+    vals.forEach((v, c) => {
+      for (let r = 5; r >= 0; r--) {
+        const i = document.createElement('i');
+        if (r < v) {
+          i.className = 'on' + (v === max && c > vals.length / 2 ? ' hot' : '');
+          i.style.setProperty('--d', `${c * 14 + r * 10}ms`);
+        }
+        frag.appendChild(i);
+      }
+    });
+    el.appendChild(frag);
+  });
+
+  $$('[data-hatch]').forEach(initHatch);
+
+  /* ═════════════ Snap surfaces to whole units ═════════════ */
+
+  const snapRO = new ResizeObserver((entries) => {
+    for (const e of entries) {
+      const el = e.target;
+      const h = e.borderBoxSize ? e.borderBoxSize[0].blockSize : el.offsetHeight;
+      const s = Math.ceil(h / U - .01) * U;
+      if (Math.abs(s - h) > .5) el.style.minHeight = `${s}px`;
+    }
+    Field.relayout();
+  });
+
+  function snapButtons() {
+    $$('.px-btn').forEach((b) => {
+      b.style.width = '';
+      const w = b.offsetWidth;
+      b.style.width = `${Math.ceil(w / U - .01) * U}px`;
+    });
+  }
+
+  /* ═════════════ Field: page-wide pixel grid ═════════════ */
+
+  const Field = (() => {
+    const cv = $('#field');
+    const ctx = cv.getContext('2d', { alpha: false });
+    const HEADER = 48;
+    const REST = 2;
+    const MAX = U - 3;
+    const COLORS = [
+      '#1a1a19', '#242423', '#313130', '#434343', '#5a5a5b', '#b9b3a7', '#ece5d8',
+      '#4a1d0c', '#8f3515', '#e85622', '#ff8757',
+    ];
+    const NB = COLORS.length;
+
+    let dpr = 1, vw = 0, vh = 0, ox = 0, cols = 0, rows = 0;
+    let mask = new Float32Array(0), heat = new Float32Array(0);
+    let gCov = new Float32Array(0), gDelay = new Float32Array(0), gId = new Uint8Array(0);
+    const glyphs = [];
+    let bufs = [], counts = new Int32Array(NB);
+    let running = !REDUCE, dirty = true, tBase = 0, tFrom = performance.now();
+    const ptr = { x: 0, y: 0, lx: null, ly: null, on: false };
+    const ripples = [];
+
+    // Value noise
+    const P = new Uint8Array(512);
+    {
+      const p = Array.from({ length: 256 }, (_, i) => i);
+      for (let i = 255; i > 0; i--) { const j = (rnd() * (i + 1)) | 0; [p[i], p[j]] = [p[j], p[i]]; }
+      for (let i = 0; i < 512; i++) P[i] = p[i & 255];
+    }
+    const G = Float32Array.from({ length: 256 }, rnd);
+    function vnoise(x, y) {
+      const xi = Math.floor(x), yi = Math.floor(y);
+      const xf = x - xi, yf = y - yi;
+      const X = xi & 255, Y = yi & 255;
+      const a = G[P[P[X] + Y]], b = G[P[P[X + 1] + Y]];
+      const c = G[P[P[X] + Y + 1]], d = G[P[P[X + 1] + Y + 1]];
+      const u = xf * xf * (3 - 2 * xf), v = yf * yf * (3 - 2 * yf);
+      return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v;
+    }
+    function flow(c, r, t) {
+      const x = c * .085, y = r * .085;
+      const wx = x + .9 * Math.sin(y * .9 + t * .35);
+      const wy = y + .9 * Math.cos(x * .7 - t * .28);
+      return .62 * vnoise(wx + t * .11, wy - t * .07) + .38 * vnoise(wx * 2.1 - t * .19, wy * 2.1 + t * .13);
+    }
+
+    function rasterize(lines, gc, gr, align, stroke = 0) {
+      const S = 6, W = gc * S, H = gr * S;
+      const c = document.createElement('canvas');
+      c.width = W; c.height = H;
+      const g = c.getContext('2d', { willReadFrequently: true });
+      const font = (fs) => `700 ${fs}px "Helvetica Neue", Helvetica, Arial, sans-serif`;
+      const gap = .22;
+      g.font = font(100);
+      let asc = 0, desc = 0, wid = 0;
+      for (const l of lines) {
+        const m = g.measureText(l);
+        asc = Math.max(asc, m.actualBoundingBoxAscent);
+        desc = Math.max(desc, m.actualBoundingBoxDescent);
+        wid = Math.max(wid, m.actualBoundingBoxLeft + m.actualBoundingBoxRight);
+      }
+      const lineH = asc + desc;
+      const blockH = lines.length * lineH + (lines.length - 1) * gap * 100;
+      const fs = 100 * Math.min((H * .96) / blockH, (W * .995) / wid);
+      const k = fs / 100;
+      g.font = font(fs);
+      g.fillStyle = g.strokeStyle = '#fff';
+      g.lineWidth = fs * stroke;
+      g.lineJoin = 'miter';
+      g.textBaseline = 'alphabetic';
+      let y = (H - blockH * k) / 2 + asc * k;
+      for (const l of lines) {
+        const m = g.measureText(l);
+        const lw = m.actualBoundingBoxLeft + m.actualBoundingBoxRight;
+        const x = (align === 'center' ? (W - lw) / 2 : 0) + m.actualBoundingBoxLeft;
+        g.fillText(l, x, y);
+        if (stroke) g.strokeText(l, x, y);
+        y += (lineH + gap * 100) * k;
+      }
+      const data = g.getImageData(0, 0, W, H).data;
+      const out = new Float32Array(gc * gr);
+      for (let r = 0; r < gr; r++) {
+        for (let cc = 0; cc < gc; cc++) {
+          let sum = 0;
+          for (let yy = 0; yy < S; yy++) {
+            let o = ((r * S + yy) * W + cc * S) * 4 + 3;
+            for (let xx = 0; xx < S; xx++, o += 4) sum += data[o];
+          }
+          const cov = sum / (S * S * 255);
+          out[r * gc + cc] = cov > .5 ? 1 : cov > .14 ? cov * 1.3 : 0;
+        }
+      }
+      return out;
+    }
+
+    function relayout() {
+      clearTimeout(relayout.t);
+      relayout.t = setTimeout(doLayout, 60);
+    }
+
+    function doLayout() {
+      dpr = Math.min(2, window.devicePixelRatio || 1);
+      vw = document.documentElement.clientWidth;
+      vh = window.innerHeight;
+      cv.width = Math.round(vw * dpr);
+      cv.height = Math.round(vh * dpr);
+
+      const wrap = $('.wrap');
+      ox = ((wrap.getBoundingClientRect().left % U) + U) % U;
+      cols = Math.ceil((vw - ox) / U) + 2;
+      rows = Math.ceil(document.documentElement.scrollHeight / U) + 2;
+      const n = cols * rows;
+      if (mask.length !== n) {
+        mask = new Float32Array(n);
+        heat = new Float32Array(n);
+        gCov = new Float32Array(n);
+        gDelay = new Float32Array(n);
+        gId = new Uint8Array(n);
+      } else {
+        mask.fill(0); gCov.fill(0); gId.fill(0);
+      }
+
+      const vis = (Math.ceil(vh / U) + 3) * cols;
+      if (!bufs[0] || bufs[0].length < vis * 3) bufs = COLORS.map(() => new Float32Array(vis * 3));
+
+      const sy = window.scrollY;
+      const toCell = (el) => {
+        const r = el.getBoundingClientRect();
+        return {
+          c0: Math.round((r.left - (ox - U)) / U),
+          c1: Math.round((r.right - (ox - U)) / U),
+          r0: Math.round((r.top + sy) / U),
+          r1: Math.round((r.bottom + sy) / U),
+        };
+      };
+
+      const F = 2;
+      $$('[data-panel], [data-quiet]').forEach((el) => {
+        const { c0, c1, r0, r1 } = toCell(el);
+        const top = el.dataset.quiet !== undefined ? +el.dataset.quiet || .85 : 1;
+        for (let r = Math.max(0, r0 - F); r < Math.min(rows, r1 + F); r++) {
+          const dy = r < r0 ? r0 - r : r >= r1 ? r - r1 + 1 : 0;
+          for (let c = Math.max(0, c0 - F); c < Math.min(cols, c1 + F); c++) {
+            const dx = c < c0 ? c0 - c : c >= c1 ? c - c1 + 1 : 0;
+            const d = Math.max(dx, dy);
+            const v = top * (d === 0 ? 1 : 1 - d / (F + 1));
+            const i = r * cols + c;
+            if (v > mask[i]) mask[i] = v;
+          }
+        }
+      });
+
+      $$('[data-glyph]').forEach((el, gi) => {
+        const { c0, c1, r0, r1 } = toCell(el);
+        const gc = c1 - c0, gr = r1 - r0;
+        if (gc < 2 || gr < 2) return;
+        const alt = el.dataset.glyphAlt;
+        const text = alt && gc < 90 ? alt : el.dataset.glyph;
+        const cov = rasterize(text.split('|'), gc, gr, el.dataset.glyphAlign, +el.dataset.glyphStroke || 0);
+        const mk = +el.dataset.glyphMask || 0;
+        if (!glyphs[gi]) glyphs[gi] = { el, start: REDUCE ? -1e9 : NaN };
+        glyphs[gi].el = el;
+        for (let r = 0; r < gr; r++) {
+          const rr = r0 + r;
+          if (rr < 0 || rr >= rows) continue;
+          for (let c = 0; c < gc; c++) {
+            const cc = c0 + c;
+            if (cc < 0 || cc >= cols) continue;
+            const i = rr * cols + cc;
+            if (mk > mask[i]) mask[i] = mk;
+            const v = cov[r * gc + c];
+            if (v > 0) {
+              gCov[i] = v;
+              gId[i] = gi + 1;
+              gDelay[i] = (c / gc) * 900 + (r / gr) * 120 + rnd() * 320;
+            }
+          }
+        }
+      });
+      glyphIO.disconnect();
+      glyphs.forEach((g) => g && glyphIO.observe(g.el));
+      dirty = true;
+    }
+
+    const glyphIO = new IntersectionObserver((entries) => {
+      entries.forEach((e) => {
+        if (!e.isIntersecting) return;
+        const g = glyphs.find((x) => x && x.el === e.target);
+        if (g && Number.isNaN(g.start)) g.start = performance.now() + 150;
+      });
+    }, { threshold: .35 });
+
+    function stamp(xDoc, yDoc, R, s) {
+      const cc = (xDoc - (ox - U)) / U - .5;
+      const rr = yDoc / U - .5;
+      const c0 = Math.max(0, Math.floor(cc - R)), c1 = Math.min(cols - 1, Math.ceil(cc + R));
+      const r0 = Math.max(0, Math.floor(rr - R)), r1 = Math.min(rows - 1, Math.ceil(rr + R));
+      for (let r = r0; r <= r1; r++) {
+        for (let c = c0; c <= c1; c++) {
+          const d = Math.hypot(c - cc, r - rr);
+          if (d >= R) continue;
+          const v = s * (1 - d / R) ** 1.6;
+          const i = r * cols + c;
+          if (v > heat[i]) heat[i] = v;
+        }
+      }
+    }
+
+    function frame(now) {
+      requestAnimationFrame(frame);
+      const active = running || ripples.length || ptr.on;
+      if (!active && !dirty && !glyphs.some((g) => g && now - g.start < 2500)) return;
+      dirty = false;
+
+      const t = running ? tBase + (now - tFrom) / 1000 : tBase;
+      const sy = window.scrollY;
+
+      if (ptr.on && FINE && !REDUCE) {
+        const x = ptr.x, y = ptr.y + sy;
+        const lx = ptr.lx ?? x, ly = ptr.ly ?? y;
+        const dist = Math.hypot(x - lx, y - ly);
+        const R = 4.2 + Math.min(3, dist / 30);
+        const s = clamp(.42 + dist / 60, .42, 1);
+        const steps = Math.max(1, Math.ceil(dist / (U * 1.5)));
+        for (let k = 1; k <= steps; k++) stamp(lx + (x - lx) * k / steps, ly + (y - ly) * k / steps, R, s);
+        ptr.lx = x; ptr.ly = y;
+      }
+
+      for (let k = ripples.length - 1; k >= 0; k--) if (now - ripples[k].t > 1400) ripples.splice(k, 1);
+
+      ctx.fillStyle = '#000';
+      ctx.fillRect(0, 0, cv.width, cv.height);
+      counts.fill(0);
+
+      const r0 = Math.max(0, Math.floor(sy / U)), r1 = Math.min(rows - 1, Math.ceil((sy + vh) / U));
+      for (let r = r0; r <= r1; r++) {
+        const y = r * U - sy;
+        if (y + U <= HEADER) continue;
+        const yc = r * U + U / 2;
+        for (let c = 0; c < cols; c++) {
+          const i = r * cols + c;
+          const x = ox - U + c * U;
+          const m = mask[i];
+          const n = flow(c, r, t);
+          let v = smooth(.5, .92, n) * (1 - m * .95);
+          let size = REST + (MAX - REST) * v;
+          let b = v < .06 ? 0 : v < .25 ? 1 : v < .5 ? 2 : v < .78 ? 3 : 4;
+
+          const g = gCov[i];
+          if (g > 0) {
+            const gs0 = glyphs[gId[i] - 1].start;
+            if (gs0 === gs0) {
+              const p = clamp((now - gs0 - gDelay[i]) / 420, 0, 1);
+              if (p > 0) {
+                const gv = g * easeOut(p);
+                const gs = REST + (MAX - REST) * gv * (.84 + .16 * n);
+                if (gs > size) {
+                  size = gs;
+                  b = p < .7 ? 9 : gv > .8 ? 6 : gv > .45 ? 5 : 3;
+                }
+              }
+            }
+          }
+
+          let h = heat[i];
+          if (ripples.length) {
+            const xc = x + U / 2;
+            for (const rp of ripples) {
+              const age = (now - rp.t) / 1000;
+              const rad = age * 640;
+              const d = Math.hypot(xc - rp.x, yc - rp.y);
+              const k = Math.exp(-(((d - rad) / 34) ** 2)) * (1 - age / 1.4);
+              if (k > h) h = k;
+            }
+          }
+          h *= 1 - m * .82;
+          if (h > .12) {
+            size += (MAX - size) * Math.min(1, h * 1.15);
+            const hb = h > .8 ? 10 : h > .55 ? 9 : h > .32 ? 8 : 7;
+            if (b < 5 || hb >= 9) b = hb;
+          }
+
+          const sd = Math.max(1, Math.round(size * dpr));
+          const bf = bufs[b];
+          const k3 = counts[b]++ * 3;
+          bf[k3] = Math.round((x + U / 2) * dpr - sd / 2);
+          bf[k3 + 1] = Math.round((y + U / 2) * dpr - sd / 2);
+          bf[k3 + 2] = sd;
+        }
+      }
+
+      for (let b = 0; b < NB; b++) {
+        const cnt = counts[b];
+        if (!cnt) continue;
+        const bf = bufs[b];
+        ctx.fillStyle = COLORS[b];
+        ctx.beginPath();
+        for (let k = 0; k < cnt; k++) { const o = k * 3; ctx.rect(bf[o], bf[o + 1], bf[o + 2], bf[o + 2]); }
+        ctx.fill();
+      }
+
+      for (let i = 0; i < heat.length; i++) if (heat[i] > .001) heat[i] *= .9; else heat[i] = 0;
+    }
+
+    window.addEventListener('pointermove', (e) => {
+      if (e.pointerType !== 'mouse' && e.pointerType !== 'pen') return;
+      ptr.x = e.clientX; ptr.y = e.clientY;
+      if (!ptr.on) { ptr.lx = null; ptr.ly = null; }
+      ptr.on = true;
+    }, { passive: true });
+    document.addEventListener('pointerleave', () => { ptr.on = false; });
+    window.addEventListener('blur', () => { ptr.on = false; });
+    window.addEventListener('pointerdown', (e) => {
+      if (REDUCE || e.target.closest('a, button, input, label, [data-panel], .header, .px-toast')) return;
+      ripples.push({ x: e.clientX, y: e.clientY + window.scrollY, t: performance.now() });
+      if (ripples.length > 4) ripples.shift();
+    });
+    window.addEventListener('scroll', () => { dirty = true; }, { passive: true });
+    window.addEventListener('resize', () => {
+      $$('[data-snap]').forEach((el) => { el.style.minHeight = ''; });
+      snapButtons();
+      relayout();
+    });
+
+    function setRunning(on) {
+      if (on === running) return;
+      const now = performance.now();
+      if (running) tBase += (now - tFrom) / 1000;
+      tFrom = now;
+      running = on;
+      dirty = true;
+    }
+
+    doLayout();
+    requestAnimationFrame(frame);
+    return { relayout, setRunning, get running() { return running; } };
+  })();
+
+  $$('[data-snap]').forEach((el) => snapRO.observe(el));
+  document.fonts && document.fonts.ready.then(() => { snapButtons(); Field.relayout(); });
+  snapButtons();
+
+  /* ═════════════ Switch · checkbox · segments ═════════════ */
+
+  function toggleAria(el) {
+    const on = el.getAttribute('aria-checked') !== 'true';
+    el.setAttribute('aria-checked', String(on));
+    el.dispatchEvent(new CustomEvent('px:change', { detail: on }));
+  }
+
+  $$('.px-switch, .px-check').forEach((el) => {
+    el.addEventListener('click', (e) => { e.preventDefault(); toggleAria(el); });
+  });
+
+  $$('.opt').forEach((opt) => {
+    opt.addEventListener('click', (e) => {
+      if (e.target.closest('button')) return;
+      const ctl = $('.px-switch, .px-check', opt);
+      if (ctl) { e.preventDefault(); toggleAria(ctl); ctl.focus({ preventScroll: true }); }
+    });
+  });
+
+  $('#field-toggle').addEventListener('px:change', (e) => Field.setRunning(e.detail));
+  if (REDUCE) $('#field-toggle').setAttribute('aria-checked', 'false');
+
+  function initSeg(seg, onChange) {
+    const tabs = $$('[role="tab"]', seg);
+    const pick = (next) => {
+      const prev = tabs.find((t) => t.getAttribute('aria-selected') === 'true');
+      if (prev === next) return;
+      if (prev) {
+        const right = tabs.indexOf(next) > tabs.indexOf(prev);
+        setExit(prev, [right ? 1 : 0, .5]);
+        setEntry(next, [right ? 0 : 1, .5]);
+        prev.setAttribute('aria-selected', 'false');
+        prev.tabIndex = -1;
+      }
+      next.setAttribute('aria-selected', 'true');
+      next.tabIndex = 0;
+      onChange && onChange(next.dataset.value, next);
+    };
+    tabs.forEach((t) => {
+      t.tabIndex = t.getAttribute('aria-selected') === 'true' ? 0 : -1;
+      t.addEventListener('click', () => pick(t));
+      t.addEventListener('keydown', (e) => {
+        const i = tabs.indexOf(t);
+        const j = e.key === 'ArrowRight' ? i + 1 : e.key === 'ArrowLeft' ? i - 1 : -1;
+        if (j >= 0 && j < tabs.length) { e.preventDefault(); tabs[j].focus(); pick(tabs[j]); }
+      });
+    });
+    return { pick: (v) => { const t = tabs.find((x) => x.dataset.value === v); t && pick(t); } };
+  }
+
+  $$('.px-seg').forEach((seg) => { if (!seg.id) initSeg(seg); });
+
+  /* ═════════════ Slider ═════════════ */
+
+  const lab = { sweep: 200, jitter: 55, dur: 220, cell: 6, mode: 'x' };
+
+  $$('.px-slider').forEach((el) => {
+    const input = $('input', el);
+    const out = $('output', el);
+    const cellsEl = $('.px-slider__cells', el);
+    const d = el.dataset;
+    input.min = d.min; input.max = d.max; input.step = d.step; input.value = d.value;
+    let cells = [];
+    const build = () => {
+      const n = Math.max(4, Math.floor((cellsEl.offsetWidth + 1) / 7));
+      if (n === cells.length) return;
+      cellsEl.replaceChildren(...Array.from({ length: n }, () => document.createElement('i')));
+      cells = [...cellsEl.children];
+      paint();
+    };
+    const paint = () => {
+      const v = +input.value;
+      const f = (v - d.min) / (d.max - d.min);
+      const k = Math.round(f * cells.length);
+      cells.forEach((c, i) => { c.className = i < k - 1 ? 'on' : i === k - 1 ? 'head' : ''; });
+      out.textContent = `${v}${d.unit || ''}`;
+    };
+    input.addEventListener('input', () => {
+      paint();
+      lab[d.key] = +input.value;
+      applyLab();
+    });
+    new ResizeObserver(build).observe(cellsEl);
+    build();
+  });
+
+  /* ═════════════ Motion lab ═════════════ */
+
+  const stage = $('#lab-stage');
+  const labBtn = $('#lab-btn');
+  stage.dataset.countTarget = '#lab-count';
+
+  function applyLab(rebuild = false) {
+    [stage, labBtn].forEach((host) => {
+      host.dataset.hatch = lab.mode;
+      host.dataset.hatchSweep = lab.sweep;
+      host.dataset.hatchJitter = lab.jitter;
+      host.style.setProperty('--px-cell-dur', `${lab.dur}ms`);
+    });
+    stage.dataset.hatchCell = lab.cell;
+    if (rebuild) buildHatch(stage, true); else stagger(stage);
+    stagger(labBtn);
+    $('#lab-code').innerHTML =
+      `&lt;div <b>data-hatch</b>=<em>"${lab.mode}"</em>\n` +
+      `     <b>data-hatch-cell</b>=<em>"${lab.cell}"</em>\n` +
+      `     <b>data-hatch-sweep</b>=<em>"${lab.sweep}"</em>\n` +
+      `     <b>data-hatch-jitter</b>=<em>"${lab.jitter}"</em>\n` +
+      `     style="<b>--px-cell-dur</b>: <em>${lab.dur}ms</em>"&gt;`;
+  }
+
+  initSeg($('#lab-cell'), (v) => { lab.cell = +v; applyLab(true); });
+  initSeg($('#lab-dir'), (v) => { lab.mode = v; applyLab(); });
+  applyLab(true);
+
+  let stageHover = false;
+  stage.addEventListener('pointerenter', (e) => {
+    stageHover = true;
+    if (lab.mode === 'entry') setEntry(stage, localPoint(stage, e));
+  });
+  stage.addEventListener('pointerleave', (e) => {
+    stageHover = false;
+    if (lab.mode === 'entry') setExit(stage, localPoint(stage, e));
+    stage.classList.remove('is-on');
+  });
+
+  /* ═════════════ Looping demos ═════════════ */
+
+  const visible = new WeakMap();
+  const visIO = new IntersectionObserver((es) => es.forEach((e) => visible.set(e.target, e.isIntersecting)));
+
+  const loops = [...$$('[data-loop]'), stage];
+  loops.forEach((el) => visIO.observe(el));
+  if (!REDUCE) {
+    let tick = 0;
+    setInterval(() => {
+      tick++;
+      loops.forEach((el, i) => {
+        if (!visible.get(el)) return;
+        if (el === stage) {
+          if (stageHover) return;
+          if (lab.mode === 'entry') {
+            const pt = [rnd(), rnd()];
+            el.classList.contains('is-on') ? setExit(el, pt) : setEntry(el, pt);
+          }
+          el.classList.toggle('is-on');
+          return;
+        }
+        if ((tick + i) % 2 === 0) el.classList.toggle('is-on');
+      });
+    }, 1100);
+  }
+
+  /* ═════════════ Progress ═════════════ */
+
+  const Progress = (() => {
+    const host = $('#progress');
+    const wrap = $('.px-progress__cells', host);
+    const count = $('#load-count');
+    let cells = [], th = [], value = 0, raf = 0;
+    const build = () => {
+      const n = Math.max(4, Math.floor((wrap.offsetWidth + 1) / 7));
+      if (n * 2 === cells.length) return;
+      const frag = document.createDocumentFragment();
+      cells = []; th = [];
+      for (let c = 0; c < n; c++) {
+        for (let r = 0; r < 2; r++) {
+          const i = document.createElement('i');
+          cells.push(i);
+          th.push(clamp(c / n + (rnd() - .5) * .05, 0, 1));
+          frag.appendChild(i);
+        }
+      }
+      wrap.replaceChildren(frag);
+      paint();
+    };
+    const paint = () => {
+      cells.forEach((c, i) => {
+        const on = value > th[i];
+        c.className = on ? (value - th[i] < .045 && value < 1 ? 'head' : 'on') : '';
+      });
+      const pct = Math.round(value * 100);
+      count.textContent = String(pct).padStart(3, '0');
+      host.setAttribute('aria-valuenow', pct);
+    };
+    const run = () => {
+      cancelAnimationFrame(raf);
+      value = 0;
+      let last = performance.now();
+      let hold = 0;
+      const step = (now) => {
+        const dt = (now - last) / 1000;
+        last = now;
+        if (hold > 0) hold -= dt;
+        else {
+          value = Math.min(1, value + dt * (.12 + rnd() * .5));
+          if (rnd() < .03) hold = .15 + rnd() * .35;
+        }
+        paint();
+        if (value < 1) raf = requestAnimationFrame(step);
+        else toast('Terrain ready', '100% · 2,184,320 cells loaded.');
+      };
+      raf = requestAnimationFrame(step);
+    };
+    const reset = () => { cancelAnimationFrame(raf); value = 0; paint(); };
+    new ResizeObserver(build).observe(wrap);
+    build();
+    return { run, reset };
+  })();
+
+  $('#load-run').addEventListener('click', Progress.run);
+  $('#load-reset').addEventListener('click', Progress.reset);
+
+  /* ═════════════ Toast ═════════════ */
+
+  const toastEl = $('#toast');
+  let toastTimer = 0;
+  function toast(kicker, msg) {
+    $('#toast-kicker').textContent = kicker;
+    $('#toast-msg').textContent = msg;
+    buildHatch(toastEl);
+    toastEl.classList.add('is-on');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(hideToast, 3600);
+  }
+  function hideToast() { toastEl.classList.remove('is-on'); }
+  $('#toast-btn').addEventListener('click', () => toast('Signal', 'Survey deployed to 4 layers.'));
+  $('#toast-close').addEventListener('click', hideToast);
+
+  $$('[data-copy]').forEach((el) => {
+    el.addEventListener('click', async () => {
+      const hex = el.dataset.copy;
+      try { await navigator.clipboard.writeText(hex); toast('Copied', `${hex} is on your clipboard.`); }
+      catch { toast('Colour', hex); }
+    });
+  });
+
+  /* ═════════════ Shared canvas ticker ═════════════ */
+
+  const tickers = new Set();
+  (function loop(now) {
+    requestAnimationFrame(loop);
+    tickers.forEach((fn) => fn(now));
+  })(performance.now());
+
+  function setupCanvas(canvas) {
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const w = canvas.clientWidth, h = canvas.clientHeight;
+    canvas.width = Math.round(w * dpr);
+    canvas.height = Math.round(h * dpr);
+    return { dpr, w, h, ctx: canvas.getContext('2d') };
+  }
+
+  /* ═════════════ Dot matrix display ═════════════ */
+
+  (() => {
+    const root = $('#matrix');
+    const canvas = $('canvas', root);
+    const ITEMS = ['↑', '01', '02', '03', '100'];
+    const PITCH = 6, REST = 1, DUR = 300;
+    let S, cols = 0, rows = 0, ox = 0, oy = 0;
+    let from, to, delay, start = 0, idx = 0, mode = 'sweep', auto = true, lastAdvance = 0;
+
+    function sample(text) {
+      const K = 4, W = cols * K, H = rows * K;
+      const c = document.createElement('canvas');
+      c.width = W; c.height = H;
+      const g = c.getContext('2d', { willReadFrequently: true });
+      const font = (fs) => `700 ${fs}px "Helvetica Neue", Helvetica, Arial, sans-serif`;
+      g.font = font(100);
+      const m = g.measureText(text);
+      const asc = m.actualBoundingBoxAscent, desc = m.actualBoundingBoxDescent;
+      const wid = m.actualBoundingBoxLeft + m.actualBoundingBoxRight;
+      const fs = 100 * Math.min((H * .62) / (asc + desc), (W * .8) / wid);
+      const k = fs / 100;
+      g.font = font(fs);
+      g.fillStyle = '#fff';
+      g.fillText(text, (W - wid * k) / 2 + m.actualBoundingBoxLeft * k, (H - (asc + desc) * k) / 2 + asc * k + H * .03);
+      const data = g.getImageData(0, 0, W, H).data;
+      const out = new Float32Array(cols * rows);
+      for (let r = 0; r < rows; r++) {
+        for (let cc = 0; cc < cols; cc++) {
+          let s = 0;
+          for (let y = 0; y < K; y++) {
+            let o = ((r * K + y) * W + cc * K) * 4 + 3;
+            for (let x = 0; x < K; x++, o += 4) s += data[o];
+          }
+          const cov = s / (K * K * 255);
+          out[r * cols + cc] = cov > .5 ? 1 : cov > .15 ? cov : 0;
+        }
+      }
+      return out;
+    }
+
+    function current(i, now) {
+      const p = clamp((now - start - delay[i]) / DUR, 0, 1);
+      return { v: from[i] + (to[i] - from[i]) * easeOut(p), p };
+    }
+
+    function resize() {
+      S = setupCanvas(canvas);
+      const nc = Math.floor(S.w / PITCH), nr = Math.floor(S.h / PITCH);
+      ox = (S.w - nc * PITCH) / 2; oy = (S.h - nr * PITCH) / 2;
+      if (nc === cols && nr === rows) return;
+      cols = nc; rows = nr;
+      from = new Float32Array(cols * rows);
+      delay = new Float32Array(cols * rows);
+      to = sample(ITEMS[idx]);
+      start = -1e9;
+    }
+
+    function show(next) {
+      const now = performance.now();
+      const n = cols * rows;
+      const cur = new Float32Array(n);
+      for (let i = 0; i < n; i++) cur[i] = current(i, now).v;
+      from = cur;
+      idx = (next + ITEMS.length) % ITEMS.length;
+      to = sample(ITEMS[idx]);
+      const cx = cols / 2, cy = rows / 2, maxD = Math.hypot(cx, cy);
+      for (let r = 0, i = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++, i++) {
+          let t;
+          if (mode === 'radial') t = Math.hypot(c - cx, r - cy) / maxD * 620 + rnd() * 140;
+          else if (mode === 'scatter') t = rnd() * 900;
+          else t = (c / cols) * 720 + rnd() * 180;
+          delay[i] = t + (to[i] > from[i] ? 180 : 0);
+        }
+      }
+      start = REDUCE ? -1e9 : now;
+      lastAdvance = now;
+      $('#matrix-step').textContent = `Step ${String(idx + 1).padStart(2, '0')} / ${String(ITEMS.length).padStart(2, '0')}`;
+    }
+
+    function draw(now) {
+      if (!visible.get(root)) return;
+      if (auto && !REDUCE && now - lastAdvance > 2800) show(idx + 1);
+      const { ctx, dpr } = S;
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const MAXS = PITCH - 2;
+      const paths = { rest: new Path2D(), dim: new Path2D(), mid: new Path2D(), on: new Path2D(), front: new Path2D(), fade: new Path2D() };
+      for (let r = 0, i = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++, i++) {
+          const { v, p } = current(i, now);
+          const size = REST + (MAXS - REST) * v;
+          const sd = Math.max(1, Math.round(size * dpr));
+          const x = Math.round((ox + c * PITCH + PITCH / 2) * dpr - sd / 2);
+          const y = Math.round((oy + r * PITCH + PITCH / 2) * dpr - sd / 2);
+          const moving = p > 0 && p < 1 && to[i] !== from[i];
+          let path;
+          if (moving) path = to[i] > from[i] ? paths.front : paths.fade;
+          else path = v > .8 ? paths.on : v > .4 ? paths.mid : v > .1 ? paths.dim : paths.rest;
+          path.rect(x, y, sd, sd);
+        }
+      }
+      ctx.fillStyle = '#242423'; ctx.fill(paths.rest);
+      ctx.fillStyle = '#5c5c5d'; ctx.fill(paths.dim);
+      ctx.fillStyle = '#a8a296'; ctx.fill(paths.mid);
+      ctx.fillStyle = '#ece5d8'; ctx.fill(paths.on);
+      ctx.fillStyle = '#888889'; ctx.fill(paths.fade);
+      ctx.fillStyle = '#e85622'; ctx.fill(paths.front);
+    }
+
+    visIO.observe(root);
+    new ResizeObserver(resize).observe(canvas);
+    resize();
+    lastAdvance = performance.now();
+    tickers.add(draw);
+
+    initSeg($('#matrix-mode'), (v) => {
+      mode = v;
+      $('#matrix-mode-label').textContent = v[0].toUpperCase() + v.slice(1);
+      show(idx + 1);
+    });
+    $('#matrix-next').addEventListener('click', () => show(idx + 1));
+    $('#matrix-prev').addEventListener('click', () => show(idx - 1));
+    $('#matrix-auto').addEventListener('px:change', (e) => { auto = e.detail; lastAdvance = performance.now(); });
+  })();
+
+  /* ═════════════ Signal matrix ═════════════ */
+
+  (() => {
+    const root = $('#signal');
+    const canvas = $('canvas', root);
+    const N = 10;
+    let S, state = 'sync';
+    const BONE = [236, 229, 216], SIG = [232, 86, 34], ASH = [136, 136, 137];
+    const mix = (a, b, t) => a.map((v, i) => Math.round(v + (b[i] - v) * t));
+    const STEPS = 8;
+    const palettes = {};
+    function sprites(fromC, toC) {
+      return Array.from({ length: STEPS }, (_, k) => {
+        const col = mix(fromC, toC, k / (STEPS - 1));
+        const s = document.createElement('canvas');
+        s.width = s.height = 64;
+        const g = s.getContext('2d');
+        const grd = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+        grd.addColorStop(0, `rgba(${col}, .55)`);
+        grd.addColorStop(.35, `rgba(${col}, .18)`);
+        grd.addColorStop(1, `rgba(${col}, 0)`);
+        g.fillStyle = grd;
+        g.fillRect(0, 0, 64, 64);
+        return { glow: s, fill: `rgb(${col})` };
+      });
+    }
+    palettes.sync = sprites(SIG, BONE);
+    palettes.idle = sprites(ASH, BONE);
+    palettes.alert = sprites([163, 60, 23], [255, 135, 87]);
+
+    function resize() { S = setupCanvas(canvas); }
+
+    function draw(now) {
+      if (!visible.get(root)) return;
+      const t = REDUCE ? 2 : now / 1000;
+      const { ctx, dpr, w, h } = S;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, w, h);
+      const pitch = w / N;
+      const pal = palettes[state];
+      for (let r = 0; r < N; r++) {
+        for (let c = 0; c < N; c++) {
+          let v;
+          if (state === 'sync') {
+            const ph = (c * .55 + r) / (N * 1.25) - t * .42;
+            const wave = .5 + .5 * Math.cos(ph * Math.PI * 2);
+            const env = .5 + .5 * Math.sin(t * .7 + (c - r) * .12);
+            v = wave ** 3 * (.55 + .45 * env);
+          } else if (state === 'alert') {
+            const d = Math.hypot(c - 4.5, r - 4.5);
+            const ph = d / 5 - t * 1.1;
+            v = (.5 + .5 * Math.cos(ph * Math.PI * 2)) ** 4;
+          } else {
+            v = .12 + .1 * (.5 + .5 * Math.sin(t * 1.1 + (c + r) * .35));
+          }
+          const x = pitch * (c + .5), y = pitch * (r + .5);
+          const sp = pal[Math.min(STEPS - 1, Math.floor(v * STEPS))];
+          if (v > .15) {
+            const gs = pitch * (.6 + 2.2 * v);
+            ctx.globalAlpha = Math.min(1, v * 1.1);
+            ctx.drawImage(sp.glow, x - gs / 2, y - gs / 2, gs, gs);
+          }
+          ctx.globalAlpha = .35 + .65 * Math.min(1, v * 1.4);
+          ctx.fillStyle = sp.fill;
+          ctx.beginPath();
+          ctx.arc(x, y, 1.1 + pitch * .17 * v, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    visIO.observe(root);
+    new ResizeObserver(resize).observe(canvas);
+    resize();
+    tickers.add(draw);
+
+    const labels = { idle: 'Idle', sync: 'Syncing', alert: 'Alert' };
+    initSeg($('#signal-state'), (v) => { state = v; $('#signal-label').textContent = labels[v]; });
+  })();
+
+  /* ═════════════ Nav + misc ═════════════ */
+
+  const navLinks = $$('.nav a');
+  const secIO = new IntersectionObserver((es) => {
+    es.forEach((e) => {
+      if (!e.isIntersecting) return;
+      navLinks.forEach((a) => a.classList.toggle('is-active', a.getAttribute('href') === `#${e.target.id}`));
+    });
+  }, { rootMargin: '-45% 0px -50% 0px' });
+  $$('section[id]').forEach((s) => secIO.observe(s));
+
+  $('#to-top').addEventListener('click', () => window.scrollTo({ top: 0, behavior: REDUCE ? 'auto' : 'smooth' }));
+
+  $$('.px-card').forEach((a) => a.addEventListener('click', (e) => e.preventDefault()));
+})();
+</script>
+</body>
+</html>
