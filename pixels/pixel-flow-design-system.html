@@ -359,6 +359,8 @@
 
   .px-btn:focus-visible { outline: 1px solid var(--signal); outline-offset: 4px; }
 
+  .px-btn:not(:has(> .px-btn__icon)) { grid-template-columns: auto; }
+
   .px-btn__label {
     position: relative;
     z-index: 1;
@@ -2017,6 +2019,15 @@
               <button class="px-btn px-btn--solid" data-hatch="x" data-hover><span class="px-btn__label" data-roll>Continue</span><span class="px-btn__icon" data-arrow="→"></span></button>
               <button class="px-btn px-btn--quiet" data-hatch="x" data-hover><span class="px-btn__label" data-roll>Cancel</span><span class="px-btn__icon" data-arrow="×"></span></button>
               <button class="px-btn" disabled><span class="px-btn__label" data-roll>Disabled</span><span class="px-btn__icon" data-arrow="—"></span></button>
+            </div>
+
+            <span class="sub t-micro">Label only</span>
+            <div class="row">
+              <button class="px-btn" data-hatch="x" data-hover><span class="px-btn__label" data-roll>Save draft</span></button>
+              <button class="px-btn px-btn--signal" data-hatch="x" data-hover><span class="px-btn__label" data-roll>Publish</span></button>
+              <button class="px-btn px-btn--solid" data-hatch="x" data-hover><span class="px-btn__label" data-roll>Confirm</span></button>
+              <button class="px-btn px-btn--quiet" data-hatch="x" data-hover><span class="px-btn__label" data-roll>Dismiss</span></button>
+              <button class="px-btn" disabled><span class="px-btn__label" data-roll>Disabled</span></button>
             </div>
 
             <span class="sub t-micro">Sizes · 3u / 4u / 5u</span>
