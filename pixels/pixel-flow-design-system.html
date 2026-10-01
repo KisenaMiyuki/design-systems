@@ -1191,7 +1191,22 @@
   .px-seg button + button { box-shadow: inset 1px 0 0 var(--void-500); }
   .px-seg button > span:not(.px-hatch) { position: relative; z-index: 1; }
   .px-seg button:hover { color: var(--bone); }
-  .px-seg button[aria-selected="true"] { color: var(--void); font-weight: 500; transition-delay: 90ms; }
+  .px-seg button[aria-selected="true"],
+  .px-seg button[aria-checked="true"] { color: var(--void); font-weight: 500; transition-delay: 90ms; }
+
+  /* 2D segments: buttons draw their left and top rules, the frame closes the right and bottom. */
+  .px-seg--grid { display: grid; grid-template-columns: repeat(var(--seg-cols, 3), minmax(0, 1fr)); }
+  .px-seg--grid button,
+  .px-seg--grid button + button { box-shadow: inset 1px 0 0 var(--void-500), inset 0 1px 0 var(--void-500); }
+  .px-seg--grid button { display: flex; align-items: center; gap: var(--u); min-width: 0; }
+  .px-seg--grid button > svg { position: relative; z-index: 1; flex: 0 0 auto; width: 24px; height: 16px; overflow: visible; shape-rendering: crispEdges; }
+  .px-seg--grid button > span:not(.px-hatch) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* Screen glyph for a position: a dim frame and the solid block it points at. The frame is a filled
+     ring on whole units, not a stroke on half units, so pixel snapping at fractional offsets and
+     scales can't round its outer edge off. */
+  .px-pos { fill: currentColor; }
+  .px-pos path { fill-opacity: .45; }
 
   .px-slider { display: grid; gap: 6px; }
 
@@ -1365,6 +1380,10 @@
     width: min(360px, calc(100vw - var(--u) * 4));
     pointer-events: none;
   }
+  /* Top stacks sit under the header and reverse, so the newest toast stays nearest the edge. */
+  .px-toasts[data-pos^="top"] { top: calc(var(--u) * 4); bottom: auto; flex-direction: column-reverse; }
+  .px-toasts[data-pos$="left"] { right: auto; left: calc(var(--u) * 2); }
+  .px-toasts[data-pos$="center"] { right: 0; left: 0; margin-inline: auto; }
 
   /* --th (set per toast): 48px + 24px per message line, 1–3 lines → 72 / 96 / 120px. Content is
      12px title + 6px gap + lines, so vertical padding is 15px. */
@@ -2229,6 +2248,18 @@
               <button class="px-btn" data-hatch="x" data-hover id="toast-btn"><span class="px-btn__label" data-roll>Trigger toast</span><span class="px-btn__icon" data-arrow="↘"></span></button>
               <span class="muted" style="flex: 1; min-width: 20ch">Random each press: info, a long note, undo, error with retry, or progress that lands as success or failure. Long text grows the toast by whole lines, up to three.</span>
             </div>
+
+            <div class="px-field">
+              <span class="t-micro muted" id="toast-pos-label">Position · arrow keys move across and down</span>
+              <div class="px-seg px-seg--grid" role="radiogroup" aria-labelledby="toast-pos-label" id="toast-pos" data-cols="3">
+                <button type="button" role="radio" aria-checked="false" data-hatch="entry" data-hatch-cell="6" data-value="top-left"><svg class="px-pos" viewBox="0 0 24 16" aria-hidden="true"><path fill-rule="evenodd" d="M0 0h24v16H0zM1 1v14h22V1z"/><rect x="3" y="3" width="8" height="3"/></svg><span>Top left</span></button>
+                <button type="button" role="radio" aria-checked="false" data-hatch="entry" data-hatch-cell="6" data-value="top-center"><svg class="px-pos" viewBox="0 0 24 16" aria-hidden="true"><path fill-rule="evenodd" d="M0 0h24v16H0zM1 1v14h22V1z"/><rect x="8" y="3" width="8" height="3"/></svg><span>Top centre</span></button>
+                <button type="button" role="radio" aria-checked="false" data-hatch="entry" data-hatch-cell="6" data-value="top-right"><svg class="px-pos" viewBox="0 0 24 16" aria-hidden="true"><path fill-rule="evenodd" d="M0 0h24v16H0zM1 1v14h22V1z"/><rect x="13" y="3" width="8" height="3"/></svg><span>Top right</span></button>
+                <button type="button" role="radio" aria-checked="false" data-hatch="entry" data-hatch-cell="6" data-value="bottom-left"><svg class="px-pos" viewBox="0 0 24 16" aria-hidden="true"><path fill-rule="evenodd" d="M0 0h24v16H0zM1 1v14h22V1z"/><rect x="3" y="10" width="8" height="3"/></svg><span>Bottom left</span></button>
+                <button type="button" role="radio" aria-checked="false" data-hatch="entry" data-hatch-cell="6" data-value="bottom-center"><svg class="px-pos" viewBox="0 0 24 16" aria-hidden="true"><path fill-rule="evenodd" d="M0 0h24v16H0zM1 1v14h22V1z"/><rect x="8" y="10" width="8" height="3"/></svg><span>Bottom centre</span></button>
+                <button type="button" role="radio" aria-checked="true" data-hatch="entry" data-hatch-cell="6" data-value="bottom-right"><svg class="px-pos" viewBox="0 0 24 16" aria-hidden="true"><path fill-rule="evenodd" d="M0 0h24v16H0zM1 1v14h22V1z"/><rect x="13" y="10" width="8" height="3"/></svg><span>Bottom right</span></button>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -2864,6 +2895,9 @@
     };
   }
 
+  // data-hatch-entry / data-hatch-exit: "x y" in 0–1, the default points for 'entry' mode.
+  const hatchPoint = (v, fallback) => (v ? v.trim().split(/\s+/).map(Number) : fallback);
+
   function buildHatch(host, force = false) {
     const p = hatchParams(host);
     const w = host.offsetWidth;
@@ -2898,8 +2932,8 @@
       jOut: Float32Array.from({ length: n }, rnd),
       sIn: Float32Array.from({ length: n }, rnd),
       sOut: Float32Array.from({ length: n }, rnd),
-      entry: [0, .5],
-      exit: [1, .5],
+      entry: hatchPoint(host.dataset.hatchEntry, [0, .5]),
+      exit: hatchPoint(host.dataset.hatchExit, [1, .5]),
       on: layer.matches(HATCH_ON),
       group: host.closest('[data-hatch-group]'),
       t0: -Infinity,
@@ -3287,6 +3321,12 @@
     document.documentElement.dataset.focus = savedFocus;
     $$('#focus-style [role="tab"]').forEach((t) => t.setAttribute('aria-selected', String(t.dataset.value === savedFocus)));
   }
+
+  const TOAST_POS_KEY = 'pixel-flow:toast-position';
+  const TOAST_POS = ['top-left', 'top-center', 'top-right', 'bottom-left', 'bottom-center', 'bottom-right'];
+  const savedToastPos = (() => { try { return localStorage.getItem(TOAST_POS_KEY); } catch { return null; } })();
+  $('#toasts').dataset.pos = TOAST_POS.includes(savedToastPos) ? savedToastPos : 'bottom-right';
+  $$('#toast-pos [role="radio"]').forEach((r) => r.setAttribute('aria-checked', String(r.dataset.value === $('#toasts').dataset.pos)));
 
   $$('.px-input__box').forEach((box) => {
     const grid = document.createElement('span');
@@ -3701,29 +3741,41 @@
   $('#field-toggle').addEventListener('px:change', (e) => Field.setRunning(e.detail));
   if (REDUCE) $('#field-toggle').setAttribute('aria-checked', 'false');
 
+  // Segments are tabs (aria-selected) or, for a pure choice, radios (aria-checked). data-cols lays them
+  // out as a grid: arrows then move across and down, and the fill leaves toward the new pick and enters
+  // from the old one's side on both axes.
+  const ARROW_STEP = { ArrowRight: [1, 0], ArrowLeft: [-1, 0], ArrowDown: [0, 1], ArrowUp: [0, -1] };
+
   function initSeg(seg, onChange) {
-    const tabs = $$('[role="tab"]', seg);
+    const tabs = $$('[role="tab"], [role="radio"]', seg);
+    const attr = tabs[0].getAttribute('role') === 'radio' ? 'aria-checked' : 'aria-selected';
+    const cols = +seg.dataset.cols || tabs.length;
+    if (seg.dataset.cols) seg.style.setProperty('--seg-cols', cols);
+    const at = (t) => { const i = tabs.indexOf(t); return [i % cols, Math.floor(i / cols)]; };
     const pick = (next) => {
-      const prev = tabs.find((t) => t.getAttribute('aria-selected') === 'true');
+      const prev = tabs.find((t) => t.getAttribute(attr) === 'true');
       if (prev === next) return;
       if (prev) {
-        const right = tabs.indexOf(next) > tabs.indexOf(prev);
-        setExit(prev, [right ? 1 : 0, .5]);
-        setEntry(next, [right ? 0 : 1, .5]);
-        prev.setAttribute('aria-selected', 'false');
+        const [pc, pr] = at(prev), [nc, nr] = at(next);
+        const dx = Math.sign(nc - pc), dy = Math.sign(nr - pr);
+        setExit(prev, [.5 + dx / 2, .5 + dy / 2]);
+        setEntry(next, [.5 - dx / 2, .5 - dy / 2]);
+        prev.setAttribute(attr, 'false');
         prev.tabIndex = -1;
       }
-      next.setAttribute('aria-selected', 'true');
+      next.setAttribute(attr, 'true');
       next.tabIndex = 0;
       onChange && onChange(next.dataset.value, next);
     };
     tabs.forEach((t) => {
-      t.tabIndex = t.getAttribute('aria-selected') === 'true' ? 0 : -1;
+      t.tabIndex = t.getAttribute(attr) === 'true' ? 0 : -1;
       t.addEventListener('click', () => pick(t));
       t.addEventListener('keydown', (e) => {
-        const i = tabs.indexOf(t);
-        const j = e.key === 'ArrowRight' ? i + 1 : e.key === 'ArrowLeft' ? i - 1 : -1;
-        if (j >= 0 && j < tabs.length) { e.preventDefault(); tabs[j].focus(); pick(tabs[j]); }
+        const step = ARROW_STEP[e.key];
+        if (!step) return;
+        const [c, r] = at(t);
+        const nc = c + step[0], nr = r + step[1], j = nr * cols + nc;
+        if (nc >= 0 && nc < cols && nr >= 0 && j < tabs.length) { e.preventDefault(); tabs[j].focus(); pick(tabs[j]); }
       });
     });
     return { pick: (v) => { const t = tabs.find((x) => x.dataset.value === v); t && pick(t); } };
@@ -3889,7 +3941,7 @@
 
   /* ═════════════ Radio ═════════════ */
 
-  $$('[role="radiogroup"]').forEach((group) => {
+  $$('[role="radiogroup"]:not(.px-seg)').forEach((group) => {
     const radios = $$('[role="radio"]', group);
     const pick = (r, focus) => {
       radios.forEach((x) => {
@@ -4477,6 +4529,24 @@
     const BREATHE = .09;
     const KINDS = ['info', 'success', 'error', 'progress'];
     const HOLD = { info: 3600, success: 3600, error: 0, progress: 0 };
+    // Toasts enter from the screen's interior and clear out toward their edge: the side for corner
+    // stacks, the top or bottom for centred ones. Points are [entry, exit] for the 'entry' hatch.
+    const EDGES = {
+      left: [[1, .5], [0, .5]],
+      right: [[0, .5], [1, .5]],
+      top: [[.5, 1], [.5, 0]],
+      bottom: [[.5, 0], [.5, 1]],
+    };
+    const edges = () => {
+      const [y, x] = stack.dataset.pos.split('-');
+      return EDGES[x === 'center' ? y : x];
+    };
+    const aim = (el) => {
+      const [entry, exit] = edges();
+      el.dataset.hatchEntry = entry.join(' ');
+      el.dataset.hatchExit = exit.join(' ');
+      if (el._hatch) { setEntry(el, entry); setExit(el, exit); }
+    };
     const SPIN = '<span class="px-spin px-spin--s" aria-hidden="true">' + '<i></i>'.repeat(9) + '</span>';
     const CHECK = '<svg viewBox="0 0 6 6" aria-hidden="true"><rect x="4" y="1" width="1" height="1"/><rect x="1" y="2" width="1" height="1"/><rect x="3" y="2" width="1" height="1"/><rect x="2" y="3" width="1" height="1"/></svg>';
     const live = [];
@@ -4539,7 +4609,15 @@
       }, 420);
     }
 
-    return function show(kicker, msg, opts = {}) {
+    // Moves the stack; toasts already up re-aim so they still clear out toward the new edge.
+    show.place = (pos) => {
+      stack.dataset.pos = pos;
+      live.forEach((t) => aim(t.el));
+    };
+
+    return show;
+
+    function show(kicker, msg, opts = {}) {
       const slot = document.createElement('div');
       slot.className = 'px-toast-slot';
       slot.innerHTML =
@@ -4575,6 +4653,7 @@
       stack.append(slot);
       paint(t);
       fit(t);
+      aim(el);
       initHatch(el);
       paint(t);
       live.push(t);
@@ -4595,7 +4674,7 @@
         if (!t.leaving && holdFor(t)) t.timer = setTimeout(() => dismiss(t), 1600);
       });
       return handle;
-    };
+    }
   })();
 
   // Trigger toast: a random scenario each press, never the same kind twice in a row.
@@ -4630,6 +4709,22 @@
       const keys = Object.keys(DEMOS).filter((k) => k !== last);
       last = keys[(rnd() * keys.length) | 0];
       DEMOS[last]();
+    });
+  })();
+
+  // Toast position: a 3×2 segment. The trigger's glyph points where toasts will land.
+  (() => {
+    const GLYPH = { 'top-left': '↖', 'top-center': '↑', 'top-right': '↗', 'bottom-left': '↙', 'bottom-center': '↓', 'bottom-right': '↘' };
+    const icon = $('#toast-btn [data-arrow]');
+    const point = (pos) => {
+      icon.dataset.arrow = GLYPH[pos];
+      $$('.arrow > span', icon).forEach((s) => { s.textContent = GLYPH[pos]; });
+    };
+    point($('#toasts').dataset.pos);
+    initSeg($('#toast-pos'), (pos) => {
+      toast.place(pos);
+      point(pos);
+      try { localStorage.setItem(TOAST_POS_KEY, pos); } catch { /* storage blocked: choice lasts for this visit */ }
     });
   })();
 
