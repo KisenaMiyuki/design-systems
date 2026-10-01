@@ -366,6 +366,25 @@ Both use an invisible native `input[type=range]` laid over the track, so keyboar
 - **Progress (`.px-progress`):** two rows of cells filling in bone with a signal head. Add `role="progressbar"` and keep `aria-valuenow` updated. The demo's `Progress` object drives `#progress`.
 - **Tags (`.px-tag`):** a 2×2 dot plus a label, with variants `--live` (signal, blinking), `--sync` (bone, blinking) and `--idle`.
 - **Spinner (`.px-spin`):** a lit cell running round a 3×3 ring; `.px-dots` gives animated ellipses.
+- **Callouts (`.px-callout`):** inline message blocks that stay in the page (unlike toasts).
+
+```html
+<div class="px-callout px-callout--warning" role="note">
+  <span class="px-callout__rail" data-hatch="y" data-hatch-cell="6" data-hatch-sweep="240" data-hatch-jitter="30"></span>
+  <div class="px-callout__kicker t-micro"><svg viewBox="0 0 5 5" aria-hidden="true">…5×5 pixel glyph…</svg>Warning</div>
+  <p>One or two sentences. <b>Bone</b> for the key term.</p>
+  <div class="px-callout__actions"><a class="px-link" href="#method">How relief is estimated</a></div>   <!-- optional -->
+  <button type="button" class="px-ibtn px-callout__close" data-hatch="center" data-hover aria-label="Dismiss"><span data-arrow="×"></span></button>   <!-- optional -->
+</div>
+```
+
+  - **Kinds change ink only:** the default note is bone-700 with a bone kicker; `--success` is bright bone with a tick; `--warning` is a dim signal-700 rail with a signal-300 kicker; `--error` is full signal plus a signal-700 frame. Warning is the only place signal tints stand for "not yet an error", so keep it for real risks.
+  - **Glyphs** are 5×5 pixel SVGs at 10px (2px per pixel): `i` for notes and tips, a tick, `!` and `×`. Copy them from the demo.
+  - **Rows stay on units:** 12px padding, a 24px kicker, 24px text lines, and an optional action row (12px gap plus a 36px `px-btn--s`, or a 24px link).
+  - **Motion:** the 6px rail assembles top to bottom the first time the callout is a third in view (`is-shown`, set by an IntersectionObserver). Text is never hidden, so content is readable without JS.
+  - **Changing kind in place:** swap the modifier class, update the kicker and text, then call `recolorHatches(callout)`; the new colour spreads along the rail from its middle.
+  - **Dismissing:** `.px-callout__close` is a 48px column spanning the full height (inset 1px so its fill leaves the frame visible, with a left rule). It, or `Callout.dismiss(el)`, fades the content, retracts the rail and collapses the slot, together with the parent's gap, in steps. It fires a bubbling **`px:dismiss`** event with `detail.restore()`, which puts the callout back in place; offer it as an Undo toast action. Focus moves to the nearest control in the same panel.
+  - **Roles:** use `role="note"` for static callouts. A callout inserted at runtime should be `role="status"`, or `role="alert"` for errors.
 - **Toasts:** `toast(kicker, message, { kind, action, duration })` returns a handle `{ update(next), dismiss() }`.
   - **Kinds:** `info` (bone), `success` (bright bone with a pixel tick), `error` (a signal surface, `role="alert"`, stays until dismissed) and `progress` (breathes with a spinner until updated).
   - **Actions:** `action: { label, run(handle) }` adds a button.
@@ -472,6 +491,8 @@ Change the meaning with the glyph and the label, never with a new colour.
 - **The script is closure-scoped.** Calling `toast()` from the console or another script fails; add code inside the IIFE.
 - **`buildHatch` resets entry and exit points** to the defaults when it rebuilds (on resize). Persist custom points in `data-hatch-entry` and `data-hatch-exit`.
 - **Attribute changes outside `class`, `aria-checked` and `aria-selected` aren't observed;** call `queueHatchSync()` yourself.
+- **Don't lay out by `:last-child` or `:nth-child` in containers whose items can be dismissed or removed;** the next item inherits the rule and the layout jumps. Use an explicit class (as `.callout-demo__wide` does).
+- **Removing a focused element drops focus to `<body>`.** Move focus first: to the nearest control in the same panel, or back to the trigger.
 
 ---
 
@@ -499,6 +520,7 @@ Search the HTML for these banners (CSS uses `/* ═══…═══ Name ═�
 | Inputs and pickers | `Controls` | `Fields: validation…` (`VALID`), `Listbox…` (`listbox`, `listKeys`), `Radio`, `Slider` |
 | Switches and segments | `Controls` (`.px-switch`, `.px-check`, `.px-seg`) | `Switch · checkbox · segments` (`toggleAria`, `initSeg`) |
 | Feedback | `Feedback` | `Progress`, `Toasts` (`toast`, `toast.place`) |
+| Callout | `Callout` | `Callout` (`Callout.dismiss`, `px:dismiss`) |
 | Dialog | `Dialog` | `Dialog` (`Dialog.open`, `Dialog.close`) |
 | Tooltip and links | `Text` | `Tooltip` |
 | Card, list, media, skeleton | `Card`, `List`, `Image`, `Skeleton` | `Image`, `Skeleton` |

@@ -1796,6 +1796,48 @@
     box-shadow: inset 0 1px 0 var(--void-500);
   }
 
+  /* ═══════════════════════════ Callout ═══════════════════════════ */
+  /* Inline message block. A 6px rail assembles top to bottom the first time the callout scrolls into view.
+     Kinds change ink only: note bone-700, success bone-100, warning signal-700, error signal (plus a signal
+     frame). Rows are 12px padding, a 24px kicker, 24px text lines and an optional action row (12px gap plus
+     a 36px small button), so heights stay on whole units without snapping. */
+  .px-callout {
+    --tone: var(--bone-700);
+    --kick: var(--bone);
+    position: relative;
+    padding: var(--u) calc(var(--u) * 2);
+    overflow: hidden;
+    background: rgba(0, 0, 0, .62);
+    box-shadow: inset 0 0 0 1px var(--void-500);
+    transition: box-shadow var(--dur-cell) linear;
+  }
+  .px-callout--success { --tone: var(--bone-100); --kick: var(--bone-100); }
+  .px-callout--warning { --tone: var(--signal-700); --kick: var(--signal-300); }
+  .px-callout--error { --tone: var(--signal); --kick: var(--signal); box-shadow: inset 0 0 0 1px var(--signal-700); }
+  .px-callout:has(> .px-callout__close) { padding-right: calc(var(--u) * 5); }
+
+  .px-callout__rail { --hatch: var(--tone); position: absolute; inset: 0 auto 0 0; width: 6px; }
+
+  .px-callout__kicker { display: flex; align-items: center; gap: 6px; height: 24px; color: var(--kick); transition: color var(--dur-cell) linear; }
+  .px-callout__kicker svg { flex: 0 0 auto; width: 10px; height: 10px; overflow: visible; fill: currentColor; shape-rendering: crispEdges; }
+  .px-callout p { color: var(--ash-300); }
+  .px-callout p b { color: var(--bone); font-weight: 400; }
+
+  .px-callout__actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--u); margin-top: var(--u); }
+  .px-callout__actions[hidden] { display: none; }
+
+  /* Full-height dismiss column, inset 1px so its fill never covers the callout's frame */
+  .px-callout__close { position: absolute; top: 1px; right: 1px; bottom: 1px; height: auto; box-shadow: inset 1px 0 0 var(--void-500); }
+  .px-callout__close:focus-visible { outline-offset: -5px; }
+
+  /* Dismiss: content fades, the rail retracts, then the slot (and the gap above it) closes in steps */
+  .px-callout.is-leaving { transition: height 160ms steps(4, end), padding 160ms steps(4, end), margin 160ms steps(4, end); }
+  .px-callout.is-leaving > :not(.px-callout__rail) { opacity: 0; transition: opacity 100ms linear; }
+
+  .callout-demo { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: calc(var(--u) * 2); }
+  .callout-demo__wide { grid-column: 1 / -1; }
+  @media (max-width: 791px) { .callout-demo { grid-template-columns: 1fr; } }
+
   /* ═══════════════════════════ Motion ═══════════════════════════ */
   .principle { display: grid; gap: calc(var(--u) * 2); align-content: start; }
   .principle p { color: var(--ash); }
@@ -2611,6 +2653,48 @@
             <span class="t-micro muted">Esc or the scrim closes · alerts wait for a choice · <span id="dlg-name">Ridgeline North</span></span>
           </div>
         </div>
+
+        <!-- Callout -->
+        <div class="panel s-12" data-panel data-snap>
+          <div class="panel__head t-micro"><b>Callout</b><span>Note · success · warning · error</span></div>
+          <div class="callout-demo">
+            <div class="px-callout" role="note">
+              <span class="px-callout__rail" data-hatch="y" data-hatch-cell="6" data-hatch-sweep="240" data-hatch-jitter="30"></span>
+              <div class="px-callout__kicker t-micro"><svg viewBox="0 0 5 5" aria-hidden="true"><rect x="2" y="0" width="1" height="1"/><rect x="2" y="2" width="1" height="3"/></svg>Note</div>
+              <p>Contours on this layer are interpolated between survey passes, so they can lag fresh terrain by a day.</p>
+            </div>
+
+            <div class="px-callout px-callout--success" role="note">
+              <span class="px-callout__rail" data-hatch="y" data-hatch-cell="6" data-hatch-sweep="240" data-hatch-jitter="30"></span>
+              <div class="px-callout__kicker t-micro"><svg viewBox="0 0 5 5" aria-hidden="true"><rect x="4" y="0" width="1" height="1"/><rect x="3" y="1" width="1" height="1"/><rect x="0" y="2" width="1" height="1"/><rect x="2" y="2" width="1" height="1"/><rect x="1" y="3" width="1" height="1"/></svg>Synced</div>
+              <p>All 4 layers match field unit 07. Nothing needs review.</p>
+            </div>
+
+            <div class="px-callout px-callout--warning" role="note">
+              <span class="px-callout__rail" data-hatch="y" data-hatch-cell="6" data-hatch-sweep="240" data-hatch-jitter="30"></span>
+              <div class="px-callout__kicker t-micro"><svg viewBox="0 0 5 5" aria-hidden="true"><rect x="2" y="0" width="1" height="3"/><rect x="2" y="4" width="1" height="1"/></svg>Warning</div>
+              <p>Snow above 2,400 m hides the true surface. Treat relief there as an estimate.</p>
+              <div class="px-callout__actions"><a class="px-link" href="#motion">How relief is estimated</a></div>
+            </div>
+
+            <div class="px-callout px-callout--error" role="note" id="callout-sync">
+              <span class="px-callout__rail" data-hatch="y" data-hatch-cell="6" data-hatch-sweep="240" data-hatch-jitter="30"></span>
+              <div class="px-callout__kicker t-micro"><svg viewBox="0 0 5 5" aria-hidden="true"><rect x="0" y="0" width="1" height="1"/><rect x="4" y="0" width="1" height="1"/><rect x="1" y="1" width="1" height="1"/><rect x="3" y="1" width="1" height="1"/><rect x="2" y="2" width="1" height="1"/><rect x="1" y="3" width="1" height="1"/><rect x="3" y="3" width="1" height="1"/><rect x="0" y="4" width="1" height="1"/><rect x="4" y="4" width="1" height="1"/></svg>Sync failed</div>
+              <p>Field unit 07 stopped responding at 14:02. The last good pass is still on the map.</p>
+              <div class="px-callout__actions">
+                <button type="button" class="px-btn px-btn--s px-btn--signal" data-hatch="x" data-hover id="callout-retry"><span class="px-btn__label" data-roll>Retry</span><span class="px-btn__icon" data-arrow="↻"></span></button>
+                <button type="button" class="px-btn px-btn--s px-btn--quiet" data-hatch="x" data-hover id="callout-log"><span class="px-btn__label" data-roll>View log</span></button>
+              </div>
+            </div>
+
+            <div class="px-callout callout-demo__wide" role="note">
+              <span class="px-callout__rail" data-hatch="y" data-hatch-cell="6" data-hatch-sweep="240" data-hatch-jitter="30"></span>
+              <div class="px-callout__kicker t-micro"><svg viewBox="0 0 5 5" aria-hidden="true"><rect x="2" y="0" width="1" height="1"/><rect x="2" y="2" width="1" height="3"/></svg>Tip</div>
+              <p>Hold <b>Shift</b> while scrolling the map to pan sideways. Dismiss this one: the slot closes in steps, and the toast offers an undo.</p>
+              <button type="button" class="px-ibtn px-callout__close" data-hatch="center" data-hover aria-label="Dismiss tip"><span data-arrow="×"></span></button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </section>
@@ -2849,6 +2933,7 @@
     '.nav a.is-active > .nav__bar > .px-hatch',
     '.px-dialog.is-dimmed > .px-dialog__scrim > .px-hatch',
     '.px-dialog.is-raised > .px-dialog__panel > .px-hatch',
+    '.px-callout.is-shown > .px-callout__rail > .px-hatch',
     ...(FINE ? [
       '[data-hover]:hover > .px-hatch',
       '.px-xbtn:hover > .px-xbtn__panel > .px-hatch',
@@ -4843,6 +4928,97 @@
       }
       input.value = name;
       field.validate();
+    });
+  })();
+
+  /* ═════════════ Callout ═════════════ */
+
+  // Callout.dismiss(el): fades the content, retracts the rail and collapses the slot (with the parent's gap),
+  // then removes it. It fires px:dismiss (bubbling) with { restore }, which puts the callout back in place.
+  // Rails assemble the first time a callout is a third in view; is-shown, not is-on, so buttons inside keep
+  // their resting labels.
+  const Callout = (() => {
+    const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])';
+    const seen = new IntersectionObserver((entries) => entries.forEach((e) => {
+      if (!e.isIntersecting) return;
+      e.target.classList.add('is-shown');
+      seen.unobserve(e.target);
+    }), { threshold: .35 });
+
+    // Focus would fall to <body> when the callout goes. It moves to the nearest control in the same panel
+    // (the next one, else the one before), and only then to the next control in the page.
+    function handOffFocus(el) {
+      if (!el.contains(document.activeElement)) return;
+      const after = (f) => el.compareDocumentPosition(f) & Node.DOCUMENT_POSITION_FOLLOWING;
+      const usable = (root) => $$(FOCUSABLE, root).filter((f) => !el.contains(f) && f.offsetParent !== null);
+      const near = usable(el.closest('[data-panel]') || document.body);
+      const target = near.find(after) || near.filter((f) => !after(f)).pop() || usable(document).find(after);
+      if (target) target.focus({ preventScroll: true });
+    }
+
+    function dismiss(el) {
+      if (el.classList.contains('is-leaving') || !el.parentNode) return;
+      const parent = el.parentNode, next = el.nextSibling;
+      const gap = parseFloat(getComputedStyle(parent).rowGap) || 0;
+      let removed = false, wanted = false;
+      handOffFocus(el);
+      el.style.height = `${el.offsetHeight}px`;
+      el.classList.add('is-leaving');
+      el.classList.remove('is-shown');
+      setTimeout(() => {
+        el.style.height = '0px';
+        el.style.paddingTop = el.style.paddingBottom = '0px';
+        el.style[el.previousElementSibling ? 'marginTop' : 'marginBottom'] = `${-gap}px`;
+      }, REDUCE ? 0 : 140);
+      setTimeout(() => {
+        el.remove();
+        el.removeAttribute('style');
+        el.classList.remove('is-leaving');
+        removed = true;
+        if (wanted) restore();
+      }, REDUCE ? 0 : 320);
+      function restore() {
+        if (!removed) { wanted = true; return; }
+        parent.insertBefore(el, next && next.parentNode === parent ? next : null);
+        requestAnimationFrame(() => el.classList.add('is-shown'));
+      }
+      el.dispatchEvent(new CustomEvent('px:dismiss', { bubbles: true, detail: { restore } }));
+    }
+
+    $$('.px-callout').forEach((el) => seen.observe(el));
+    $$('.px-callout__close').forEach((b) => b.addEventListener('click', () => dismiss(b.closest('.px-callout'))));
+    return { dismiss };
+  })();
+
+  // Demo callouts: dismissing offers an undo; Retry turns the sync error into a success in place.
+  (() => {
+    document.addEventListener('px:dismiss', (e) => {
+      if (!e.target.closest('.callout-demo')) return;
+      toast('Tip hidden', 'It won’t show again on this visit.', {
+        action: { label: 'Undo', run: (h) => { h.dismiss(); e.detail.restore(); } },
+      });
+    });
+
+    const sync = $('#callout-sync');
+    const retry = $('#callout-retry'), log = $('#callout-log');
+    const TICK = '<svg viewBox="0 0 5 5" aria-hidden="true"><rect x="4" y="0" width="1" height="1"/><rect x="3" y="1" width="1" height="1"/><rect x="0" y="2" width="1" height="1"/><rect x="2" y="2" width="1" height="1"/><rect x="1" y="3" width="1" height="1"/></svg>';
+
+    log.addEventListener('click', () => toast('Sync log', 'Last contact 14:02 · 3 retries · timed out after 30 s.'));
+    retry.addEventListener('click', () => {
+      if (retry.getAttribute('aria-disabled') === 'true') return;
+      retry.setAttribute('aria-disabled', 'true');
+      const h = toast('Reconnecting', 'Reaching field unit 07', { kind: 'progress' });
+      setTimeout(() => {
+        h.update({ kind: 'success', kicker: 'Back online', msg: 'Field unit 07 is syncing again.' });
+        if (document.activeElement === retry) log.focus({ preventScroll: true });
+        hatchRO.unobserve(retry);
+        hatchHosts.delete(retry);
+        retry.remove();
+        sync.classList.replace('px-callout--error', 'px-callout--success');
+        $('.px-callout__kicker', sync).innerHTML = `${TICK}Synced`;
+        $('p', sync).textContent = 'Field unit 07 is back and the latest pass is on the map.';
+        recolorHatches(sync);
+      }, 1800);
     });
   })();
 
