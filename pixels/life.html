@@ -1,0 +1,1944 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#000000">
+<meta name="description" content="Colony, a Conway's Game of Life runner built with the Pixel/Flow design system.">
+<title>Colony — Pixel/Flow</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' shape-rendering='crispEdges'%3E%3Crect width='16' height='16' fill='%23000'/%3E%3Cg fill='%23ece5d8'%3E%3Crect x='1' y='1' width='4' height='4'/%3E%3Crect x='11' y='1' width='4' height='4'/%3E%3Crect x='1' y='11' width='4' height='4'/%3E%3Crect x='11' y='11' width='4' height='4'/%3E%3C/g%3E%3Cg fill='%23232322'%3E%3Crect x='6' y='1' width='4' height='4'/%3E%3Crect x='1' y='6' width='4' height='4'/%3E%3Crect x='11' y='6' width='4' height='4'/%3E%3Crect x='6' y='11' width='4' height='4'/%3E%3C/g%3E%3Crect x='6' y='6' width='4' height='4' fill='%23e85622'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  /* ═══════════════════════════ Tokens ═══════════════════════════ */
+  :root {
+    --u: 12px;
+    --cell: 6px;
+    --void: #000000;
+    --void-900: #080808;
+    --void-800: #0f0f0e;
+    --void-700: #171716;
+    --void-600: #232322;
+    --void-500: #30302f;
+    --ash-700: #5c5c5d;
+    --ash: #888889;
+    --ash-300: #b0b0b1;
+    --bone-700: #a8a296;
+    --bone-500: #cdc6b9;
+    --bone: #ece5d8;
+    --bone-100: #f6f2ea;
+    --signal-900: #3b1609;
+    --signal-700: #a33c17;
+    --signal: #e85622;
+    --signal-300: #ff8757;
+    --font-mono: "PP Supply Mono", "DM Mono", ui-monospace, monospace;
+    --dur-cell: 220ms;
+    --dur-exit: 320ms;
+    --dur-base: 420ms;
+    --dur-roll: 525ms;
+    --ease-out: cubic-bezier(.22, 1, .36, 1);
+    --ease-snap: cubic-bezier(.625, .05, 0, 1);
+    --ease-cell: cubic-bezier(.66, 0, .34, 1);
+    --cols: 12;
+    --gap: calc(var(--u) * 2);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: calc(var(--u) * 6); color-scheme: dark; }
+  body {
+    margin: 0;
+    background: var(--void);
+    color: var(--bone);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    line-height: 24px;
+    font-weight: 400;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  ::selection { background: var(--signal); color: var(--void); }
+  h1, h2, h3, h4, p { margin: 0; font-weight: 400; }
+  a { color: inherit; }
+  button { font: inherit; color: inherit; }
+  .sr-only {
+    position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+    overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+  }
+  .t-label { font-size: 11px; line-height: 12px; letter-spacing: .06em; text-transform: uppercase; }
+  .t-micro { font-size: 10px; line-height: 12px; letter-spacing: .08em; text-transform: uppercase; }
+  .muted { color: var(--ash); }
+  .signal { color: var(--signal); }
+  .num { font-variant-numeric: tabular-nums; }
+
+  /* ═══════════════════════════ Field ═══════════════════════════ */
+  #field {
+    position: fixed; inset: 0; z-index: 0; display: block;
+    width: 100%; height: 100%; pointer-events: none;
+  }
+  .page { position: relative; z-index: 1; padding-bottom: calc(var(--u) * 8); }
+
+  /* ═══════════════════════════ Layout ═══════════════════════════ */
+  .wrap { width: 1128px; margin-inline: auto; }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+    gap: var(--gap);
+  }
+  .s-12 { grid-column: span 12; }
+  .s-8 { grid-column: span 8; }
+  .s-6 { grid-column: span 6; }
+  .s-4 { grid-column: span 4; }
+  @media (max-width: 1175px) {
+    :root { --cols: 8; }
+    .wrap { width: 744px; }
+    .s-12, .s-8 { grid-column: span 8; }
+    .s-6, .s-4 { grid-column: span 4; }
+  }
+  @media (max-width: 791px) {
+    :root { --cols: 6; }
+    .wrap { width: 552px; }
+    .s-12, .s-8, .s-6 { grid-column: span 6; }
+    .s-4 { grid-column: span 3; }
+  }
+  @media (max-width: 599px) {
+    :root { --cols: 4; }
+    .wrap { width: calc(100% - var(--u) * 2); }
+    .s-12, .s-8, .s-6, .s-4 { grid-column: span 4; }
+  }
+  section { padding-top: calc(var(--u) * 8); }
+  .sec-head {
+    display: grid;
+    grid-template-columns: calc(var(--u) * 8) 1fr;
+    gap: 0 var(--gap);
+    align-items: start;
+    margin-bottom: calc(var(--u) * 4);
+  }
+  .sec-head__idx {
+    color: var(--signal);
+    font-size: 11px;
+    line-height: 36px;
+    letter-spacing: .06em;
+  }
+  .sec-head h1 {
+    font-size: 32px;
+    line-height: 36px;
+    letter-spacing: -.02em;
+    text-wrap: balance;
+  }
+  .sec-head p {
+    grid-column: 2;
+    max-width: 62ch;
+    margin-top: var(--u);
+    color: var(--ash);
+    text-wrap: pretty;
+  }
+  @media (max-width: 599px) {
+    .sec-head { grid-template-columns: 1fr; }
+    .sec-head p { grid-column: 1; }
+  }
+
+  /* ═══════════════════════════ Panel ═══════════════════════════ */
+  .panel {
+    position: relative;
+    padding: calc(var(--u) * 2);
+    background: rgba(0, 0, 0, .62);
+    box-shadow: inset 0 0 0 1px var(--void-500);
+  }
+  .panel::before, .panel::after {
+    content: "";
+    position: absolute;
+    width: 6px; height: 6px;
+    pointer-events: none;
+  }
+  .panel::before { top: -3px; left: -3px; border-top: 1px solid var(--ash); border-left: 1px solid var(--ash); }
+  .panel::after { right: -3px; bottom: -3px; border-right: 1px solid var(--ash); border-bottom: 1px solid var(--ash); }
+  .panel__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--u);
+    height: calc(var(--u) * 2);
+    margin: calc(var(--u) * -2) calc(var(--u) * -2) calc(var(--u) * 2);
+    padding: 0 calc(var(--u) * 2);
+    box-shadow: inset 0 -1px 0 var(--void-500);
+    color: var(--ash);
+  }
+  .panel__head b { color: var(--bone); font-weight: 400; }
+  .row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--u); }
+
+  /* ═══════════════════════════ Hatch ═══════════════════════════ */
+  .px-hatch {
+    position: absolute; inset: 0; z-index: 0; display: block; pointer-events: none;
+  }
+  .px-hatch canvas {
+    display: block; width: 100%; height: 100%; image-rendering: pixelated;
+  }
+  [disabled] > .px-hatch { display: none; }
+  .roll { display: block; height: 100%; overflow: hidden; }
+  .roll__track {
+    display: grid;
+    grid-template-rows: repeat(2, 50%);
+    height: 200%;
+    transition: transform var(--dur-roll) var(--ease-snap);
+  }
+  .roll__track > * { display: grid; place-items: center; white-space: nowrap; }
+  .roll__track > :first-child { color: var(--text, currentColor); }
+  .roll__track > :nth-child(2) { color: var(--on, var(--void)); font-weight: 500; }
+  .arrow {
+    --go: translate3d(calc(var(--dx, 1) * 100%), calc(var(--dy, -1) * 100%), 0) rotate(var(--spin, 0deg));
+    position: relative;
+    display: block;
+    width: 100%;
+    height: 100%;
+    transition:
+      transform var(--dur-roll) var(--ease-snap) 55ms,
+      translate 90ms var(--ease-out),
+      rotate 90ms var(--ease-out);
+  }
+  .is-pressed .arrow {
+    translate: calc(var(--dx, 1) * 2px) calc(var(--dy, -1) * 2px);
+    rotate: var(--lean, 0deg);
+  }
+  .arrow > span {
+    position: absolute; inset: 0; display: grid; place-items: center;
+    opacity: calc(1 - var(--t, 0) * var(--fade, 0));
+    transition: opacity calc(var(--dur-roll) * .5) linear 55ms;
+  }
+  .arrow > :first-child { color: var(--text, currentColor); }
+  .arrow > :nth-child(2) {
+    color: var(--on, var(--void));
+    opacity: calc(1 - (1 - var(--t, 0)) * var(--fade, 0));
+    transform: translate3d(calc(var(--dx, 1) * -100%), calc(var(--dy, -1) * -100%), 0);
+  }
+  [data-arrow="←"] { --dx: -1; --dy: 0; }
+  @media (hover: hover) and (pointer: fine) {
+    [data-hover]:hover .roll__track { transform: translate3d(0, -50%, 0); }
+    [data-hover]:hover .arrow { --t: 1; transform: var(--go); }
+  }
+  :focus-visible .roll__track,
+  .is-on .roll__track,
+  .is-pressed .roll__track { transform: translate3d(0, -50%, 0); }
+  :focus-visible .arrow,
+  .is-on .arrow,
+  .is-pressed .arrow { --t: 1; transform: var(--go); }
+
+  /* ═══════════════════════════ Button ═══════════════════════════ */
+  .px-btn {
+    --h: 48px;
+    --fs: 11px;
+    --line: var(--bone);
+    --text: var(--bone);
+    --hatch: var(--bone);
+    --on: var(--void);
+    --bg: transparent;
+    position: relative;
+    display: inline-grid;
+    grid-template-columns: auto;
+    height: var(--h);
+    padding: 0;
+    overflow: hidden;
+    border: 0;
+    border-radius: 0;
+    background: var(--bg);
+    box-shadow: inset 0 0 0 1px var(--line);
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: var(--fs);
+    line-height: 1;
+    letter-spacing: .02em;
+    text-transform: uppercase;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .px-btn:focus-visible { outline: 1px solid var(--signal); outline-offset: 4px; }
+  .px-btn__label { position: relative; z-index: 1; padding: 0 calc(var(--h) * .375); }
+  .px-btn--s { --h: 36px; --fs: 10px; }
+  .px-btn--quiet { --line: var(--void-500); --text: var(--ash-300); --hatch: var(--void-600); --on: var(--bone); }
+  .px-btn--quiet .roll__track > :nth-child(2) { font-weight: 400; }
+  .px-btn[disabled] {
+    --line: var(--void-600);
+    --text: var(--ash-700);
+    cursor: not-allowed;
+    background: repeating-linear-gradient(135deg, transparent 0 5px, var(--void-700) 5px 6px);
+  }
+
+  /* ═══════════════════════════ Header ═══════════════════════════ */
+  .header {
+    position: fixed; inset: 0 0 auto; z-index: 10;
+    height: calc(var(--u) * 4);
+    background: rgba(0, 0, 0, .9);
+    box-shadow: inset 0 -1px 0 var(--void-600);
+  }
+  .header .wrap { display: flex; align-items: center; gap: calc(var(--u) * 3); height: 100%; }
+  .brand { display: flex; align-items: center; gap: var(--u); text-decoration: none; }
+  .brand__mark { display: grid; grid-template-columns: repeat(3, 6px); gap: 1px; }
+  .brand__mark i { width: 6px; height: 6px; background: var(--bone); animation: mark 2.4s steps(1) infinite; }
+  .brand__mark i:nth-child(2n) { background: var(--void-600); }
+  .brand__mark i:nth-child(5) { background: var(--signal); }
+  .brand__mark i:nth-child(1) { animation-delay: -.6s; }
+  .brand__mark i:nth-child(6) { animation-delay: -1.2s; }
+  .brand__mark i:nth-child(8) { animation-delay: -1.8s; }
+  @keyframes mark { 0%, 100% { opacity: 1; } 50% { opacity: .25; } }
+  .nav { display: flex; height: 100%; margin-left: auto; }
+  .nav a {
+    position: relative;
+    display: grid;
+    place-items: center;
+    height: 100%;
+    padding: 0 var(--u);
+    color: var(--ash);
+    text-decoration: none;
+    transition: color var(--dur-cell) linear;
+  }
+  .nav a:hover, .nav a.is-active { color: var(--bone); }
+  .nav__bar { --hatch: var(--signal); position: absolute; inset: auto var(--u) 0; height: 6px; }
+  .header__field { display: flex; align-items: center; gap: var(--u); color: var(--ash); }
+  @media (max-width: 791px) {
+    .nav { display: none; }
+    .header__field { margin-left: auto; }
+  }
+
+  .px-switch {
+    --hatch: var(--signal);
+    position: relative;
+    flex: 0 0 auto;
+    width: 48px;
+    height: 24px;
+    padding: 0;
+    overflow: hidden;
+    border: 0;
+    background: transparent;
+    box-shadow: inset 0 0 0 1px var(--void-500);
+    cursor: pointer;
+  }
+  .px-switch__knob {
+    position: absolute;
+    top: 6px; left: 6px; z-index: 1;
+    width: 12px; height: 12px;
+    background: var(--ash);
+    transition: transform var(--dur-roll) var(--ease-snap), background-color var(--dur-cell) linear;
+  }
+  .px-switch[aria-checked="true"] { box-shadow: inset 0 0 0 1px var(--signal); }
+  .px-switch[aria-checked="true"] .px-switch__knob { transform: translateX(24px); background: var(--void); }
+  .px-switch:focus-visible { outline: 1px solid var(--signal); outline-offset: 3px; }
+
+
+  /* ═══════════════════════════ Colony ═══════════════════════════ */
+  .px-btn:has(> .px-btn__icon) { grid-template-columns: auto var(--h); }
+  .px-btn__icon {
+    position: relative;
+    z-index: 1;
+    width: var(--h);
+    overflow: hidden;
+    font-size: calc(var(--h) * .3);
+  }
+  .px-btn__icon::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    z-index: 2;
+    width: 1px;
+    background: var(--line);
+    transition: background-color var(--dur-roll) var(--ease-snap);
+  }
+  .px-btn--signal { --line: var(--signal); --text: var(--signal); --hatch: var(--signal); }
+  @media (hover: hover) and (pointer: fine) {
+    .px-btn:hover .px-btn__icon::before { background: var(--on); }
+  }
+  .px-btn:focus-visible .px-btn__icon::before,
+  .px-btn.is-pressed .px-btn__icon::before,
+  .px-btn.is-on .px-btn__icon::before { background: var(--on); }
+  [data-arrow="▸"] { --dx: 1; --dy: 0; }
+
+  .px-seg { display: flex; box-shadow: inset 0 0 0 1px var(--void-500); }
+  .px-seg button {
+    --hatch: var(--bone);
+    --on: var(--void);
+    position: relative;
+    flex: 1;
+    height: 36px;
+    padding: 0 var(--u);
+    overflow: hidden;
+    border: 0;
+    background: transparent;
+    color: var(--ash);
+    font-size: 10px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    transition: color 160ms linear, font-weight 160ms steps(1, end);
+  }
+  .px-seg button + button { box-shadow: inset 1px 0 0 var(--void-500); }
+  .px-seg button > span:not(.px-hatch) { position: relative; z-index: 1; }
+  .px-seg button[aria-checked="true"] { color: var(--void); font-weight: 500; transition-delay: 90ms; }
+  .px-seg button:focus-visible { outline: 1px solid var(--signal); outline-offset: 3px; }
+  @media (hover: hover) and (pointer: fine) {
+    .px-seg button:hover { color: var(--bone); }
+    .px-seg button[aria-checked="true"]:hover { color: var(--void); }
+  }
+
+  #colony, #seeds { scroll-margin-top: calc(var(--u) * 6); }
+  .life-grid { align-items: start; }
+  @media (max-width: 1175px) {
+    .life__field, .life__side { grid-column: span 4; }
+  }
+  @media (max-width: 791px) {
+    .life__field, .life__side { grid-column: span 6; }
+  }
+  @media (max-width: 599px) {
+    .life__field, .life__side { grid-column: span 4; }
+  }
+
+  .stack { display: grid; gap: calc(var(--u) * 2); align-content: start; }
+  .sub {
+    display: flex;
+    align-items: center;
+    gap: var(--u);
+    margin: 0;
+    color: var(--ash);
+  }
+  .sub::after { content: ""; flex: 1; height: 1px; background: var(--void-500); }
+  .prose { margin: 0; color: var(--ash-300); text-wrap: pretty; }
+  .hint { margin: 0; text-wrap: pretty; }
+
+  .life-stats { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gap); }
+  .life-stat {
+    display: block;
+    font-size: 32px;
+    line-height: 36px;
+    letter-spacing: -.02em;
+  }
+
+  .board {
+    position: relative;
+    height: calc(var(--u) * 24);
+    margin: calc(var(--u) * 2) calc(var(--u) * -2) calc(var(--u) * -2);
+    touch-action: none;
+    cursor: crosshair;
+    user-select: none;
+  }
+  .board:focus-visible { outline: 1px solid var(--signal); outline-offset: -5px; }
+  .board canvas { display: block; width: 100%; height: 100%; }
+
+  .seeds { display: grid; grid-template-columns: 1fr 1fr; gap: var(--u); }
+  .seed {
+    --line: var(--void-500);
+    --text: var(--ash-300);
+    --hatch: var(--bone);
+    --on: var(--void);
+    position: relative;
+    width: 100%;
+    height: 36px;
+    padding: 0;
+    overflow: hidden;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: inset 0 0 0 1px var(--line);
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    line-height: 12px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .seed > :not(.px-hatch) { position: relative; z-index: 1; height: 100%; }
+  .seed:focus-visible { outline: 1px solid var(--signal); outline-offset: 3px; }
+  .seed.is-on { box-shadow: inset 0 0 0 1px var(--bone-700); }
+  .colophon { margin-top: calc(var(--u) * 4); }
+
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    *, *::before, *::after {
+      animation-duration: 0ms !important;
+      transition-duration: 0ms !important;
+      transition-delay: 0ms !important;
+    }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="field" aria-hidden="true"></canvas>
+
+<header class="header">
+  <div class="wrap">
+    <a class="brand t-label" href="#top">
+      <span class="brand__mark" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+      Pixel/Flow
+    </a>
+    <nav class="nav t-label" aria-label="On this page">
+      <a href="#colony">Field<span class="nav__bar" data-hatch="x" data-hatch-cell="6"></span></a>
+      <a href="#seeds">Seeds<span class="nav__bar" data-hatch="x" data-hatch-cell="6"></span></a>
+    </nav>
+    <label class="header__field t-micro">
+      Field
+      <button class="px-switch" role="switch" aria-checked="true" aria-label="Animate background field" data-hatch="x" data-hatch-cell="6" id="field-toggle"><span class="px-switch__knob"></span></button>
+    </label>
+  </div>
+</header>
+
+<main class="page" id="top">
+  <section id="colony">
+    <div class="wrap">
+      <header class="sec-head" data-quiet>
+        <span class="sec-head__idx">01 /</span>
+        <h1>Colony</h1>
+        <p>Conway's Game of Life on the 12px field. Births arrive in signal, survivors settle to bone, and deaths fall back to ash. The field wraps.</p>
+      </header>
+
+      <div class="grid life-grid">
+        <div class="panel s-8 life__field" data-panel data-snap>
+          <div class="panel__head t-micro"><b>Field</b><span class="num" id="meta">GEN 0 · 0 LIVE</span></div>
+          <div class="row">
+            <button type="button" class="px-btn px-btn--signal" id="run" data-hatch="x" data-hover aria-pressed="false">
+              <span class="px-btn__label" data-roll>Run</span>
+              <span class="px-btn__icon" data-arrow="▸"></span>
+            </button>
+            <button type="button" class="px-btn px-btn--s" id="step" data-hatch="x" data-hover>
+              <span class="px-btn__label" data-roll>Step</span>
+            </button>
+            <button type="button" class="px-btn px-btn--quiet px-btn--s" id="clear" data-hatch="x" data-hover>
+              <span class="px-btn__label" data-roll>Clear</span>
+            </button>
+            <button type="button" class="px-btn px-btn--quiet px-btn--s" id="scatter" data-hatch="x" data-hover>
+              <span class="px-btn__label" data-roll>Scatter</span>
+            </button>
+          </div>
+          <div class="board" id="board" tabindex="0" role="group" aria-label="Life field" aria-describedby="life-hint">
+            <canvas id="life" aria-hidden="true"></canvas>
+          </div>
+        </div>
+
+        <div class="panel s-4 life__side" id="seeds" data-panel data-snap>
+          <div class="panel__head t-micro"><b>Runner</b><span id="run-state">Idle</span></div>
+          <div class="stack">
+            <div class="life-stats">
+              <div>
+                <span class="t-micro muted">Generation</span>
+                <span class="life-stat num" id="gen">0</span>
+              </div>
+              <div>
+                <span class="t-micro muted">Live</span>
+                <span class="life-stat num" id="pop">0</span>
+              </div>
+            </div>
+
+            <div>
+              <p class="sub t-micro">Speed</p>
+              <div class="px-seg" id="speed" role="radiogroup" aria-label="Ticks per second">
+                <button type="button" role="radio" aria-checked="false" data-hatch="entry" data-hatch-cell="6" data-value="4"><span>4</span></button>
+                <button type="button" role="radio" aria-checked="true" data-hatch="entry" data-hatch-cell="6" data-value="8"><span>8</span></button>
+                <button type="button" role="radio" aria-checked="false" data-hatch="entry" data-hatch-cell="6" data-value="16"><span>16</span></button>
+              </div>
+            </div>
+
+            <div>
+              <p class="sub t-micro">Seeds</p>
+              <div class="seeds" id="seed-list">
+                <button type="button" class="seed" data-hatch="x" data-hatch-cell="6" data-hover data-pat="block" aria-pressed="false"><span data-roll>Block</span></button>
+                <button type="button" class="seed" data-hatch="x" data-hatch-cell="6" data-hover data-pat="blinker" aria-pressed="false"><span data-roll>Blinker</span></button>
+                <button type="button" class="seed" data-hatch="x" data-hatch-cell="6" data-hover data-pat="toad" aria-pressed="false"><span data-roll>Toad</span></button>
+                <button type="button" class="seed" data-hatch="x" data-hatch-cell="6" data-hover data-pat="beacon" aria-pressed="false"><span data-roll>Beacon</span></button>
+                <button type="button" class="seed is-on" data-hatch="x" data-hatch-cell="6" data-hover data-pat="glider" aria-pressed="true"><span data-roll>Glider</span></button>
+                <button type="button" class="seed" data-hatch="x" data-hatch-cell="6" data-hover data-pat="ship" aria-pressed="false"><span data-roll>Ship</span></button>
+                <button type="button" class="seed" data-hatch="x" data-hatch-cell="6" data-hover data-pat="pulsar" aria-pressed="false"><span data-roll>Pulsar</span></button>
+                <button type="button" class="seed" data-hatch="x" data-hatch-cell="6" data-hover data-pat="gun" aria-pressed="false"><span data-roll>Gun</span></button>
+              </div>
+            </div>
+
+            <p class="prose">A live cell with two or three neighbours stays. A dead cell with three neighbours is born. Every other cell rests.</p>
+            <p class="hint t-micro muted" id="life-hint">Click or drag the field. Space runs. Period steps. Esc halts. Arrows move. Enter toggles.</p>
+          </div>
+        </div>
+      </div>
+
+      <p class="colophon t-micro muted">Pixel/Flow · void, ash, bone, signal · 12px field</p>
+    </div>
+  </section>
+</main>
+
+<p class="sr-only" id="live" aria-live="polite"></p>
+
+<script>
+(() => {
+  const U = 12;
+  const REDUCE = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const FINE = matchMedia('(hover: hover) and (pointer: fine)').matches;
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+  const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
+  const smooth = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+  const easeOut = (t) => 1 - (1 - t) ** 3;
+  const rnd = Math.random;
+
+  /* ═════════════ Hatch: per-cell delays, one canvas pixel per cell ═════════════ */
+
+  const HATCH_ON = [
+    '.is-on > .px-hatch',
+    '[aria-checked="true"] > .px-hatch',
+    '[aria-selected="true"]:not([role="option"]) > .px-hatch',
+    ':focus-visible > .px-hatch',
+    '.px-xbtn:focus-visible .px-xbtn__panel > .px-hatch',
+    '.px-xbtn.is-open .px-xbtn__panel > .px-hatch',
+    ':root:not([data-focus="grid"]) .px-input__box:focus-within > .px-input__bar > .px-hatch',
+    ':root:not([data-focus="grid"]) .px-dd.is-open .px-input__bar > .px-hatch',
+    '[data-focus="grid"] .px-input__box:focus-within > .px-input__grid > .px-hatch',
+    '[data-focus="grid"] .px-dd.is-open .px-input__grid > .px-hatch',
+    '.px-input.is-error .px-input__bar > .px-hatch',
+    '.nav a.is-active > .nav__bar > .px-hatch',
+    '.px-dialog.is-dimmed > .px-dialog__scrim > .px-hatch',
+    '.px-dialog.is-raised > .px-dialog__panel > .px-hatch',
+    '.px-callout.is-shown > .px-callout__rail > .px-hatch',
+    ...(FINE ? [
+      '[data-hover]:hover > .px-hatch',
+      '.px-xbtn:hover > .px-xbtn__panel > .px-hatch',
+      '.nav a:hover > .nav__bar > .px-hatch',
+    ] : []),
+  ].join(',');
+
+  function bezier(x1, y1, x2, y2) {
+    const N = 256, lut = new Float32Array(N + 1);
+    const at = (a, b, s) => 3 * a * s * (1 - s) ** 2 + 3 * b * s * s * (1 - s) + s ** 3;
+    for (let k = 0, s = 0; k <= N; k++) {
+      while (s < 1 && at(x1, x2, s) < k / N) s += 1 / 4096;
+      lut[k] = at(y1, y2, s);
+    }
+    return (t) => {
+      const f = t * N, k = f | 0;
+      return k >= N ? 1 : lut[k] + (lut[k + 1] - lut[k]) * (f - k);
+    };
+  }
+  const easeCell = bezier(.66, 0, .34, 1);
+
+  const toRGB = (() => {
+    const g = document.createElement('canvas').getContext('2d');
+    return (css) => {
+      g.fillStyle = '#000';
+      g.fillStyle = css;
+      const s = g.fillStyle;
+      if (s[0] === '#') return [1, 3, 5].map((k) => parseInt(s.slice(k, k + 2), 16));
+      return s.match(/[\d.]+/g).slice(0, 3).map(Number);
+    };
+  })();
+  const toMs = (v) => parseFloat(v) * (/[^m]s$/.test(v) ? 1000 : 1);
+
+  function hatchParams(host) {
+    const d = host.dataset;
+    return {
+      mode: d.hatch || 'x',
+      cell: +d.hatchCell || 6,
+      sweep: d.hatchSweep !== undefined ? +d.hatchSweep : null,
+      jitter: d.hatchJitter !== undefined ? +d.hatchJitter : 55,
+      tone: +d.hatchTone || 0,
+      breathe: REDUCE ? 0 : +d.hatchBreathe || 0,
+      // Present (even as "0") means breathing can be switched on later without a rebuild.
+      canBreathe: !REDUCE && d.hatchBreathe !== undefined,
+    };
+  }
+
+  // data-hatch-entry / data-hatch-exit: "x y" in 0–1, the default points for 'entry' mode.
+  const hatchPoint = (v, fallback) => (v ? v.trim().split(/\s+/).map(Number) : fallback);
+
+  function buildHatch(host, force = false) {
+    const p = hatchParams(host);
+    const w = host.offsetWidth;
+    const h = host.offsetHeight;
+    if (!w || !h) return;
+    const cols = Math.max(1, Math.round(w / p.cell));
+    const rows = Math.max(1, Math.round(h / p.cell));
+    let st = host._hatch;
+    if (st && !force && st.cols === cols && st.rows === rows) return;
+
+    let layer = st && st.layer;
+    if (!layer) {
+      layer = document.createElement('span');
+      layer.className = 'px-hatch';
+      layer.setAttribute('aria-hidden', 'true');
+      layer.appendChild(document.createElement('canvas'));
+      host.prepend(layer);
+    }
+    const cv = layer.firstChild;
+    cv.width = cols;
+    cv.height = rows;
+    if (st) hatchLive.delete(st);
+
+    const n = cols * rows;
+    host._hatch = st = {
+      layer, cols, rows,
+      ctx: cv.getContext('2d'),
+      img: new ImageData(cols, rows),
+      tone: Uint8Array.from({ length: n }, () => (p.tone && rnd() < p.tone ? 1 : 0)),
+      from: new Float32Array(n),
+      jIn: Float32Array.from({ length: n }, rnd),
+      jOut: Float32Array.from({ length: n }, rnd),
+      sIn: Float32Array.from({ length: n }, rnd),
+      sOut: Float32Array.from({ length: n }, rnd),
+      entry: hatchPoint(host.dataset.hatchEntry, [0, .5]),
+      exit: hatchPoint(host.dataset.hatchExit, [1, .5]),
+      on: layer.matches(HATCH_ON),
+      group: host.closest('[data-hatch-group]'),
+      t0: -Infinity,
+      // Breathing: each cell dims by up to `breathe` on its own slow cycle (0.25–0.7 Hz, random phase).
+      breathe: p.breathe,
+      bPhase: p.canBreathe ? Float32Array.from({ length: n }, () => rnd() * Math.PI * 2) : null,
+      bRate: p.canBreathe ? Float32Array.from({ length: n }, () => (.25 + rnd() * .45) * Math.PI * 2) : null,
+    };
+    stagger(host);
+    readHatchStyle(st);
+    st.to = st.on ? 1 : st.rest;
+    st.delay = new Float32Array(n);
+    st.len = new Float32Array(n).fill(1);
+    st.quick = new Uint8Array(n);
+    drawHatch(st, 0);
+    const lbl = host.dataset.countTarget && $(host.dataset.countTarget);
+    if (lbl) lbl.textContent = `${n} cells`;
+  }
+
+  function readHatchStyle(st) {
+    const cs = getComputedStyle(st.layer);
+    const css = (k) => cs.getPropertyValue(k).trim();
+    st.ca = toRGB(css('--hatch') || css('--bone'));
+    st.cb = css('--hatch-b') ? toRGB(css('--hatch-b')) : st.ca;
+    st.pa = pressTone(st.ca);
+    st.pb = pressTone(st.cb);
+    paintHatch(st, st.pressed);
+    st.rest = +css('--hatch-rest') || 0;
+    st.durIn = Math.max(1, toMs(css('--px-cell-dur') || css('--dur-cell')));
+  }
+
+  // One tint step: darker for light fills, lighter for near-black ones.
+  function pressTone([r, g, b]) {
+    const lum = (.2126 * r + .7152 * g + .0722 * b) / 255;
+    return lum < .15 ? [r, g, b].map((v) => v + (255 - v) * .1) : [r, g, b].map((v) => v * .85);
+  }
+
+  function paintHatch(st, pressed) {
+    const a = pressed ? st.pa : st.ca, b = pressed ? st.pb : st.cb, d = st.img.data;
+    for (let i = 0, o = 0; i < st.tone.length; i++, o += 4) {
+      const c = st.tone[i] ? b : a;
+      d[o] = c[0]; d[o + 1] = c[1]; d[o + 2] = c[2];
+    }
+  }
+
+  function cellValue(st, i, now) {
+    const p = (now - st.t0 - st.delay[i]) / st.len[i];
+    if (p <= 0) return st.from[i];
+    if (p >= 1) return st.to;
+    return st.from[i] + (st.to - st.from[i]) * (st.quick[i] ? easeOut(p) : easeCell(p));
+  }
+
+  // Release pulse: a square front (Chebyshev distance) runs out from the press point, grading each cell
+  // from the pressed tone back to the fill over PULSE_W cells. Alpha is untouched. Position and radius are
+  // in layer pixels, so every hatch in one control shares a single seamless front.
+  const PULSE_W = 1.5;
+
+  function drawHatch(st, now) {
+    const d = st.img.data, pu = st.pulse;
+    let rad = -1;
+    if (pu) {
+      const p = Math.max(0, (now - pu.t0) / pu.dur);
+      if (p >= 1) { st.pulse = null; paintHatch(st, st.pressed); }
+      else rad = p * (pu.reach + PULSE_W * pu.cell);
+    }
+    for (let r = 0, i = 0, o = 0; r < st.rows; r++) {
+      for (let c = 0; c < st.cols; c++, i++, o += 4) {
+        if (rad >= 0) {
+          const dist = Math.max(Math.abs((c + .5) * pu.cw - pu.x), Math.abs((r + .5) * pu.ch - pu.y));
+          const s = clamp((dist - rad) / (PULSE_W * pu.cell) + .5, 0, 1);
+          const n = st.tone[i] ? st.cb : st.ca, p = st.tone[i] ? pu.fb : pu.fa;
+          d[o] = n[0] + (p[0] - n[0]) * s;
+          d[o + 1] = n[1] + (p[1] - n[1]) * s;
+          d[o + 2] = n[2] + (p[2] - n[2]) * s;
+        }
+        let v = cellValue(st, i, now);
+        if (st.breathe) v *= 1 - st.breathe * (.5 + .5 * Math.sin(now / 1000 * st.bRate[i] + st.bPhase[i]));
+        d[o + 3] = v * 255;
+      }
+    }
+    st.ctx.putImageData(st.img, 0, 0);
+  }
+
+  const hatchLive = new Set();
+  let hatchRaf = 0;
+  function animateHatch(st) {
+    hatchLive.add(st);
+    if (!hatchRaf) hatchRaf = requestAnimationFrame(tickHatches);
+  }
+  function tickHatches(now) {
+    hatchRaf = 0;
+    for (const st of hatchLive) {
+      drawHatch(st, now);
+      if (now >= st.end && !st.pulse && !(st.breathe && st.on)) hatchLive.delete(st);
+    }
+    if (hatchLive.size) hatchRaf = requestAnimationFrame(tickHatches);
+  }
+
+  // Settled cells follow the sweep, starting from the first one that has to move.
+  // Cells caught mid-fade turn around at once, so an interrupted fill reverses without a pause.
+  // A handoff compresses the sweep and fade and eases out, so the new state reads within a frame or two.
+  function setHatchState(st, on, now, handoff = false) {
+    const n = st.from.length, prev = st.to;
+    for (let i = 0; i < n; i++) st.from[i] = cellValue(st, i, now);
+    readHatchStyle(st);
+    st.on = on;
+    const to = st.to = on ? 1 : st.rest;
+    const base = on ? st.dIn : st.dOut;
+    const pace = handoff ? HANDOFF.sweep : 1;
+    const dur = (on ? st.durIn : st.durIn * .8) * (handoff ? HANDOFF.dur : 1);
+    const range = Math.abs(1 - st.rest) || 1;
+    const delay = new Float32Array(n), len = new Float32Array(n), quick = new Uint8Array(n);
+
+    let skip = Infinity;
+    for (let i = 0; i < n; i++) {
+      if (Math.abs(st.from[i] - prev) <= .01 && Math.abs(st.from[i] - to) > .01 && base[i] < skip) skip = base[i];
+    }
+    if (skip === Infinity) skip = 0;
+
+    let span = 0;
+    for (let i = 0; i < n; i++) {
+      const gap = Math.abs(st.from[i] - to);
+      if (gap > .01 && Math.abs(st.from[i] - prev) > .01) {
+        quick[i] = 1;
+        len[i] = dur * clamp(gap / range, .3, 1);
+      } else {
+        delay[i] = Math.max(0, base[i] - skip) * pace;
+        len[i] = dur;
+        quick[i] = handoff ? 1 : 0;
+      }
+      if (delay[i] + len[i] > span) span = delay[i] + len[i];
+    }
+    st.delay = delay; st.len = len; st.quick = quick;
+    st.t0 = REDUCE ? -Infinity : now;
+    st.end = st.t0 + span;
+    animateHatch(st);
+  }
+
+  // Inside a [data-hatch-group], the first hover plays in full. While the group is warm (a member is lit,
+  // or one went dark within WARM ms), moving to another member hands off quickly in both directions.
+  const HANDOFF = { sweep: .15, dur: .45 }, WARM = 300;
+  const groupOffAt = new WeakMap();
+  const hatchHosts = new Set();
+  let hatchSync = 0;
+  function queueHatchSync() { if (!hatchSync) hatchSync = requestAnimationFrame(syncHatches); }
+  function syncHatches(now) {
+    hatchSync = 0;
+    const flips = [], lit = new Set(), entering = new Set();
+    for (const host of hatchHosts) {
+      const st = host._hatch;
+      if (!st) continue;
+      if (st.on && st.group) lit.add(st.group);
+      if ((st.pressed || st.layer.matches(HATCH_ON)) !== st.on) {
+        flips.push(st);
+        if (!st.on && st.group) entering.add(st.group);
+      }
+    }
+    for (const st of flips) {
+      const g = st.group;
+      const warm = g && (st.on ? entering.has(g) : lit.has(g) || now - (groupOffAt.get(g) ?? -Infinity) < WARM);
+      if (g && st.on) groupOffAt.set(g, now);
+      setHatchState(st, !st.on, now, !!warm);
+    }
+  }
+  ['pointerover', 'pointerout', 'focusin', 'focusout'].forEach((t) => document.addEventListener(t, queueHatchSync, { passive: true }));
+
+  /* Press: hover-filled controls snap full in a darker tone while held, then pulse out on release */
+
+  let pressing = null;
+
+  const PRESS_HOSTS = '[data-hover], .px-xbtn__panel, .px-xbtn__icon';
+
+  const hatchesIn = (el, sel) => [...hatchHosts]
+    .filter((h) => h._hatch && el.contains(h) && (!sel || h.matches(sel)))
+    .map((h) => h._hatch);
+
+  // One square front across several hatches, from a viewport point. `ahead(st)` gives the colours the front
+  // replaces; cells it has passed show the hatch's current colours. The farthest reach and finest cell set
+  // its size and speed, so neighbouring hatches share a single seamless edge.
+  function sweepFront(sts, px, py, ahead) {
+    const now = performance.now();
+    const geo = sts.map((st) => {
+      const r = st.layer.getBoundingClientRect();
+      return { st, x: px - r.left, y: py - r.top, w: r.width, h: r.height };
+    });
+    const reach = Math.max(...geo.map((g) => Math.max(g.x, g.w - g.x, g.y, g.h - g.y)));
+    const cell = Math.min(...geo.map((g) => g.w / g.st.cols));
+    const dur = clamp(reach / cell * 14, 160, 320);
+    for (const { st, x, y, w, h } of geo) {
+      const [fa, fb] = ahead(st);
+      st.pulse = { x, y, cw: w / st.cols, ch: h / st.rows, cell, reach, t0: now, dur, fa, fb };
+      animateHatch(st);
+    }
+  }
+
+  // Re-read hatch colours after a style change and wipe the new ones in from the left edge.
+  function recolorHatches(el) {
+    const sts = hatchesIn(el);
+    const shown = new Map(sts.map((st) => [st, st.pulse ? [st.pulse.fa, st.pulse.fb] : [st.ca, st.cb]]));
+    sts.forEach(readHatchStyle);
+    const r = el.getBoundingClientRect();
+    if (!REDUCE) sweepFront(sts, r.left, r.top + r.height / 2, (st) => shown.get(st));
+    sts.forEach((st) => drawHatch(st, performance.now()));
+  }
+
+  function pressControl(ctl, e) {
+    const sts = hatchesIn(ctl, PRESS_HOSTS);
+    if (!sts.length) return;
+    const now = performance.now();
+    const cr = ctl.getBoundingClientRect();
+    const px = e && e.clientX !== undefined ? e.clientX : cr.left + cr.width / 2;
+    const py = e && e.clientY !== undefined ? e.clientY : cr.top + cr.height / 2;
+    for (const st of sts) {
+      st.pressed = true;
+      st.pulse = null;
+      st.on = true;
+      st.from.fill(1);
+      st.to = 1;
+      st.t0 = st.end = -Infinity;
+      paintHatch(st, true);
+      drawHatch(st, now);
+    }
+    ctl.classList.add('is-pressed');
+    pressing = { ctl, sts, px, py };
+  }
+
+  function releaseControl(pulse) {
+    if (!pressing) return;
+    const now = performance.now();
+    const { sts, px, py } = pressing;
+    if (pulse && !REDUCE) sweepFront(sts, px, py, (st) => [st.pa, st.pb]);
+    for (const st of sts) {
+      st.pressed = false;
+      if (!st.pulse) paintHatch(st, false);
+      drawHatch(st, now);
+    }
+    pressing.ctl.classList.remove('is-pressed');
+    pressing = null;
+    queueHatchSync();
+  }
+
+  const pressable = (t) => {
+    const ctl = t instanceof Element && t.closest('a, button');
+    return ctl && !ctl.disabled && ctl.getAttribute('aria-disabled') !== 'true' ? ctl : null;
+  };
+
+  document.addEventListener('pointerdown', (e) => {
+    const ctl = e.button === 0 && pressable(e.target);
+    if (ctl) pressControl(ctl, e);
+  });
+  document.addEventListener('pointerup', (e) => {
+    if (pressing) releaseControl(pressing.ctl.contains(document.elementFromPoint(e.clientX, e.clientY)));
+  });
+  document.addEventListener('pointercancel', () => releaseControl(false));
+  window.addEventListener('blur', () => releaseControl(false));
+
+  // Enter clicks links and buttons; Space only clicks buttons.
+  const pressKey = (e) => e.key === 'Enter' || (e.key === ' ' && e.target instanceof HTMLButtonElement);
+  document.addEventListener('keydown', (e) => {
+    const ctl = !e.repeat && !pressing && pressKey(e) && pressable(e.target);
+    if (ctl) pressControl(ctl, null);
+  });
+  document.addEventListener('keyup', (e) => { if (pressing && pressKey(e)) releaseControl(true); });
+  new MutationObserver(queueHatchSync).observe(document.body, {
+    subtree: true, attributes: true, attributeFilter: ['class', 'aria-checked', 'aria-selected'],
+  });
+
+  // Shifts delays so the earliest cell starts at once.
+  function lead(d) {
+    let lo = Infinity;
+    for (let i = 0; i < d.length; i++) if (d[i] < lo) lo = d[i];
+    for (let i = 0; i < d.length; i++) d[i] -= lo;
+    return d;
+  }
+
+  // phase: 'both' | 'in' | 'out'
+  function stagger(host, phase = 'both') {
+    const st = host._hatch;
+    if (!st) return;
+    const p = hatchParams(host);
+    const { cols, rows } = st;
+    const dIn = new Float32Array(cols * rows), dOut = new Float32Array(cols * rows);
+    const steps = p.mode === 'x' ? cols : p.mode === 'y' ? rows : Math.hypot(cols, rows) * .7;
+    const sweep = p.sweep !== null ? p.sweep : clamp(steps * 7, 120, 520);
+    const jit = p.jitter;
+    const cx = (cols - 1) / 2, cy = (rows - 1) / 2;
+    const maxC = Math.hypot(cx, cy) || 1;
+    const ex = st.entry[0] * (cols - 1), ey = st.entry[1] * (rows - 1);
+    const qx = st.exit[0] * (cols - 1), qy = st.exit[1] * (rows - 1);
+    const maxE = Math.max(Math.hypot(ex, ey), Math.hypot(cols - 1 - ex, ey), Math.hypot(ex, rows - 1 - ey), Math.hypot(cols - 1 - ex, rows - 1 - ey)) || 1;
+    const maxQ = Math.max(Math.hypot(qx, qy), Math.hypot(cols - 1 - qx, qy), Math.hypot(qx, rows - 1 - qy), Math.hypot(cols - 1 - qx, rows - 1 - qy)) || 1;
+
+    for (let r = 0, i = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++, i++) {
+        const nx = cols > 1 ? c / (cols - 1) : 0;
+        const ny = rows > 1 ? r / (rows - 1) : 0;
+        let tIn, tOut;
+        switch (p.mode) {
+          case 'y': tIn = ny; tOut = 1 - ny; break;
+          case 'diag': tIn = (nx + ny) / 2; tOut = 1 - tIn; break;
+          case 'center': tIn = Math.hypot(c - cx, r - cy) / maxC; tOut = 1 - tIn; break;
+          case 'scatter': tIn = st.sIn[i]; tOut = st.sOut[i]; break;
+          case 'entry':
+            tIn = Math.hypot(c - ex, r - ey) / maxE;
+            tOut = 1 - Math.hypot(c - qx, r - qy) / maxQ;
+            break;
+          default: tIn = nx; tOut = 1 - nx;
+        }
+        dIn[i] = tIn * sweep + st.jIn[i] * jit;
+        dOut[i] = (tOut * sweep + st.jOut[i] * jit) * .78;
+      }
+    }
+    if (phase !== 'out') st.dIn = lead(dIn);
+    if (phase !== 'in') st.dOut = lead(dOut);
+  }
+
+  function localPoint(host, e) {
+    const r = host.getBoundingClientRect();
+    return [clamp((e.clientX - r.left) / r.width, 0, 1), clamp((e.clientY - r.top) / r.height, 0, 1)];
+  }
+
+  function setEntry(host, pt) { if (host._hatch) { host._hatch.entry = pt; stagger(host, 'in'); } }
+  function setExit(host, pt) { if (host._hatch) { host._hatch.exit = pt; stagger(host, 'out'); } }
+
+  const hatchRO = new ResizeObserver((entries) => entries.forEach((e) => buildHatch(e.target)));
+
+  function initHatch(host) {
+    buildHatch(host);
+    hatchHosts.add(host);
+    hatchRO.observe(host);
+    host.addEventListener('pointerenter', (e) => {
+      if (hatchParams(host).mode === 'entry' && host.dataset.hover !== undefined) setEntry(host, localPoint(host, e));
+    });
+    host.addEventListener('pointerleave', (e) => {
+      if (hatchParams(host).mode === 'entry' && host.dataset.hover !== undefined) setExit(host, localPoint(host, e));
+    });
+  }
+
+  /* ═════════════ Roll labels + arrows ═════════════ */
+
+  $$('[data-roll]').forEach((el) => {
+    const text = el.textContent.trim();
+    el.textContent = '';
+    el.classList.add('roll');
+    const track = document.createElement('span');
+    track.className = 'roll__track';
+    const a = document.createElement('span');
+    a.textContent = text;
+    const b = a.cloneNode(true);
+    b.setAttribute('aria-hidden', 'true');
+    track.append(a, b);
+    el.append(track);
+  });
+
+  $$('[data-arrow]').forEach((el) => {
+    const ch = el.dataset.arrow;
+    const track = document.createElement('span');
+    track.className = 'arrow';
+    track.setAttribute('aria-hidden', 'true');
+    track.innerHTML = `<span>${ch}</span><span>${ch}</span>`;
+    el.append(track);
+  });
+  $$('[data-hatch]').forEach(initHatch);
+
+  /* ═════════════ Snap surfaces to whole units ═════════════ */
+
+  const snapRO = new ResizeObserver((entries) => {
+    for (const e of entries) {
+      const el = e.target;
+      const h = e.borderBoxSize ? e.borderBoxSize[0].blockSize : el.offsetHeight;
+      const s = Math.ceil(h / U - .01) * U;
+      if (Math.abs(s - h) > .5) el.style.minHeight = `${s}px`;
+    }
+    Field.relayout();
+  });
+
+  // Hidden buttons (in a closed dialog) measure 0 and are left alone until they're shown.
+  function snapButtons(root = document) {
+    $$('.px-btn', root).forEach((b) => {
+      b.style.width = '';
+      const w = b.offsetWidth;
+      if (w) b.style.width = `${Math.ceil(w / U - .01) * U}px`;
+    });
+  }
+
+  /* ═════════════ Field: page-wide pixel grid ═════════════ */
+
+  const Field = (() => {
+    const cv = $('#field');
+    const ctx = cv.getContext('2d', { alpha: false });
+    const HEADER = 48;
+    const REST = 2;
+    const MAX = U - 3;
+    const COLORS = [
+      '#1a1a19', '#242423', '#313130', '#434343', '#5a5a5b', '#b9b3a7', '#ece5d8',
+      '#4a1d0c', '#8f3515', '#e85622', '#ff8757',
+    ];
+    const NB = COLORS.length;
+
+    let dpr = 1, vw = 0, vh = 0, ox = 0, cols = 0, rows = 0;
+    let mask = new Float32Array(0), heat = new Float32Array(0), heatR0 = Infinity, heatR1 = -1;
+    let gCov = new Float32Array(0), gDelay = new Float32Array(0), gId = new Uint8Array(0);
+    const glyphs = [];
+    let bufs = [], counts = new Int32Array(NB);
+    let running = !REDUCE, dirty = true, tBase = 0, tFrom = performance.now();
+    const ptr = { x: 0, y: 0, lx: null, ly: null, on: false };
+    const ripples = [];
+
+    // Value noise
+    const P = new Uint8Array(512);
+    {
+      const p = Array.from({ length: 256 }, (_, i) => i);
+      for (let i = 255; i > 0; i--) { const j = (rnd() * (i + 1)) | 0; [p[i], p[j]] = [p[j], p[i]]; }
+      for (let i = 0; i < 512; i++) P[i] = p[i & 255];
+    }
+    const G = Float32Array.from({ length: 256 }, rnd);
+    function vnoise(x, y) {
+      const xi = Math.floor(x), yi = Math.floor(y);
+      const xf = x - xi, yf = y - yi;
+      const X = xi & 255, Y = yi & 255;
+      const a = G[P[P[X] + Y]], b = G[P[P[X + 1] + Y]];
+      const c = G[P[P[X] + Y + 1]], d = G[P[P[X + 1] + Y + 1]];
+      const u = xf * xf * (3 - 2 * xf), v = yf * yf * (3 - 2 * yf);
+      return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v;
+    }
+    // Domain warp is separable: x shifts by a per-row sine, y by a per-column cosine.
+    let colWarp = new Float32Array(0);
+    const rowWarp = (r, t) => .9 * Math.sin(r * .085 * .9 + t * .35);
+    function warpCols(t) {
+      if (colWarp.length !== cols) colWarp = new Float32Array(cols);
+      for (let c = 0; c < cols; c++) colWarp[c] = .9 * Math.cos(c * .085 * .7 - t * .28);
+    }
+    function flow(c, r, t, rw) {
+      const wx = c * .085 + rw, wy = r * .085 + colWarp[c];
+      return .62 * vnoise(wx + t * .11, wy - t * .07) + .38 * vnoise(wx * 2.1 - t * .19, wy * 2.1 + t * .13);
+    }
+
+    function rasterize(lines, gc, gr, align, stroke = 0) {
+      const S = 6, W = gc * S, H = gr * S;
+      const c = document.createElement('canvas');
+      c.width = W; c.height = H;
+      const g = c.getContext('2d', { willReadFrequently: true });
+      const font = (fs) => `700 ${fs}px "Helvetica Neue", Helvetica, Arial, sans-serif`;
+      const gap = .22;
+      g.font = font(100);
+      let asc = 0, desc = 0, wid = 0;
+      for (const l of lines) {
+        const m = g.measureText(l);
+        asc = Math.max(asc, m.actualBoundingBoxAscent);
+        desc = Math.max(desc, m.actualBoundingBoxDescent);
+        wid = Math.max(wid, m.actualBoundingBoxLeft + m.actualBoundingBoxRight);
+      }
+      const lineH = asc + desc;
+      const blockH = lines.length * lineH + (lines.length - 1) * gap * 100;
+      const fs = 100 * Math.min((H * .96) / blockH, (W * .995) / wid);
+      const k = fs / 100;
+      g.font = font(fs);
+      g.fillStyle = g.strokeStyle = '#fff';
+      g.lineWidth = fs * stroke;
+      g.lineJoin = 'miter';
+      g.textBaseline = 'alphabetic';
+      let y = (H - blockH * k) / 2 + asc * k;
+      for (const l of lines) {
+        const m = g.measureText(l);
+        const lw = m.actualBoundingBoxLeft + m.actualBoundingBoxRight;
+        const x = (align === 'center' ? (W - lw) / 2 : 0) + m.actualBoundingBoxLeft;
+        g.fillText(l, x, y);
+        if (stroke) g.strokeText(l, x, y);
+        y += (lineH + gap * 100) * k;
+      }
+      const data = g.getImageData(0, 0, W, H).data;
+      const out = new Float32Array(gc * gr);
+      for (let r = 0; r < gr; r++) {
+        for (let cc = 0; cc < gc; cc++) {
+          let sum = 0;
+          for (let yy = 0; yy < S; yy++) {
+            let o = ((r * S + yy) * W + cc * S) * 4 + 3;
+            for (let xx = 0; xx < S; xx++, o += 4) sum += data[o];
+          }
+          const cov = sum / (S * S * 255);
+          out[r * gc + cc] = cov > .5 ? 1 : cov > .14 ? cov * 1.3 : 0;
+        }
+      }
+      return out;
+    }
+
+    function relayout() {
+      clearTimeout(relayout.t);
+      relayout.t = setTimeout(doLayout, 60);
+    }
+
+    function doLayout() {
+      dpr = Math.min(2, window.devicePixelRatio || 1);
+      vw = document.documentElement.clientWidth;
+      vh = window.innerHeight;
+      cv.width = Math.round(vw * dpr);
+      cv.height = Math.round(vh * dpr);
+
+      const wrap = $('.wrap');
+      ox = ((wrap.getBoundingClientRect().left % U) + U) % U;
+      cols = Math.ceil((vw - ox) / U) + 2;
+      rows = Math.ceil(document.documentElement.scrollHeight / U) + 2;
+      const n = cols * rows;
+      if (mask.length !== n) {
+        mask = new Float32Array(n);
+        heat = new Float32Array(n);
+        gCov = new Float32Array(n);
+        gDelay = new Float32Array(n);
+        gId = new Uint8Array(n);
+      } else {
+        mask.fill(0); heat.fill(0); gCov.fill(0); gId.fill(0);
+      }
+      heatR0 = Infinity; heatR1 = -1;
+
+      const vis = (Math.ceil(vh / U) + 3) * cols;
+      if (!bufs[0] || bufs[0].length < vis * 3) bufs = COLORS.map(() => new Float32Array(vis * 3));
+
+      const sy = window.scrollY;
+      const toCell = (el) => {
+        const r = el.getBoundingClientRect();
+        return {
+          c0: Math.round((r.left - (ox - U)) / U),
+          c1: Math.round((r.right - (ox - U)) / U),
+          r0: Math.round((r.top + sy) / U),
+          r1: Math.round((r.bottom + sy) / U),
+        };
+      };
+
+      const F = 2;
+      $$('[data-panel], [data-quiet]').forEach((el) => {
+        const { c0, c1, r0, r1 } = toCell(el);
+        const top = el.dataset.quiet !== undefined ? +el.dataset.quiet || .85 : 1;
+        for (let r = Math.max(0, r0 - F); r < Math.min(rows, r1 + F); r++) {
+          const dy = r < r0 ? r0 - r : r >= r1 ? r - r1 + 1 : 0;
+          for (let c = Math.max(0, c0 - F); c < Math.min(cols, c1 + F); c++) {
+            const dx = c < c0 ? c0 - c : c >= c1 ? c - c1 + 1 : 0;
+            const d = Math.max(dx, dy);
+            const v = top * (d === 0 ? 1 : 1 - d / (F + 1));
+            const i = r * cols + c;
+            if (v > mask[i]) mask[i] = v;
+          }
+        }
+      });
+
+      $$('[data-glyph]').forEach((el, gi) => {
+        const { c0, c1, r0, r1 } = toCell(el);
+        const gc = c1 - c0, gr = r1 - r0;
+        if (gc < 2 || gr < 2) return;
+        const alt = el.dataset.glyphAlt;
+        const text = alt && gc < 90 ? alt : el.dataset.glyph;
+        const cov = rasterize(text.split('|'), gc, gr, el.dataset.glyphAlign, +el.dataset.glyphStroke || 0);
+        const mk = +el.dataset.glyphMask || 0;
+        if (!glyphs[gi]) glyphs[gi] = { el, start: REDUCE ? -1e9 : NaN };
+        glyphs[gi].el = el;
+        for (let r = 0; r < gr; r++) {
+          const rr = r0 + r;
+          if (rr < 0 || rr >= rows) continue;
+          for (let c = 0; c < gc; c++) {
+            const cc = c0 + c;
+            if (cc < 0 || cc >= cols) continue;
+            const i = rr * cols + cc;
+            if (mk > mask[i]) mask[i] = mk;
+            const v = cov[r * gc + c];
+            if (v > 0) {
+              gCov[i] = v;
+              gId[i] = gi + 1;
+              gDelay[i] = (c / gc) * 900 + (r / gr) * 120 + rnd() * 320;
+            }
+          }
+        }
+      });
+      glyphIO.disconnect();
+      glyphs.forEach((g) => g && glyphIO.observe(g.el));
+      dirty = true;
+    }
+
+    const glyphIO = new IntersectionObserver((entries) => {
+      entries.forEach((e) => {
+        if (!e.isIntersecting) return;
+        const g = glyphs.find((x) => x && x.el === e.target);
+        if (g && Number.isNaN(g.start)) g.start = performance.now() + 150;
+      });
+    }, { threshold: .35 });
+
+    function stamp(xDoc, yDoc, R, s) {
+      const cc = (xDoc - (ox - U)) / U - .5;
+      const rr = yDoc / U - .5;
+      const c0 = Math.max(0, Math.floor(cc - R)), c1 = Math.min(cols - 1, Math.ceil(cc + R));
+      const r0 = Math.max(0, Math.floor(rr - R)), r1 = Math.min(rows - 1, Math.ceil(rr + R));
+      if (r0 < heatR0) heatR0 = r0;
+      if (r1 > heatR1) heatR1 = r1;
+      for (let r = r0; r <= r1; r++) {
+        for (let c = c0; c <= c1; c++) {
+          const d = Math.hypot(c - cc, r - rr);
+          if (d >= R) continue;
+          const v = s * (1 - d / R) ** 1.6;
+          const i = r * cols + c;
+          if (v > heat[i]) heat[i] = v;
+        }
+      }
+    }
+
+    function frame(now) {
+      requestAnimationFrame(frame);
+      const active = running || ripples.length || ptr.on;
+      if (!active && !dirty && !glyphs.some((g) => g && now - g.start < 2500)) return;
+      dirty = false;
+
+      const t = running ? tBase + (now - tFrom) / 1000 : tBase;
+      const sy = window.scrollY;
+
+      if (ptr.on && FINE && !REDUCE) {
+        const x = ptr.x, y = ptr.y + sy;
+        const lx = ptr.lx ?? x, ly = ptr.ly ?? y;
+        const dist = Math.hypot(x - lx, y - ly);
+        const R = 4.2 + Math.min(3, dist / 30);
+        const s = clamp(.42 + dist / 60, .42, 1);
+        const steps = Math.max(1, Math.ceil(dist / (U * 1.5)));
+        for (let k = 1; k <= steps; k++) stamp(lx + (x - lx) * k / steps, ly + (y - ly) * k / steps, R, s);
+        ptr.lx = x; ptr.ly = y;
+      }
+
+      for (let k = ripples.length - 1; k >= 0; k--) if (now - ripples[k].t > 1400) ripples.splice(k, 1);
+
+      ctx.fillStyle = '#000';
+      ctx.fillRect(0, 0, cv.width, cv.height);
+      counts.fill(0);
+
+      warpCols(t);
+      const r0 = Math.max(0, Math.floor(sy / U)), r1 = Math.min(rows - 1, Math.ceil((sy + vh) / U));
+      for (let r = r0; r <= r1; r++) {
+        const y = r * U - sy;
+        if (y + U <= HEADER) continue;
+        const yc = r * U + U / 2;
+        const rw = rowWarp(r, t);
+        for (let c = 0; c < cols; c++) {
+          const i = r * cols + c;
+          const x = ox - U + c * U;
+          const m = mask[i];
+          const n = flow(c, r, t, rw);
+          let v = smooth(.5, .92, n) * (1 - m * .95);
+          let size = REST + (MAX - REST) * v;
+          let b = v < .06 ? 0 : v < .25 ? 1 : v < .5 ? 2 : v < .78 ? 3 : 4;
+
+          const g = gCov[i];
+          if (g > 0) {
+            const gs0 = glyphs[gId[i] - 1].start;
+            if (gs0 === gs0) {
+              const p = clamp((now - gs0 - gDelay[i]) / 420, 0, 1);
+              if (p > 0) {
+                const gv = g * easeOut(p);
+                const gs = REST + (MAX - REST) * gv * (.84 + .16 * n);
+                if (gs > size) {
+                  size = gs;
+                  b = p < .7 ? 9 : gv > .8 ? 6 : gv > .45 ? 5 : 3;
+                }
+              }
+            }
+          }
+
+          let h = heat[i];
+          if (ripples.length) {
+            const xc = x + U / 2;
+            for (const rp of ripples) {
+              const age = (now - rp.t) / 1000;
+              const rad = age * 640;
+              const d = Math.hypot(xc - rp.x, yc - rp.y);
+              const k = Math.exp(-(((d - rad) / 34) ** 2)) * (1 - age / 1.4);
+              if (k > h) h = k;
+            }
+          }
+          h *= 1 - m * .82;
+          if (h > .12) {
+            size += (MAX - size) * Math.min(1, h * 1.15);
+            const hb = h > .8 ? 10 : h > .55 ? 9 : h > .32 ? 8 : 7;
+            if (b < 5 || hb >= 9) b = hb;
+          }
+
+          const sd = Math.max(1, Math.round(size * dpr));
+          const bf = bufs[b];
+          const k3 = counts[b]++ * 3;
+          bf[k3] = Math.round((x + U / 2) * dpr - sd / 2);
+          bf[k3 + 1] = Math.round((y + U / 2) * dpr - sd / 2);
+          bf[k3 + 2] = sd;
+        }
+      }
+
+      for (let b = 0; b < NB; b++) {
+        const cnt = counts[b];
+        if (!cnt) continue;
+        const bf = bufs[b];
+        ctx.fillStyle = COLORS[b];
+        ctx.beginPath();
+        for (let k = 0; k < cnt; k++) { const o = k * 3; ctx.rect(bf[o], bf[o + 1], bf[o + 2], bf[o + 2]); }
+        ctx.fill();
+      }
+
+      if (heatR1 >= heatR0) {
+        let live = false;
+        for (let i = heatR0 * cols, e = (heatR1 + 1) * cols; i < e; i++) {
+          if (heat[i] > .001) { heat[i] *= .9; live = true; } else heat[i] = 0;
+        }
+        if (!live) { heatR0 = Infinity; heatR1 = -1; }
+      }
+    }
+
+    window.addEventListener('pointermove', (e) => {
+      if (e.pointerType !== 'mouse' && e.pointerType !== 'pen') return;
+      ptr.x = e.clientX; ptr.y = e.clientY;
+      if (!ptr.on) { ptr.lx = null; ptr.ly = null; }
+      ptr.on = true;
+    }, { passive: true });
+    document.addEventListener('pointerleave', () => { ptr.on = false; });
+    window.addEventListener('blur', () => { ptr.on = false; });
+    window.addEventListener('pointerdown', (e) => {
+      if (REDUCE || e.target.closest('a, button, input, label, [data-panel], .header, .px-toast, .px-dialog')) return;
+      ripples.push({ x: e.clientX, y: e.clientY + window.scrollY, t: performance.now() });
+      if (ripples.length > 4) ripples.shift();
+    });
+    window.addEventListener('scroll', () => { dirty = true; }, { passive: true });
+    window.addEventListener('resize', () => {
+      $$('[data-snap]').forEach((el) => { el.style.minHeight = ''; });
+      snapButtons();
+      relayout();
+    });
+
+    function setRunning(on) {
+      if (on === running) return;
+      const now = performance.now();
+      if (running) tBase += (now - tFrom) / 1000;
+      tFrom = now;
+      running = on;
+      dirty = true;
+    }
+
+    doLayout();
+    requestAnimationFrame(frame);
+    return { relayout, setRunning, get running() { return running; } };
+  })();
+
+  $$('[data-snap]').forEach((el) => snapRO.observe(el));
+  document.fonts && document.fonts.ready.then(() => { snapButtons(); Field.relayout(); });
+  snapButtons();
+
+  /* ═════════════ Switch · checkbox · segments ═════════════ */
+
+  function toggleAria(el) {
+    const on = el.getAttribute('aria-checked') !== 'true';
+    el.setAttribute('aria-checked', String(on));
+    el.dispatchEvent(new CustomEvent('px:change', { detail: on }));
+  }
+
+  $$('.px-switch, .px-check').forEach((el) => {
+    el.addEventListener('click', (e) => { e.preventDefault(); toggleAria(el); });
+  });
+
+  $$('.opt').forEach((opt) => {
+    opt.addEventListener('click', (e) => {
+      if (e.target.closest('button')) return;
+      const ctl = $('.px-switch, .px-check', opt);
+      if (ctl) { e.preventDefault(); toggleAria(ctl); ctl.focus({ preventScroll: true }); }
+    });
+  });
+
+  $('#field-toggle').addEventListener('px:change', (e) => Field.setRunning(e.detail));
+  if (REDUCE) $('#field-toggle').setAttribute('aria-checked', 'false');
+
+  /* ═════════════ Colony ═════════════ */
+
+  const ROWS = 24;
+  const PITCH = 12;
+  const board = $('#board');
+  const canvas = $('#life');
+  const runBtn = $('#run');
+  const runLabel = $('.px-btn__label', runBtn);
+  const stateEl = $('#run-state');
+  const live = $('#live');
+
+  let cols = 0;
+  let rows = 0;
+  let cur = null;
+  let born = null;
+  let died = null;
+  let gen = 0;
+  let running = false;
+  let tps = 8;
+  let acc = 0;
+  let last = performance.now();
+  let lastAnnounce = 0;
+  let dirty = true;
+  let hover = -1;
+  let painting = null;
+  let cursor = { x: 0, y: 0 };
+  const ctx = canvas.getContext('2d');
+
+  function parsePattern(text) {
+    const lines = text.trim().split('\n');
+    const pts = [];
+    lines.forEach((line, y) => {
+      for (let x = 0; x < line.length; x++) if (line[x] === 'X') pts.push([x, y]);
+    });
+    return pts;
+  }
+
+  const PATTERNS = {
+    block: parsePattern(`
+XX
+XX`),
+    blinker: parsePattern(`XXX`),
+    toad: parsePattern(`
+.XXX
+XXX.`),
+    beacon: parsePattern(`
+XX..
+XX..
+..XX
+..XX`),
+    glider: parsePattern(`
+.X.
+..X
+XXX`),
+    ship: parsePattern(`
+.X..X
+X....
+X...X
+XXXX.`),
+    pulsar: parsePattern(`
+..XXX...XXX..
+.............
+X....X.X....X
+X....X.X....X
+X....X.X....X
+..XXX...XXX..
+.............
+..XXX...XXX..
+X....X.X....X
+X....X.X....X
+X....X.X....X
+.............
+..XXX...XXX..`),
+    gun: parsePattern(`
+........................X...........
+......................X.X...........
+............XX......XX............XX
+...........X...X....XX............XX
+XX........X.....X...XX..............
+XX........X...X.XX....X.X...........
+..........X.....X.......X...........
+...........X...X....................
+............XX......................`),
+  };
+
+  function setRoll(el, text) {
+    el.querySelectorAll('.roll__track > span').forEach((s) => { s.textContent = text; });
+  }
+
+  function popCount() {
+    let n = 0;
+    for (let i = 0; i < cur.length; i++) n += cur[i];
+    return n;
+  }
+
+  function announce() {
+    live.textContent = `Generation ${gen}, ${popCount()} live.`;
+  }
+
+  function syncRun(status) {
+    runBtn.classList.toggle('is-on', running);
+    runBtn.setAttribute('aria-pressed', running ? 'true' : 'false');
+    setRoll(runLabel, running ? 'Halt' : 'Run');
+    stateEl.textContent = status || (running ? 'Running' : 'Idle');
+    stateEl.classList.toggle('signal', status === 'Extinct');
+  }
+
+  function halt(status) {
+    running = false;
+    acc = 0;
+    syncRun(status || 'Idle');
+    announce();
+    dirty = true;
+  }
+
+  function start() {
+    if (!popCount()) { halt('Extinct'); return; }
+    running = true;
+    syncRun('Running');
+    lastAnnounce = performance.now();
+    acc = 0;
+  }
+
+  function toggleRun() { running ? halt() : start(); }
+
+  function selectSeed(name) {
+    $$('.seed').forEach((b) => {
+      const on = b.dataset.pat === name;
+      b.classList.toggle('is-on', on);
+      b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+  }
+
+  function write(points, name, origin) {
+    running = false;
+    acc = 0;
+    syncRun('Idle');
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (const [x, y] of points) {
+      if (x < minX) minX = x;
+      if (y < minY) minY = y;
+      if (x > maxX) maxX = x;
+      if (y > maxY) maxY = y;
+    }
+    const w = maxX - minX + 1;
+    const h = maxY - minY + 1;
+    const ox = origin ? origin[0] - minX : Math.floor((cols - w) / 2) - minX;
+    const oy = origin ? origin[1] - minY : Math.floor((rows - h) / 2) - minY;
+    const next = new Uint8Array(cols * rows);
+    born = new Uint8Array(cols * rows);
+    died = new Uint8Array(cols * rows);
+    for (let i = 0; i < cur.length; i++) if (cur[i]) died[i] = 1;
+    for (const [x, y] of points) {
+      const xx = (x + ox) % cols;
+      const yy = (y + oy) % rows;
+      if (xx < 0 || yy < 0) continue;
+      const i = yy * cols + xx;
+      next[i] = 1;
+      born[i] = 1;
+      died[i] = 0;
+    }
+    cur = next;
+    gen = 0;
+    selectSeed(name);
+    dirty = true;
+    announce();
+  }
+
+  function load(name) {
+    const pts = PATTERNS[name];
+    if (name === 'gun' && pts.length) {
+      let maxX = 0, maxY = 0;
+      for (const [x, y] of pts) { if (x > maxX) maxX = x; if (y > maxY) maxY = y; }
+      if (maxX + 4 < cols && maxY + 4 < rows) { write(pts, name, [2, 2]); return; }
+    }
+    write(pts, name, null);
+  }
+
+  function scatter() {
+    running = false;
+    acc = 0;
+    syncRun('Idle');
+    const next = new Uint8Array(cols * rows);
+    born = new Uint8Array(cols * rows);
+    died = new Uint8Array(cols * rows);
+    for (let i = 0; i < next.length; i++) {
+      if (cur[i]) died[i] = 1;
+      if (Math.random() < .22) { next[i] = 1; born[i] = 1; died[i] = 0; }
+    }
+    cur = next;
+    gen = 0;
+    selectSeed(null);
+    dirty = true;
+    announce();
+  }
+
+  function clearField() {
+    running = false;
+    acc = 0;
+    syncRun('Idle');
+    born = new Uint8Array(cols * rows);
+    died = new Uint8Array(cols * rows);
+    for (let i = 0; i < cur.length; i++) if (cur[i]) died[i] = 1;
+    cur = new Uint8Array(cols * rows);
+    gen = 0;
+    selectSeed(null);
+    dirty = true;
+    announce();
+  }
+
+  function stepLife() {
+    const next = new Uint8Array(cur.length);
+    const nb = born;
+    const nd = died;
+    nb.fill(0);
+    nd.fill(0);
+    let pop = 0;
+    for (let y = 0; y < rows; y++) {
+      const y0 = (y + rows - 1) % rows;
+      const y1 = (y + 1) % rows;
+      for (let x = 0; x < cols; x++) {
+        const x0 = (x + cols - 1) % cols;
+        const x1 = (x + 1) % cols;
+        const n =
+          cur[y0 * cols + x0] + cur[y0 * cols + x] + cur[y0 * cols + x1] +
+          cur[y * cols + x0] + cur[y * cols + x1] +
+          cur[y1 * cols + x0] + cur[y1 * cols + x] + cur[y1 * cols + x1];
+        const i = y * cols + x;
+        const on = cur[i] ? (n === 2 || n === 3) : n === 3;
+        next[i] = on ? 1 : 0;
+        if (on && !cur[i]) nb[i] = 1;
+        else if (!on && cur[i]) nd[i] = 1;
+        pop += next[i];
+      }
+    }
+    cur = next;
+    gen += 1;
+    return pop;
+  }
+
+  function stepOnce() {
+    if (!popCount()) { halt('Extinct'); return; }
+    const pop = stepLife();
+    dirty = true;
+    if (!pop) halt('Extinct');
+    else announce();
+  }
+
+  function layout() {
+    const w = board.clientWidth;
+    if (!w) return;
+    const nc = Math.max(12, Math.floor(w / PITCH));
+    const nr = ROWS;
+    if (nc === cols && nr === rows) { dirty = true; return; }
+    const next = new Uint8Array(nc * nr);
+    if (cur) {
+      const ox = Math.floor((nc - cols) / 2);
+      const oy = Math.floor((nr - rows) / 2);
+      for (let y = 0; y < rows; y++) {
+        for (let x = 0; x < cols; x++) {
+          if (!cur[y * cols + x]) continue;
+          const nx = x + ox, ny = y + oy;
+          if (nx >= 0 && ny >= 0 && nx < nc && ny < nr) next[ny * nc + nx] = 1;
+        }
+      }
+    }
+    cols = nc;
+    rows = nr;
+    cur = next;
+    born = new Uint8Array(nc * nr);
+    died = new Uint8Array(nc * nr);
+    cursor.x = Math.min(cursor.x, nc - 1);
+    cursor.y = Math.min(cursor.y, nr - 1);
+    hover = -1;
+    dirty = true;
+  }
+
+  function cellAt(e) {
+    const r = canvas.getBoundingClientRect();
+    const x = e.clientX - r.left;
+    const y = e.clientY - r.top;
+    const ox = Math.floor((r.width - cols * PITCH) / 2);
+    const cx = Math.floor((x - ox) / PITCH);
+    const cy = Math.floor(y / PITCH);
+    if (cx < 0 || cy < 0 || cx >= cols || cy >= rows) return -1;
+    return cy * cols + cx;
+  }
+
+  function paint(i) {
+    if (i < 0 || cur[i] === painting) return;
+    if (painting) { cur[i] = 1; born[i] = 1; died[i] = 0; }
+    else { cur[i] = 0; born[i] = 0; died[i] = 1; }
+    selectSeed(null);
+    dirty = true;
+  }
+
+  function draw() {
+    const dpr = Math.min(2, devicePixelRatio || 1);
+    const w = board.clientWidth;
+    const h = rows * PITCH;
+    const bw = Math.round(w * dpr);
+    const bh = Math.round(h * dpr);
+    if (canvas.width !== bw || canvas.height !== bh) {
+      canvas.width = bw;
+      canvas.height = bh;
+    }
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, bw, bh);
+    const ox = Math.floor((w - cols * PITCH) / 2);
+    const rest = new Path2D();
+    const dead = new Path2D();
+    const live = new Path2D();
+    const birth = new Path2D();
+    const mark = (path, x, y, size) => {
+      const sd = Math.max(1, Math.round(size * dpr));
+      path.rect(Math.round(x * dpr - sd / 2), Math.round(y * dpr - sd / 2), sd, sd);
+    };
+    for (let y = 0; y < rows; y++) {
+      for (let x = 0; x < cols; x++) {
+        const i = y * cols + x;
+        const cx = ox + x * PITCH + PITCH / 2;
+        const cy = y * PITCH + PITCH / 2;
+        if (born[i]) mark(birth, cx, cy, 9);
+        else if (cur[i]) mark(live, cx, cy, 8);
+        else if (died[i]) mark(dead, cx, cy, 5);
+        else mark(rest, cx, cy, 2);
+      }
+    }
+    ctx.fillStyle = '#242423';
+    ctx.fill(rest);
+    ctx.fillStyle = '#888889';
+    ctx.fill(dead);
+    ctx.fillStyle = '#ece5d8';
+    ctx.fill(live);
+    ctx.fillStyle = '#e85622';
+    ctx.fill(birth);
+    if (hover >= 0 && painting === null) {
+      const x = hover % cols;
+      const y = (hover / cols) | 0;
+      const cx = ox + x * PITCH + PITCH / 2;
+      const cy = y * PITCH + PITCH / 2;
+      ctx.fillStyle = cur[hover] ? '#888889' : '#e85622';
+      const size = cur[hover] ? 8 : 6;
+      const sd = Math.round(size * dpr);
+      ctx.fillRect(Math.round(cx * dpr - sd / 2), Math.round(cy * dpr - sd / 2), sd, sd);
+    }
+    if (document.activeElement === board) {
+      const x0 = ox + cursor.x * PITCH;
+      const y0 = cursor.y * PITCH;
+      ctx.fillStyle = '#e85622';
+      const ticks = [[0, 0], [PITCH - 3, 0], [0, PITCH - 3], [PITCH - 3, PITCH - 3]];
+      for (const [dx, dy] of ticks) {
+        ctx.fillRect(Math.round((x0 + dx) * dpr), Math.round((y0 + dy) * dpr), Math.round(3 * dpr), Math.round(3 * dpr));
+      }
+    }
+  }
+
+  function updateStats() {
+    const pop = popCount();
+    $('#gen').textContent = String(gen);
+    $('#pop').textContent = String(pop);
+    $('#meta').textContent = `GEN ${gen} · ${pop} LIVE`;
+  }
+
+  function frame(now) {
+    requestAnimationFrame(frame);
+    const dt = now - last;
+    last = now;
+    if (running) {
+      acc += dt;
+      const stepMs = 1000 / tps;
+      let n = 0;
+      while (acc >= stepMs && n < 8) {
+        acc -= stepMs;
+        n += 1;
+        const pop = stepLife();
+        dirty = true;
+        if (!pop) { halt('Extinct'); break; }
+      }
+      if (running && now - lastAnnounce > 1000) {
+        announce();
+        lastAnnounce = now;
+      }
+    }
+    if (dirty) {
+      dirty = false;
+      draw();
+      updateStats();
+    }
+  }
+
+  function initSpeed(seg) {
+    const tabs = $$('[role="radio"]', seg);
+    const pick = (next) => {
+      const prev = tabs.find((t) => t.getAttribute('aria-checked') === 'true');
+      if (prev === next) return;
+      if (prev) {
+        const dx = Math.sign(tabs.indexOf(next) - tabs.indexOf(prev));
+        setExit(prev, [.5 + dx / 2, .5]);
+        setEntry(next, [.5 - dx / 2, .5]);
+        prev.setAttribute('aria-checked', 'false');
+        prev.tabIndex = -1;
+      }
+      next.setAttribute('aria-checked', 'true');
+      next.tabIndex = 0;
+      tps = +next.dataset.value;
+    };
+    tabs.forEach((t) => {
+      t.tabIndex = t.getAttribute('aria-checked') === 'true' ? 0 : -1;
+      t.addEventListener('click', () => pick(t));
+      t.addEventListener('keydown', (e) => {
+        if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+        e.preventDefault();
+        e.stopPropagation();
+        const i = tabs.indexOf(t);
+        const j = i + (e.key === 'ArrowRight' ? 1 : -1);
+        if (j < 0 || j >= tabs.length) return;
+        tabs[j].focus();
+        pick(tabs[j]);
+      });
+    });
+  }
+
+  board.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0) return;
+    const i = cellAt(e);
+    if (i < 0) return;
+    board.focus({ preventScroll: true });
+    painting = cur[i] ? 0 : 1;
+    cursor.x = i % cols;
+    cursor.y = (i / cols) | 0;
+    paint(i);
+    board.setPointerCapture(e.pointerId);
+  });
+  board.addEventListener('pointermove', (e) => {
+    const i = cellAt(e);
+    if (painting !== null && i >= 0) paint(i);
+    if (i !== hover) { hover = i; dirty = true; }
+  });
+  board.addEventListener('pointerup', () => { painting = null; });
+  board.addEventListener('pointercancel', () => { painting = null; });
+  board.addEventListener('pointerleave', () => { hover = -1; dirty = true; });
+  board.addEventListener('keydown', (e) => {
+    const step = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[e.key];
+    if (step) {
+      e.preventDefault();
+      e.stopPropagation();
+      cursor.x = (cursor.x + step[0] + cols) % cols;
+      cursor.y = (cursor.y + step[1] + rows) % rows;
+      dirty = true;
+      return;
+    }
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const i = cursor.y * cols + cursor.x;
+      painting = cur[i] ? 0 : 1;
+      paint(i);
+      painting = null;
+    }
+  });
+  board.addEventListener('focus', () => { dirty = true; });
+  board.addEventListener('blur', () => { dirty = true; });
+
+  $('#run').addEventListener('click', toggleRun);
+  $('#step').addEventListener('click', stepOnce);
+  $('#clear').addEventListener('click', clearField);
+  $('#scatter').addEventListener('click', scatter);
+  $('#seed-list').addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-pat]');
+    if (btn) load(btn.dataset.pat);
+  });
+  initSpeed($('#speed'));
+
+  window.addEventListener('keydown', (e) => {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    if (e.target.closest && e.target.closest('button') && (e.key === 'Enter' || e.key === ' ')) return;
+    if (e.target === board && (e.key.startsWith('Arrow') || e.key === 'Enter')) return;
+    if (e.key === ' ') { e.preventDefault(); toggleRun(); }
+    else if (e.key === '.' || e.key === '>') { e.preventDefault(); stepOnce(); }
+    else if (e.key === 'Escape' && running) { e.preventDefault(); halt(); }
+  });
+
+  let seeded = false;
+  function ensureSeed() {
+    if (!seeded && cols) { seeded = true; load('glider'); }
+  }
+  layout();
+  ensureSeed();
+  new ResizeObserver(() => { layout(); ensureSeed(); }).observe(board);
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
