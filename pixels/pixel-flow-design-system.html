@@ -1566,6 +1566,260 @@
     .px-list__row > :nth-child(4), .px-list__row > :nth-child(5) { display: none; }
   }
 
+  /* ═══════════════════════════ Files ═══════════════════════════ */
+  /* A tree of 36px rows inside a fixed viewport of --files-rows rows. Items are a flat run of treeitems
+     (aria-level), so each row is its own hatch host and the generic aria-selected, focus and hover entries
+     in HATCH_ON light it. A folder's children sit in a wrapper that opens and closes one row per step.
+     Inline action glyphs are plain text, not data-arrow: the row is a [data-hover] host, and the descendant
+     arrow rules would flip every glyph in it whenever the row is hovered or focused. */
+  .px-files {
+    --files-rows: 12;
+    position: relative;
+    padding: 1px;
+    box-shadow: inset 0 0 0 1px var(--void-500);
+  }
+
+  .px-files__tree {
+    height: calc(36px * var(--files-rows));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: var(--void-500) transparent;
+  }
+
+  .px-files__tree:not(:has(.px-files__item))::before {
+    content: attr(data-empty);
+    display: flex;
+    align-items: center;
+    height: 36px;
+    padding: 0 calc(var(--u) * 2);
+    color: var(--ash-700);
+    font-size: 10px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+
+  /* Indent guide: one 1px rule per open folder, under the centre of the folder's caret */
+  .px-files__group {
+    background: linear-gradient(var(--void-500), var(--void-500)) calc(var(--u) * 3 - 1px + var(--depth, 0) * var(--u) * 2) 0 / 1px 100% no-repeat;
+  }
+  .px-files__group.is-sliding,
+  .px-files__node.is-sliding { overflow: hidden; }
+  .px-files__node.is-leaving { pointer-events: none; }
+
+  .px-files__item {
+    --hatch: var(--void-700);
+    --hatch-b: var(--void-600);
+    --glyph: var(--ash);
+    position: relative;
+    display: flex;
+    align-items: center;
+    height: 36px;
+    padding-left: calc(var(--u) * 2 + var(--depth, 0) * var(--u) * 2);
+    overflow: hidden;
+    color: var(--ash-300);
+    cursor: pointer;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    transition: color var(--dur-cell) linear;
+  }
+  .px-files__item[data-type="dir"] { --glyph: var(--ash-300); }
+  .px-files__item > :not(.px-hatch) { position: relative; z-index: 1; }
+  .px-files__item:focus { outline: 0; }
+  .px-files__item:focus-visible { outline: 1px solid var(--signal); outline-offset: -5px; }
+
+  .px-files__item[aria-selected="true"] { --glyph: var(--bone); color: var(--bone); }
+  .px-files__item[aria-selected="true"]::before {
+    content: "";
+    position: absolute;
+    top: 15px;
+    left: 9px;
+    z-index: 1;
+    width: 6px;
+    height: 6px;
+    background: var(--signal);
+  }
+
+  .px-files__item svg { display: block; overflow: visible; fill: currentColor; shape-rendering: crispEdges; }
+
+  .px-files__caret,
+  .px-files__icon {
+    flex: 0 0 24px;
+    display: grid;
+    place-items: center;
+    height: 36px;
+    color: var(--glyph);
+    transition: color var(--dur-cell) linear;
+  }
+  /* The caret turns cell by cell: ▸ and ▾ share six of nine cells on a 5×5 grid, and the other three on
+     each side swap in a clockwise sweep (top flank round to the right, bottom flank round to the left),
+     each cell through a half-lit step. Closing plays the mirror order, ~25% faster. */
+  .px-files__caret rect[data-s] { transition: opacity 60ms steps(2, end) var(--c, 0ms); }
+  .px-files__caret rect[data-s="d"],
+  .px-files__item[aria-expanded="true"] .px-files__caret rect[data-s="r"] { opacity: 0; }
+  .px-files__item[aria-expanded="true"] .px-files__caret rect[data-s] { transition-delay: var(--o, 0ms); }
+  .px-files__item[aria-expanded="true"] .px-files__caret rect[data-s="d"] { opacity: 1; }
+
+  .px-files__name {
+    flex: 1;
+    min-width: 0;
+    margin-left: 6px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .px-files__meta {
+    flex: 0 0 auto;
+    padding: 0 var(--u);
+    color: var(--ash-700);
+    white-space: nowrap;
+    transition: color var(--dur-cell) linear;
+  }
+  .px-files__item[aria-selected="true"] > .px-files__meta { color: var(--ash); }
+
+  /* Inline actions keep their column at rest, so metadata lines up; they wipe in from the right */
+  .px-files__acts {
+    display: flex;
+    align-self: stretch;
+    visibility: hidden;
+    clip-path: inset(0 0 0 100%);
+    transition: clip-path 120ms steps(3, end), visibility 0s linear 120ms;
+  }
+  .px-files__item[aria-selected="true"] > .px-files__acts,
+  .px-files__item:focus-visible > .px-files__acts,
+  .px-files__item.is-menu > .px-files__acts {
+    visibility: visible;
+    clip-path: inset(0);
+    transition: clip-path 120ms steps(3, end), visibility 0s;
+  }
+
+  .px-files__act {
+    --hatch: var(--bone);
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    overflow: hidden;
+    border: 0;
+    background: transparent;
+    box-shadow: inset 1px 0 0 var(--void-500);
+    color: var(--ash-300);
+    font-size: 13px;
+    cursor: pointer;
+    transition: color 60ms linear;
+  }
+  .px-files__act--danger { --hatch: var(--signal); }
+  .px-files__act > :not(.px-hatch) { position: relative; z-index: 1; }
+  .px-files__act.is-pressed { color: var(--void); }
+
+  @media (hover: hover) and (pointer: fine) {
+    .px-files__item:hover { --glyph: var(--bone); color: var(--bone); }
+    .px-files__item:hover > .px-files__meta { color: var(--ash); }
+    .px-files__item:hover > .px-files__acts {
+      visibility: visible;
+      clip-path: inset(0);
+      transition: clip-path 120ms steps(3, end), visibility 0s;
+    }
+    .px-files__act:hover { color: var(--void); transition-delay: 90ms; }
+  }
+
+  /* Inline rename: the field takes the name's place, with the text starting where the name did */
+  .px-files__item.is-editing { cursor: default; }
+  .px-files__item.is-editing > .px-files__name,
+  .px-files__item.is-editing > .px-files__acts { display: none; }
+  .px-files__item.is-editing:not(.is-invalid) > .px-files__meta { visibility: hidden; }
+  .px-files__item.is-invalid > .px-files__meta { color: var(--signal); }
+
+  .px-files__edit {
+    flex: 1;
+    min-width: 0;
+    height: 24px;
+    padding: 0 5px;
+    border: 0;
+    outline: 0;
+    background: var(--void);
+    box-shadow: inset 0 0 0 1px var(--bone-700);
+    color: var(--bone);
+    font: inherit;
+    caret-color: var(--signal);
+    -webkit-user-select: text;
+    user-select: text;
+  }
+  .px-files__item.is-invalid .px-files__edit { box-shadow: inset 0 0 0 1px var(--signal); }
+
+  /* Actions menu: opens in four steps under the row (or over it near the viewport's foot) */
+  .px-files__menu {
+    --hatch: var(--void-600);
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 30;
+    width: calc(var(--u) * 20);
+    max-width: 100%;
+    padding: 1px;
+    background: var(--void);
+    box-shadow: inset 0 0 0 1px var(--bone-700);
+    visibility: hidden;
+    clip-path: inset(0 0 100% 0);
+    transition: clip-path 160ms steps(4, end), visibility 0s linear 160ms;
+  }
+  .px-files__menu[data-side="top"] { clip-path: inset(100% 0 0 0); }
+  .px-files__menu.is-open { visibility: visible; clip-path: inset(0); transition: clip-path 160ms steps(4, end), visibility 0s; }
+
+  .px-files__mi {
+    --px-cell-dur: 140ms;
+    --text: var(--ash);
+    --on: var(--bone);
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    height: 36px;
+    padding: 0 var(--u) 0 6px;
+    overflow: hidden;
+    border: 0;
+    background: transparent;
+    color: var(--ash-300);
+    text-align: left;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+  .px-files__mi > :not(.px-hatch) { position: relative; z-index: 1; }
+  .px-files__mi:focus { outline: 0; }
+  .px-files__mi:focus-visible { outline: 1px solid var(--signal); outline-offset: -5px; color: var(--bone); }
+  .px-files__mi--danger { --hatch: var(--signal-900); --text: var(--signal); --on: var(--signal-300); color: var(--signal); }
+  .px-files__mi--danger:focus-visible { color: var(--signal-300); }
+  .px-files__mi-glyph { flex: 0 0 24px; height: 24px; overflow: hidden; font-size: 12px; }
+  .px-files__mi-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .px-files__mi-key { color: var(--ash-700); }
+  .px-files__rule { height: 12px; background: linear-gradient(var(--void-500), var(--void-500)) 0 6px / 100% 1px no-repeat; }
+
+  @media (hover: hover) and (pointer: fine) {
+    .px-files__mi:hover { color: var(--bone); }
+    .px-files__mi--danger:hover { color: var(--signal-300); }
+  }
+
+  @media (max-width: 599px) {
+    .px-files__meta { display: none; }
+  }
+
+  .files-demo { display: grid; grid-template-columns: minmax(0, 1fr) calc(var(--u) * 34); gap: calc(var(--u) * 2); align-items: start; }
+  .files-inspect { display: grid; gap: 6px; min-width: 0; }
+  .files-inspect h3,
+  .files-inspect__path { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .files-log { margin: 0; padding: 0; list-style: none; font-size: 12px; }
+  .files-log li { display: flex; gap: var(--u); height: 24px; align-items: center; overflow: hidden; color: var(--ash-700); white-space: nowrap; }
+  .files-log li b { flex: 0 0 11ch; font-weight: 400; }
+  .files-log li span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .files-log li:first-child { color: var(--ash-300); }
+  .files-log li:first-child b { color: var(--bone); }
+  @media (max-width: 1175px) { .files-demo { grid-template-columns: 1fr; } }
+
   /* ═══════════════════════════ Image ═══════════════════════════ */
   .px-media {
     position: relative;
@@ -2364,6 +2618,40 @@
             <div class="px-list__row" data-hatch="diag" data-hatch-cell="12" data-hatch-tone=".2" data-hover><span class="idx t-micro">02</span><span>Contours / 10 m</span><span class="num muted">912,004</span><span class="num muted">00:14:51</span><span class="px-tag px-tag--sync"><span class="px-tag__dot"><i></i><i></i><i></i><i></i></span>Sync</span></div>
             <div class="px-list__row" data-hatch="diag" data-hatch-cell="12" data-hatch-tone=".2" data-hover><span class="idx t-micro">03</span><span>Hydrology</span><span class="num muted">301,776</span><span class="num muted">01:02:09</span><span class="px-tag px-tag--idle"><span class="px-tag__dot"><i></i><i></i><i></i><i></i></span>Idle</span></div>
             <div class="px-list__row" data-hatch="diag" data-hatch-cell="12" data-hatch-tone=".2" data-hover><span class="idx t-micro">04</span><span>Annotations</span><span class="num muted">12,480</span><span class="num muted">03:40:00</span><span class="px-tag px-tag--idle"><span class="px-tag__dot"><i></i><i></i><i></i><i></i></span>Idle</span></div>
+          </div>
+        </div>
+
+        <!-- Files -->
+        <div class="panel s-12" data-panel data-snap>
+          <div class="panel__head t-micro"><b>Files</b><span>Tree · inline actions · context menu</span></div>
+          <div class="files-demo">
+            <div class="stack">
+              <div class="row row--tight">
+                <button type="button" class="px-btn px-btn--s px-btn--quiet" data-hatch="x" data-hover id="files-expand"><span class="px-btn__label" data-roll>Expand all</span></button>
+                <button type="button" class="px-btn px-btn--s px-btn--quiet" data-hatch="x" data-hover id="files-collapse"><span class="px-btn__label" data-roll>Collapse all</span></button>
+                <button type="button" class="px-btn px-btn--s" data-hatch="x" data-hover id="files-new"><span class="px-btn__label" data-roll>New folder</span><span class="px-btn__icon" data-arrow="+"></span></button>
+              </div>
+              <div class="px-files" id="files"></div>
+              <span class="t-micro muted">↑ ↓ move · → ← open and close · Enter opens · F2 renames · Delete removes · right click or Shift+F10 for actions</span>
+            </div>
+            <div class="stack">
+              <div class="files-inspect">
+                <span class="t-micro muted">Selected · <span id="files-kind">Folder</span></span>
+                <h3 id="files-name">—</h3>
+                <span class="files-inspect__path muted" id="files-path"></span>
+              </div>
+              <span class="sub t-micro">Events</span>
+              <ol class="files-log" id="files-log" aria-label="Event log"></ol>
+              <pre class="code"><b>Files</b>(el, {
+  items: [{ name: <em>'terrain'</em>, children: […] }],
+  actions: [{
+    id: <em>'rename'</em>, label: <em>'Rename'</em>, key: <em>'F2'</em>,
+    when: (it) =&gt; !it.data.readonly,
+    run: (it, files) =&gt; files.edit(it),
+  }],
+});
+el.addEventListener(<em>'px:open'</em>, (e) =&gt; …);</pre>
+            </div>
           </div>
         </div>
 
@@ -3374,14 +3662,15 @@
     el.append(track);
   });
 
-  $$('[data-arrow]').forEach((el) => {
+  function buildArrow(el) {
     const ch = el.dataset.arrow;
     const track = document.createElement('span');
     track.className = 'arrow';
     track.setAttribute('aria-hidden', 'true');
-    track.innerHTML = `<span>${ch}</span><span>${ch}</span>`;
+    for (let k = 0; k < 2; k++) track.appendChild(document.createElement('span')).textContent = ch;
     el.append(track);
-  });
+  }
+  $$('[data-arrow]').forEach(buildArrow);
 
   $$('.bars').forEach((el) => {
     const vals = el.dataset.bars.split(',').map(Number);
@@ -5020,6 +5309,785 @@
         recolorHatches(sync);
       }, 1800);
     });
+  })();
+
+  /* ═════════════ Files ═════════════ */
+
+  // Files(root, { items, actions, label, empty, openOn, toggleOnClick, sort }) → handle.
+  // Items: { name, children?, meta?, open? } plus any fields of your own (kept on item.data); anything with a
+  // children array is a folder. Actions: { id, label, glyph, key, inline, danger, when(item, files),
+  // run(item, files) }, with '-' for a rule in the menu. Every interaction fires a bubbling event on the root,
+  // with detail.item and detail.files: px:select, px:open (a file: Enter or double click), px:toggle
+  // (detail.open, cancelable), px:rename (detail.name, detail.from, cancelable) and px:action (detail.action,
+  // cancelable, before run).
+  const Files = (() => {
+    const ROW = 36;
+    const MAC = /Mac|iP(hone|ad|od)/.test(navigator.platform);
+    const px = (w, h, rects) => `<svg viewBox="0 0 ${w} ${h}" width="${w * 2}" height="${h * 2}" aria-hidden="true">` +
+      rects.map(([x, y, rw, rh]) => `<rect x="${x}" y="${y}" width="${rw}" height="${rh}"/>`).join('') + '</svg>';
+    const GLYPH = {
+      // [x, y, set, open delay, close delay]: shared cells, r (▸ only) and d (▾ only).
+      caret: '<svg viewBox="0 0 5 5" width="10" height="10" aria-hidden="true">' + [
+        [1, 1], [1, 2], [2, 1], [2, 2], [2, 3], [3, 2],
+        [1, 0, 'r', 0, 60], [1, 4, 'r', 0, 60], [1, 3, 'r', 40, 30],
+        [3, 1, 'd', 40, 30], [4, 1, 'd', 80, 0], [0, 1, 'd', 80, 0],
+      ].map(([x, y, s, o, c]) => `<rect x="${x}" y="${y}" width="1" height="1"` +
+        (s ? ` data-s="${s}" style="--o: ${o}ms; --c: ${c}ms"` : '') + '/>').join('') + '</svg>',
+      dir: px(6, 6, [[0, 0, 3, 1], [0, 1, 6, 1], [0, 2, 1, 3], [5, 2, 1, 3], [0, 5, 6, 1]]),
+      dirOpen: px(6, 6, [[0, 0, 3, 1], [0, 1, 6, 5]]),
+      file: px(5, 6, [[0, 0, 4, 1], [0, 1, 1, 4], [3, 1, 2, 1], [4, 2, 1, 3], [0, 5, 5, 1]]),
+      more: px(5, 1, [[0, 0, 1, 1], [2, 0, 1, 1], [4, 0, 1, 1]]),
+    };
+    const MORE = { id: 'menu', label: 'More actions', key: 'Shift+F10' };
+    const byName = (a, b) => (a.type === b.type ? 0 : a.type === 'dir' ? -1 : 1)
+      || a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' });
+    const keys = (a) => [].concat(a.key || []);
+    const keyLabel = (k) => k.replace('Mod', MAC ? '⌘' : 'Ctrl');
+    function keyMatch(spec, e) {
+      const parts = spec.split('+'), key = parts.pop().toLowerCase();
+      const mods = new Set(parts.map((p) => (p === 'Mod' ? (MAC ? 'meta' : 'ctrl') : p.toLowerCase())));
+      return e.key.toLowerCase() === key && e.ctrlKey === mods.has('ctrl') && e.metaKey === mods.has('meta')
+        && e.shiftKey === mods.has('shift') && e.altKey === mods.has('alt');
+    }
+    const isInside = (m, n) => { for (let p = m && m.parent; p; p = p.parent) if (p === n) return true; return false; };
+
+    // Rows built at runtime leave the hatch engine when they leave the page.
+    function forget(el) {
+      [el, ...$$('[data-hatch]', el)].forEach((h) => {
+        if (!hatchHosts.delete(h)) return;
+        hatchRO.unobserve(h);
+        if (h._hatch) hatchLive.delete(h._hatch);
+      });
+    }
+    const wire = (el) => $$('[data-hatch]', el).forEach(initHatch);
+
+    // Opens or closes `el` one 36px row per step, so the tree grows the way the grid counts.
+    function slide(el, open, animate, done) {
+      clearTimeout(el._slide);
+      const from = el.hidden ? 0 : el.offsetHeight;
+      el.hidden = false;
+      el.style.transition = el.style.height = '';
+      const to = open ? el.offsetHeight : 0;
+      const steps = Math.round(Math.abs(to - from) / ROW);
+      const finish = () => {
+        el.style.transition = el.style.height = '';
+        el.classList.remove('is-sliding');
+        el.hidden = !open;
+        if (done) done();
+      };
+      if (!animate || REDUCE || !steps) return finish();
+      const dur = Math.round(clamp(steps * 28, 56, 280) * (open ? 1 : .78));
+      el.classList.add('is-sliding');
+      el.style.height = `${from}px`;
+      void el.offsetHeight;
+      el.style.transition = `height ${dur}ms steps(${steps}, start)`;
+      el.style.height = `${to}px`;
+      el._slide = setTimeout(finish, dur);
+    }
+
+    return function Files(root, options = {}) {
+      const o = { label: 'Files', empty: 'No files', openOn: 'dblclick', toggleOnClick: true, sort: true, ...options };
+      const actions = o.actions || [];
+      const tree = document.createElement('div');
+      tree.className = 'px-files__tree';
+      tree.setAttribute('role', 'tree');
+      tree.setAttribute('aria-label', o.label);
+      tree.dataset.hatchGroup = '';
+      tree.dataset.empty = o.empty;
+      const menu = document.createElement('div');
+      menu.className = 'px-files__menu';
+      menu.setAttribute('role', 'menu');
+      menu.dataset.hatchGroup = '';
+      root.textContent = '';
+      root.append(tree, menu);
+
+      let roots = [], selected = null, stop = null, menuFor = null, menuAt = 0, typed = '', typedAt = 0;
+
+      const sorted = (list) => (o.sort === false ? list : list.sort(typeof o.sort === 'function' ? o.sort : byName));
+      const siblings = (n) => (n.parent ? n.parent.children : roots);
+      const applies = (a, n) => a !== '-' && (!a.when || a.when(n, api));
+      const emit = (type, detail) => root.dispatchEvent(new CustomEvent(`px:${type}`, {
+        bubbles: true, cancelable: true, detail: { files: api, ...detail },
+      }));
+      const nodeOf = (t) => {
+        const el = t instanceof Element && t.closest('.px-files__item');
+        return el && el._node && !el._node.gone && !el.closest('.is-leaving') ? el._node : null;
+      };
+      const node = (x) => (typeof x === 'string' ? get(x) : x && !x.gone ? x : null);
+
+      function make(data, parent) {
+        const type = Array.isArray(data.children) || data.type === 'dir' ? 'dir' : 'file';
+        const n = {
+          name: String(data.name), type, meta: data.meta, data, parent, open: type === 'dir' && !!data.open,
+          get path() { return this.parent ? `${this.parent.path}/${this.name}` : this.name; },
+          get depth() { return this.parent ? this.parent.depth + 1 : 0; },
+        };
+        if (type === 'dir') n.children = sorted((data.children || []).map((c) => make(c, n)));
+        return n;
+      }
+
+      const metaOf = (n) => n.meta ?? (n.type === 'dir' ? `${n.children.length} item${n.children.length === 1 ? '' : 's'}` : '');
+      const number = (list) => list.forEach((n, i) => {
+        n.el.setAttribute('aria-posinset', i + 1);
+        n.el.setAttribute('aria-setsize', list.length);
+      });
+
+      function render(n) {
+        const wrap = document.createElement('div');
+        wrap.className = 'px-files__node';
+        wrap.setAttribute('role', 'none');
+        const el = document.createElement('div');
+        el.className = 'px-files__item';
+        el.setAttribute('role', 'treeitem');
+        el.setAttribute('aria-selected', String(n === selected));
+        el.tabIndex = n === stop ? 0 : -1;
+        Object.assign(el.dataset, { type: n.type, hatch: 'x', hatchCell: '6', hatchSweep: '160', hatchJitter: '40', hatchTone: '.2', hover: '' });
+        el.innerHTML = `<span class="px-files__caret">${n.type === 'dir' ? GLYPH.caret : ''}</span><span class="px-files__icon"></span>` +
+          '<span class="px-files__name"></span><span class="px-files__meta t-micro"></span><span class="px-files__acts"></span>';
+        el._node = n;
+        n.el = el;
+        n.wrap = wrap;
+        wrap.append(el);
+        if (n.type === 'dir') {
+          const g = document.createElement('div');
+          g.className = 'px-files__group';
+          g.setAttribute('role', 'none');
+          g.hidden = !n.open;
+          g.append(...n.children.map(render));
+          n.group = g;
+          wrap.append(g);
+          number(n.children);
+        }
+        paint(n);
+        return wrap;
+      }
+
+      function actButton(a) {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = `px-files__act${a.danger ? ' px-files__act--danger' : ''}`;
+        b.tabIndex = -1;
+        b.setAttribute('aria-hidden', 'true');
+        b.dataset.tip = a.key ? `${a.label} · ${keyLabel(keys(a)[0])}` : a.label;
+        Object.assign(b.dataset, { hatch: 'center', hatchCell: '6', hover: '' });
+        b._action = a;
+        const g = b.appendChild(document.createElement('span'));
+        if (a === MORE) g.innerHTML = GLYPH.more;
+        else g.textContent = a.glyph || a.label[0];
+        return b;
+      }
+
+      // Level, name, meta, folder glyph and inline actions. Call again (through update) when something an
+      // action's when() reads has changed.
+      function paint(n) {
+        const el = n.el;
+        el.setAttribute('aria-level', n.depth + 1);
+        el.style.setProperty('--depth', n.depth);
+        if (n.group) {
+          n.group.style.setProperty('--depth', n.depth);
+          el.setAttribute('aria-expanded', String(n.open));
+        }
+        $('.px-files__icon', el).innerHTML = n.type === 'file' ? GLYPH.file : n.open ? GLYPH.dirOpen : GLYPH.dir;
+        $('.px-files__name', el).textContent = n.name;
+        $('.px-files__meta', el).textContent = metaOf(n);
+        const acts = $('.px-files__acts', el);
+        forget(acts);
+        acts.textContent = '';
+        const usable = actions.filter((a) => applies(a, n));
+        usable.filter((a) => a.inline).forEach((a) => acts.append(actButton(a)));
+        if (usable.length) acts.append(actButton(MORE));
+        if (el.isConnected) wire(acts);
+      }
+
+      function mount(items) {
+        closeMenu(false);
+        forget(tree);
+        tree.textContent = '';
+        selected = stop = null;
+        roots = sorted(items.map((d) => make(d, null)));
+        stop = roots[0] || null;
+        tree.append(...roots.map(render));
+        number(roots);
+        wire(tree);
+      }
+
+      function get(path) {
+        let list = roots, n = null;
+        for (const part of String(path).split('/').filter(Boolean)) {
+          n = list && list.find((m) => m.name === part);
+          if (!n) return null;
+          list = n.children;
+        }
+        return n;
+      }
+
+      function shown() {
+        const out = [];
+        const walk = (list) => list.forEach((n) => { out.push(n); if (n.open) walk(n.children); });
+        walk(roots);
+        return out;
+      }
+
+      function setStop(n) {
+        if (stop && stop.el) stop.el.tabIndex = -1;
+        stop = n || null;
+        if (stop) stop.el.tabIndex = 0;
+      }
+
+      function select(n, { focus = false } = {}) {
+        if (!n) return;
+        if (n !== selected) {
+          if (selected && selected.el) selected.el.setAttribute('aria-selected', 'false');
+          selected = n;
+          n.el.setAttribute('aria-selected', 'true');
+          emit('select', { item: n });
+        }
+        setStop(n);
+        if (focus) { reveal(n); n.el.focus(); }
+      }
+
+      function setOpen(n, open, animate = true, done) {
+        if (!n || n.type !== 'dir' || n.open === open) return false;
+        if (!emit('toggle', { item: n, open })) return false;
+        n.open = open;
+        n.el.setAttribute('aria-expanded', String(open));
+        $('.px-files__icon', n.el).innerHTML = open ? GLYPH.dirOpen : GLYPH.dir;
+        // A selection inside a closing folder moves up to it, taking focus along if it had it.
+        if (!open && isInside(selected, n)) select(n, { focus: n.group.contains(document.activeElement) });
+        slide(n.group, open, animate, done);
+        return true;
+      }
+
+      // Opens every closed ancestor. Inner ones open in place first, so only the outermost one animates
+      // and it measures its full height.
+      function reveal(n) {
+        const closed = [];
+        for (let p = n && n.parent; p; p = p.parent) if (!p.open) closed.push(p);
+        closed.forEach((p, i) => setOpen(p, true, i === closed.length - 1));
+      }
+
+      function activate(n) {
+        if (n.type === 'dir') setOpen(n, !n.open);
+        else emit('open', { item: n });
+      }
+
+      function expandAll() {
+        const vis = new Set(shown()), dirs = [];
+        const walk = (list) => list.forEach((n) => { if (n.type === 'dir') { dirs.push(n); walk(n.children); } });
+        walk(roots);
+        // Hidden folders open in place; each visible closed one then animates with its whole subtree.
+        dirs.filter((n) => !vis.has(n)).forEach((n) => setOpen(n, true, false));
+        dirs.filter((n) => vis.has(n)).forEach((n) => setOpen(n, true));
+      }
+
+      function collapseAll() {
+        const inner = (n) => {
+          const out = [];
+          const walk = (list) => list.forEach((m) => { if (m.type === 'dir') { out.push(m); walk(m.children); } });
+          walk(n.children);
+          return out;
+        };
+        roots.filter((r) => r.type === 'dir').forEach((r) => {
+          const fold = () => inner(r).forEach((d) => setOpen(d, false, false));
+          if (!setOpen(r, false, true, fold)) fold();
+        });
+      }
+
+      function check(name, parent, self) {
+        if (!name) return 'Needs a name';
+        if (name.includes('/')) return 'No slashes';
+        const taken = (parent ? parent.children : roots).some((m) => m !== self && m.name.toLowerCase() === name.toLowerCase());
+        return taken ? 'Name taken' : '';
+      }
+
+      function uniqueName(parent, base) {
+        parent = node(parent);
+        const dot = base.lastIndexOf('.');
+        const stem = dot > 0 ? base.slice(0, dot) : base, ext = dot > 0 ? base.slice(dot) : '';
+        let name = base;
+        for (let k = 2; check(name, parent); k++) name = `${stem} ${k}${ext}`;
+        return name;
+      }
+
+      // Puts a node (new, or one removed earlier) into the tree. If its folder is open it slides in;
+      // otherwise the folder opens around it.
+      function insert(parent, n, at) {
+        const list = parent ? parent.children : roots;
+        n.parent = parent;
+        n.gone = false;
+        if (o.sort === false) list.splice(at ?? list.length, 0, n);
+        else sorted(list.concat(n)).forEach((m, i) => { list[i] = m; });
+        const wrap = render(n);
+        const next = list[list.indexOf(n) + 1];
+        const inView = !parent || (parent.open && shown().includes(parent));
+        wrap.hidden = inView;
+        (parent ? parent.group : tree).insertBefore(wrap, next ? next.wrap : null);
+        number(list);
+        if (parent) $('.px-files__meta', parent.el).textContent = metaOf(parent);
+        wire(wrap);
+        if (inView) slide(wrap, true, true);
+        else reveal(n);
+        return n;
+      }
+
+      // Removes a node and its subtree; returns restore(), which puts it back where it was.
+      function remove(n) {
+        n = node(n);
+        if (!n) return () => null;
+        if (n.editing) n.editing.end(false);
+        const list = siblings(n), index = list.indexOf(n), parent = n.parent;
+        const vis = shown(), at = vis.indexOf(n);
+        const after = at < 0 ? null : vis.slice(at + 1).find((m) => !isInside(m, n));
+        const before = at < 0 ? parent : vis[at - 1];
+        const hadFocus = n.wrap.contains(document.activeElement);
+        if (menuFor && (menuFor === n || isInside(menuFor, n))) closeMenu(false);
+        list.splice(index, 1);
+        n.gone = true;
+        if (selected === n || isInside(selected, n)) {
+          selected = null;
+          select(after || before, { focus: hadFocus });
+        }
+        if (!stop || stop === n || isInside(stop, n)) setStop(selected || roots[0]);
+        number(list);
+        if (parent) $('.px-files__meta', parent.el).textContent = metaOf(parent);
+        const wrap = n.wrap;
+        wrap.classList.add('is-leaving');
+        slide(wrap, false, true, () => { forget(wrap); wrap.remove(); });
+        return () => (n.gone && (!parent || !parent.gone) ? insert(parent, n, index) : null);
+      }
+
+      function rename(n, name) {
+        n = node(n);
+        name = String(name).trim();
+        if (!n) return false;
+        if (name === n.name) return true;
+        if (check(name, n.parent, n) || !emit('rename', { item: n, name, from: n.name })) return false;
+        n.name = name;
+        $('.px-files__name', n.el).textContent = name;
+        if (o.sort !== false) {
+          const list = siblings(n), had = n.wrap.contains(document.activeElement);
+          sorted(list);
+          const next = list[list.indexOf(n) + 1];
+          (n.parent ? n.parent.group : tree).insertBefore(n.wrap, next ? next.wrap : null);
+          number(list);
+          if (had) n.el.focus({ preventScroll: true });
+        }
+        return true;
+      }
+
+      // Inline rename. Enter commits (an invalid name stays open with the reason in signal), Esc cancels,
+      // and leaving the field commits a valid name or cancels. Resolves with the committed name, or null.
+      function edit(n) {
+        n = node(n);
+        if (!n) return Promise.resolve(null);
+        if (n.editing) return n.editing.promise;
+        closeMenu(false);
+        reveal(n);
+        select(n);
+        const el = n.el, meta = $('.px-files__meta', el);
+        const input = document.createElement('input');
+        input.className = 'px-files__edit';
+        input.value = n.name;
+        input.spellcheck = false;
+        input.autocomplete = 'off';
+        input.setAttribute('aria-label', `Rename ${n.name}`);
+        el.classList.add('is-editing');
+        $('.px-files__name', el).after(input);
+        el.scrollIntoView({ block: 'nearest' });
+        input.focus({ preventScroll: true });
+        const dot = n.type === 'file' ? n.name.lastIndexOf('.') : -1;
+        input.setSelectionRange(0, dot > 0 ? dot : n.name.length);
+
+        let resolve;
+        const promise = new Promise((r) => { resolve = r; });
+        const end = (commit) => {
+          const name = input.value.trim();
+          const err = commit && name !== n.name ? check(name, n.parent, n) : '';
+          if (err && commit !== 'blur') {
+            el.classList.add('is-invalid');
+            input.setAttribute('aria-invalid', 'true');
+            meta.textContent = err;
+            return;
+          }
+          if (err) commit = false;
+          n.editing = null;
+          input.removeEventListener('blur', onBlur);
+          const refocus = document.activeElement === input;
+          input.remove();
+          el.classList.remove('is-editing', 'is-invalid');
+          meta.textContent = metaOf(n);
+          if (commit && !rename(n, name)) commit = false;
+          if (refocus && !n.gone) n.el.focus({ preventScroll: true });
+          resolve(commit ? n.name : null);
+        };
+        const onBlur = () => end('blur');
+        input.addEventListener('blur', onBlur);
+        input.addEventListener('input', () => {
+          if (!el.classList.contains('is-invalid')) return;
+          el.classList.remove('is-invalid');
+          input.removeAttribute('aria-invalid');
+          meta.textContent = '';
+        });
+        input.addEventListener('keydown', (e) => {
+          e.stopPropagation();
+          if (e.key === 'Enter') { e.preventDefault(); end(true); }
+          else if (e.key === 'Escape') { e.preventDefault(); end(false); }
+        });
+        n.editing = { end, promise };
+        return promise;
+      }
+
+      function run(a, n) {
+        closeMenu(!n.gone);
+        if (!n.gone) n.el.focus({ preventScroll: true });
+        if (emit('action', { item: n, action: a.id }) && a.run) a.run(n, api);
+      }
+
+      /* Actions menu */
+
+      // `at`: { x } (a pointer) or { right } (the more button); neither anchors it under the name.
+      function openMenu(n, at = {}) {
+        closeMenu(false);
+        const items = [];
+        actions.filter((a) => a === '-' || applies(a, n)).forEach((a) => {
+          if (a !== '-' || (items.length && items[items.length - 1] !== '-')) items.push(a);
+        });
+        if (items[items.length - 1] === '-') items.pop();
+        if (!items.length) return;
+        forget(menu);
+        menu.textContent = '';
+        for (const a of items) {
+          if (a === '-') {
+            menu.appendChild(document.createElement('div')).className = 'px-files__rule';
+            menu.lastChild.setAttribute('role', 'separator');
+            continue;
+          }
+          const b = document.createElement('button');
+          b.type = 'button';
+          b.className = `px-files__mi${a.danger ? ' px-files__mi--danger' : ''}`;
+          b.setAttribute('role', 'menuitem');
+          b.tabIndex = -1;
+          Object.assign(b.dataset, { hatch: 'x', hatchCell: '6', hatchSweep: '120', hatchJitter: '30', hover: '' });
+          const glyph = b.appendChild(document.createElement('span'));
+          glyph.className = 'px-files__mi-glyph';
+          if (a.glyph) { glyph.dataset.arrow = a.glyph; buildArrow(glyph); }
+          const label = b.appendChild(document.createElement('span'));
+          label.className = 'px-files__mi-label';
+          label.textContent = a.label;
+          if (a.key) {
+            const k = b.appendChild(document.createElement('span'));
+            k.className = 'px-files__mi-key t-micro';
+            k.textContent = keyLabel(keys(a)[0]);
+            b.setAttribute('aria-keyshortcuts', keys(a).map((s) => s.replace('Mod', MAC ? 'Meta' : 'Control')).join(' '));
+          }
+          b._action = a;
+          menu.append(b);
+        }
+        menu.setAttribute('aria-label', `Actions for ${n.name}`);
+        menuFor = n;
+        menuAt = performance.now();
+        n.el.classList.add('is-menu');
+        place(n, at);
+        wire(menu);
+        menu.classList.add('is-open');
+        $('[role="menuitem"]', menu).focus({ preventScroll: true });
+      }
+
+      // Under the row (over it near the viewport's foot), on the field's 12px columns, inside the root.
+      function place(n, at) {
+        const r = root.getBoundingClientRect(), row = n.el.getBoundingClientRect();
+        const w = menu.offsetWidth, h = menu.offsetHeight;
+        const x = at.x ?? (at.right !== undefined ? at.right - w : $('.px-files__name', n.el).getBoundingClientRect().left - U);
+        const up = row.bottom + h > innerHeight - U && row.top - h > U;
+        menu.dataset.side = up ? 'top' : 'bottom';
+        menu.style.left = `${clamp(Math.round((x - r.left) / U) * U, 0, Math.max(0, r.width - w))}px`;
+        menu.style.top = `${Math.round((up ? row.top - h + 1 : row.bottom - 1) - r.top)}px`;
+      }
+
+      function closeMenu(refocus) {
+        if (!menuFor) return;
+        const n = menuFor;
+        menuFor = null;
+        menu.classList.remove('is-open');
+        n.el.classList.remove('is-menu');
+        if (refocus && !n.gone) n.el.focus({ preventScroll: true });
+      }
+
+      menu.addEventListener('click', (e) => {
+        const b = e.target.closest('[role="menuitem"]');
+        if (b && menuFor) run(b._action, menuFor);
+      });
+      menu.addEventListener('keydown', (e) => {
+        const items = $$('[role="menuitem"]', menu);
+        const i = items.indexOf(document.activeElement);
+        const to = (k) => { e.preventDefault(); items[(k + items.length) % items.length].focus(); };
+        switch (e.key) {
+          case 'ArrowDown': return to(i + 1);
+          case 'ArrowUp': return to(i - 1);
+          case 'Home': return to(0);
+          case 'End': return to(-1);
+          case 'Escape': case 'Tab':
+            e.preventDefault();
+            return closeMenu(true);
+          default:
+            if (e.key.length === 1 && /\S/.test(e.key)) {
+              const q = e.key.toLowerCase();
+              const k = items.findIndex((b, j) => j > i && b._action.label.toLowerCase().startsWith(q));
+              const m = k >= 0 ? k : items.findIndex((b) => b._action.label.toLowerCase().startsWith(q));
+              if (m >= 0) to(m);
+            }
+        }
+      });
+      menu.addEventListener('pointermove', (e) => {
+        const b = e.target.closest('[role="menuitem"]');
+        if (b && document.activeElement !== b) b.focus({ preventScroll: true });
+      });
+      menu.addEventListener('contextmenu', (e) => e.preventDefault());
+      document.addEventListener('pointerdown', (e) => {
+        if (!menuFor || menu.contains(e.target)) return;
+        const act = e.target instanceof Element && e.target.closest('.px-files__act');
+        if (!(act && act._action === MORE && nodeOf(act) === menuFor)) closeMenu(false);
+      });
+      root.addEventListener('focusout', (e) => { if (menuFor && !root.contains(e.relatedTarget)) closeMenu(false); });
+      tree.addEventListener('scroll', () => closeMenu(false), { passive: true });
+      window.addEventListener('resize', () => closeMenu(false));
+
+      /* Pointer and keyboard */
+
+      // Inline actions never take focus, so the row keeps it (and its outline) while they run.
+      tree.addEventListener('mousedown', (e) => { if (e.target.closest('.px-files__act')) e.preventDefault(); });
+
+      tree.addEventListener('click', (e) => {
+        const n = nodeOf(e.target);
+        if (!n || e.target.closest('.px-files__edit')) return;
+        const act = e.target.closest('.px-files__act');
+        if (act) {
+          select(n);
+          if (act._action !== MORE) run(act._action, n);
+          else if (menuFor === n) closeMenu(true);
+          else openMenu(n, { right: act.getBoundingClientRect().right });
+          return;
+        }
+        select(n);
+        n.el.focus({ preventScroll: true });
+        if (n.type === 'dir') {
+          if (e.detail < 2 && (o.toggleOnClick || e.target.closest('.px-files__caret'))) setOpen(n, !n.open);
+        } else if (e.detail === (o.openOn === 'click' ? 1 : 2)) emit('open', { item: n });
+      });
+
+      tree.addEventListener('contextmenu', (e) => {
+        const n = nodeOf(e.target);
+        if (!n || e.target.closest('.px-files__edit')) return;
+        e.preventDefault();
+        // The key that opened the menu can fire contextmenu as well.
+        if (menuFor === n && performance.now() - menuAt < 600) return;
+        select(n);
+        n.el.focus({ preventScroll: true });
+        openMenu(n, e.clientX || e.clientY ? { x: e.clientX } : {});
+      });
+
+      tree.addEventListener('focusin', (e) => {
+        const n = nodeOf(e.target);
+        if (n && e.target === n.el) select(n);
+      });
+
+      // Typing jumps to the next name that starts with what was typed; repeating one letter cycles.
+      function seek(ch, list, i) {
+        const now = performance.now();
+        typed = now - typedAt < 600 ? typed + ch.toLowerCase() : ch.toLowerCase();
+        typedAt = now;
+        const same = [...typed].every((c) => c === typed[0]);
+        const q = same ? typed[0] : typed;
+        const start = same ? i + 1 : i;
+        for (let k = 0; k < list.length; k++) {
+          const m = list[(start + k) % list.length];
+          if (m.name.toLowerCase().startsWith(q)) return select(m, { focus: true });
+        }
+      }
+
+      tree.addEventListener('keydown', (e) => {
+        const n = nodeOf(e.target);
+        if (!n || e.target !== n.el) return;
+        const shortcut = actions.find((a) => applies(a, n) && keys(a).some((k) => keyMatch(k, e)));
+        if (shortcut) { e.preventDefault(); return run(shortcut, n); }
+        if ((e.key === 'F10' && e.shiftKey) || e.key === 'ContextMenu') { e.preventDefault(); return openMenu(n); }
+        if (e.ctrlKey || e.metaKey || e.altKey) return;
+        const list = shown(), i = list.indexOf(n);
+        const go = (m) => { e.preventDefault(); if (m) select(m, { focus: true }); };
+        switch (e.key) {
+          case 'ArrowDown': return go(list[i + 1]);
+          case 'ArrowUp': return go(list[i - 1]);
+          case 'Home': return go(list[0]);
+          case 'End': return go(list[list.length - 1]);
+          case 'ArrowRight':
+            e.preventDefault();
+            if (n.type === 'dir' && !n.open) setOpen(n, true);
+            else if (n.type === 'dir' && n.children.length) select(n.children[0], { focus: true });
+            return;
+          case 'ArrowLeft':
+            e.preventDefault();
+            if (n.open) setOpen(n, false);
+            else if (n.parent) select(n.parent, { focus: true });
+            return;
+          case 'Enter': case ' ':
+            e.preventDefault();
+            return activate(n);
+          case '*':
+            e.preventDefault();
+            return siblings(n).forEach((m) => setOpen(m, true));
+          default:
+            if (e.key.length === 1 && /\S/.test(e.key)) seek(e.key, list, i);
+        }
+      });
+
+      const api = {
+        root,
+        actions,
+        get items() { return roots; },
+        get selected() { return selected; },
+        get,
+        set: (items) => mount(items),
+        select: (n, opts) => select(node(n), opts),
+        open: (n) => { n = node(n); if (n) activate(n); },
+        expand: (n) => setOpen(node(n), true),
+        collapse: (n) => setOpen(node(n), false),
+        toggle: (n) => { n = node(n); return !!n && setOpen(n, !n.open); },
+        expandAll,
+        collapseAll,
+        reveal: (n) => reveal(node(n)),
+        add: (parent, data) => { parent = node(parent); return insert(parent, make(data, parent)); },
+        remove,
+        rename,
+        edit,
+        update(n, patch = {}) {
+          n = node(n);
+          if (!n) return;
+          if ('meta' in patch) n.meta = patch.meta;
+          Object.assign(n.data, patch);
+          if ('name' in patch) rename(n, patch.name);
+          paint(n);
+        },
+        menu: (n) => { n = node(n); if (n) { select(n, { focus: true }); openMenu(n); } },
+        uniqueName,
+      };
+
+      mount(o.items || []);
+      root._files = api;
+      return api;
+    };
+  })();
+
+  // Demo files: a survey project. The archive is read-only, so Rename, Delete and the New actions skip it.
+  (() => {
+    const root = $('#files');
+    const log = $('#files-log');
+    const isDir = (it) => it.type === 'dir';
+    const writable = (it) => { for (let p = it; p; p = p.parent) if (p.data.readonly) return false; return true; };
+    const kind = (it) => {
+      if (isDir(it)) return 'Folder';
+      const dot = it.name.lastIndexOf('.');
+      return dot > 0 ? `${it.name.slice(dot + 1).toUpperCase()} file` : 'File';
+    };
+
+    function note(type, text) {
+      const li = document.createElement('li');
+      li.append(document.createElement('b'), document.createElement('span'));
+      li.firstChild.textContent = `px:${type}`;
+      li.lastChild.textContent = text;
+      log.prepend(li);
+      while (log.children.length > 6) log.lastChild.remove();
+    }
+
+    async function create(parent, files, type) {
+      const name = files.uniqueName(parent, type === 'dir' ? 'new-folder' : 'untitled.md');
+      const it = files.add(parent, type === 'dir' ? { name, children: [] } : { name, meta: '0 KB' });
+      if (await files.edit(it) === null) files.remove(it);
+    }
+
+    const files = Files(root, {
+      label: 'Survey files',
+      items: [
+        { name: 'ridgeline-north', open: true, children: [
+          { name: 'terrain', open: true, children: [
+            { name: 'relief-04.tif', meta: '38.2 MB' },
+            { name: 'relief-03.tif', meta: '37.9 MB' },
+            { name: 'hillshade.png', meta: '6.1 MB' },
+          ] },
+          { name: 'contours', children: [
+            { name: 'contours-10m.geojson', meta: '4.8 MB' },
+            { name: 'contours-50m.geojson', meta: '1.2 MB' },
+          ] },
+          { name: 'hydrology', children: [
+            { name: 'lakes', children: [
+              { name: 'tarn-lower.geojson', meta: '88 KB' },
+              { name: 'tarn-upper.geojson', meta: '64 KB' },
+            ] },
+            { name: 'streams.geojson', meta: '912 KB' },
+            { name: 'basins.geojson', meta: '2.3 MB' },
+          ] },
+          { name: 'annotations.json', meta: '12 KB' },
+          { name: 'survey.yaml', meta: '2 KB' },
+          { name: 'README.md', meta: '4 KB' },
+        ] },
+        { name: 'archive', readonly: true, meta: 'Read-only', children: [
+          { name: '2025-autumn', children: [
+            { name: 'relief-01.tif', meta: '36.4 MB' },
+            { name: 'relief-02.tif', meta: '36.8 MB' },
+          ] },
+          { name: 'ridgeline-2025.zip', meta: '412 MB' },
+        ] },
+      ],
+      actions: [
+        { id: 'open', label: 'Open', glyph: '↗', inline: true, when: (it) => !isDir(it), run: (it, f) => f.open(it) },
+        { id: 'new-file', label: 'New file', glyph: '+', inline: true, when: (it) => isDir(it) && writable(it), run: (it, f) => create(it, f, 'file') },
+        { id: 'new-folder', label: 'New folder', glyph: '+', when: (it) => isDir(it) && writable(it), run: (it, f) => create(it, f, 'dir') },
+        '-',
+        { id: 'rename', label: 'Rename', key: 'F2', when: (it) => writable(it) && !!it.parent, run: (it, f) => f.edit(it) },
+        {
+          id: 'copy-path', label: 'Copy path',
+          run: async (it) => {
+            try { await navigator.clipboard.writeText(it.path); toast('Path copied', it.path); } catch { toast('Path', it.path); }
+          },
+        },
+        '-',
+        {
+          id: 'delete', label: 'Delete', glyph: '×', key: ['Delete', 'Mod+Backspace'], danger: true,
+          when: (it) => writable(it) && !!it.parent,
+          run: (it, f) => {
+            const name = it.name, restore = f.remove(it);
+            toast('Deleted', `${name} is off the survey.`, { action: { label: 'Undo', run: (h) => { h.dismiss(); f.select(restore()); } } });
+          },
+        },
+      ],
+    });
+
+    root.addEventListener('px:select', (e) => {
+      const it = e.detail.item;
+      note('select', it.path);
+      const count = isDir(it) && it.children.length;
+      $('#files-kind').textContent = isDir(it) ? `Folder · ${count} item${count === 1 ? '' : 's'}` : `${kind(it)} · ${it.meta}`;
+      $('#files-name').textContent = it.name;
+      $('#files-path').textContent = it.path;
+    });
+    root.addEventListener('px:toggle', (e) => note('toggle', `${e.detail.item.path} · ${e.detail.open ? 'open' : 'closed'}`));
+    root.addEventListener('px:open', (e) => {
+      const it = e.detail.item;
+      note('open', it.path);
+      toast('Opened', `${it.name} · ${it.meta}`);
+    });
+    root.addEventListener('px:rename', (e) => note('rename', `${e.detail.from} → ${e.detail.name}`));
+    root.addEventListener('px:action', (e) => note('action', `${e.detail.action} · ${e.detail.item.name}`));
+
+    $('#files-expand').addEventListener('click', () => files.expandAll());
+    $('#files-collapse').addEventListener('click', () => files.collapseAll());
+    $('#files-new').addEventListener('click', () => {
+      const at = files.selected;
+      const dir = at && (isDir(at) ? at : at.parent);
+      if (dir && !writable(dir)) toast('Read-only', `${dir.name} is archived, so nothing can be added there.`);
+      else create(dir, files, 'dir');
+    });
+
+    files.select('ridgeline-north/terrain');
   })();
 
   $$('[data-copy]').forEach((el) => {
