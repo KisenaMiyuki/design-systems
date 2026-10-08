@@ -5346,7 +5346,7 @@ el.addEventListener(<em>'px:open'</em>, (e) =&gt; …);</pre>
     };
     const paint = () => {
       cells.forEach((c, i) => {
-        const on = value > th[i];
+        const on = value >= 1 || value > th[i];
         c.className = on ? (value - th[i] < .045 && value < 1 ? 'head' : 'on') : '';
       });
       const pct = Math.round(value * 100);
