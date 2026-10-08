@@ -2331,6 +2331,17 @@
     color: var(--ash-700);
   }
 
+  /* Pause repeating decoration outside the viewport and in inactive state layers. */
+  .brand__mark i, .px-spin i, .px-dots::after, .px-tag__dot i, .px-skel {
+    animation-play-state: var(--motion-state, running);
+  }
+  [data-state]:not([data-state="busy"]) [data-show="busy"] .px-spin i,
+  [data-state]:not([data-state="busy"]) [data-show="busy"] .px-dots::after,
+  .skel[data-state="loaded"] .px-skel,
+  :root[data-page-hidden] *, :root[data-page-hidden] *::after {
+    animation-play-state: paused !important;
+  }
+
   @media (prefers-reduced-motion: reduce) {
     html { scroll-behavior: auto; }
     *, *::before, *::after {
@@ -3933,8 +3944,14 @@ el.addEventListener(<em>'px:open'</em>, (e) =&gt; …);</pre>
     const glyphs = [];
     let bufs = [], counts = new Int32Array(NB);
     let running = !REDUCE, dirty = true, tBase = 0, tFrom = performance.now();
+    let raf = 0, lastFrame = 0, paintedScroll = NaN;
+    let painted = new Int16Array(0);
     const ptr = { x: 0, y: 0, lx: null, ly: null, on: false };
     const ripples = [];
+
+    function wake() {
+      if (!raf && !document.hidden) raf = requestAnimationFrame(frame);
+    }
 
     // Value noise
     const P = new Uint8Array(512);
@@ -4031,6 +4048,9 @@ el.addEventListener(<em>'px:open'</em>, (e) =&gt; …);</pre>
       cols = Math.ceil((vw - ox) / U) + 2;
       rows = Math.ceil(document.documentElement.scrollHeight / U) + 2;
       const n = cols * rows;
+      // Geometry changes invalidate the retained canvas, even if the cell count is unchanged.
+      painted = new Int16Array(n).fill(-1);
+      paintedScroll = NaN;
       if (mask.length !== n) {
         mask = new Float32Array(n);
         heat = new Float32Array(n);
@@ -4102,13 +4122,14 @@ el.addEventListener(<em>'px:open'</em>, (e) =&gt; …);</pre>
       glyphIO.disconnect();
       glyphs.forEach((g) => g && glyphIO.observe(g.el));
       dirty = true;
+      wake();
     }
 
     const glyphIO = new IntersectionObserver((entries) => {
       entries.forEach((e) => {
         if (!e.isIntersecting) return;
         const g = glyphs.find((x) => x && x.el === e.target);
-        if (g && Number.isNaN(g.start)) g.start = performance.now() + 150;
+        if (g && Number.isNaN(g.start)) { g.start = performance.now() + 150; wake(); }
       });
     }, { threshold: .35 });
 
@@ -4131,15 +4152,19 @@ el.addEventListener(<em>'px:open'</em>, (e) =&gt; …);</pre>
     }
 
     function frame(now) {
-      requestAnimationFrame(frame);
-      const active = running || ripples.length || ptr.on;
-      if (!active && !dirty && !glyphs.some((g) => g && now - g.start < 2500)) return;
+      raf = 0;
+      if (document.hidden) return;
+      const pointerActive = ptr.on && FINE && !REDUCE;
+      const active = running || ripples.length || pointerActive || heatR1 >= heatR0;
+      if (!active && !dirty && !glyphs.some((g) => g && now - g.start < 2500)) { lastFrame = 0; return; }
+      const decay = lastFrame ? Math.pow(.9, (now - lastFrame) / (1000 / 60)) : .9;
+      lastFrame = now;
       dirty = false;
 
       const t = running ? tBase + (now - tFrom) / 1000 : tBase;
       const sy = window.scrollY;
 
-      if (ptr.on && FINE && !REDUCE) {
+      if (pointerActive) {
         const x = ptr.x, y = ptr.y + sy;
         const lx = ptr.lx ?? x, ly = ptr.ly ?? y;
         const dist = Math.hypot(x - lx, y - ly);
@@ -4152,8 +4177,15 @@ el.addEventListener(<em>'px:open'</em>, (e) =&gt; …);</pre>
 
       for (let k = ripples.length - 1; k >= 0; k--) if (now - ripples[k].t > 1400) ripples.splice(k, 1);
 
-      ctx.fillStyle = '#000';
-      ctx.fillRect(0, 0, cv.width, cv.height);
+      // Keep unchanged, pixel-snapped cells on the canvas. Scrolling needs a full repaint;
+      // otherwise clear and refill only cells whose final size or palette entry changed.
+      const repaint = sy !== paintedScroll;
+      if (repaint) {
+        ctx.fillStyle = '#000';
+        ctx.fillRect(0, 0, cv.width, cv.height);
+        paintedScroll = sy;
+      }
+      const clears = new Path2D();
       counts.fill(0);
 
       warpCols(t);
@@ -4207,6 +4239,14 @@ el.addEventListener(<em>'px:open'</em>, (e) =&gt; …);</pre>
           }
 
           const sd = Math.max(1, Math.round(size * dpr));
+          const key = sd * NB + b;
+          const previous = painted[i];
+          painted[i] = key;
+          if (!repaint && previous === key) continue;
+          if (!repaint && previous >= 0) {
+            const oldSize = Math.floor(previous / NB);
+            clears.rect(Math.round((x + U / 2) * dpr - oldSize / 2), Math.round((y + U / 2) * dpr - oldSize / 2), oldSize, oldSize);
+          }
           const bf = bufs[b];
           const k3 = counts[b]++ * 3;
           bf[k3] = Math.round((x + U / 2) * dpr - sd / 2);
@@ -4215,6 +4255,7 @@ el.addEventListener(<em>'px:open'</em>, (e) =&gt; …);</pre>
         }
       }
 
+      if (!repaint) { ctx.fillStyle = '#000'; ctx.fill(clears); }
       for (let b = 0; b < NB; b++) {
         const cnt = counts[b];
         if (!cnt) continue;
@@ -4228,10 +4269,11 @@ el.addEventListener(<em>'px:open'</em>, (e) =&gt; …);</pre>
       if (heatR1 >= heatR0) {
         let live = false;
         for (let i = heatR0 * cols, e = (heatR1 + 1) * cols; i < e; i++) {
-          if (heat[i] > .001) { heat[i] *= .9; live = true; } else heat[i] = 0;
+          if (heat[i] > .001) { heat[i] *= decay; live = true; } else heat[i] = 0;
         }
         if (!live) { heatR0 = Infinity; heatR1 = -1; }
       }
+      wake();
     }
 
     window.addEventListener('pointermove', (e) => {
@@ -4239,6 +4281,7 @@ el.addEventListener(<em>'px:open'</em>, (e) =&gt; …);</pre>
       ptr.x = e.clientX; ptr.y = e.clientY;
       if (!ptr.on) { ptr.lx = null; ptr.ly = null; }
       ptr.on = true;
+      if (FINE && !REDUCE) wake();
     }, { passive: true });
     document.addEventListener('pointerleave', () => { ptr.on = false; });
     window.addEventListener('blur', () => { ptr.on = false; });
@@ -4246,8 +4289,13 @@ el.addEventListener(<em>'px:open'</em>, (e) =&gt; …);</pre>
       if (REDUCE || e.target.closest('a, button, input, label, [data-panel], .header, .px-toast, .px-dialog')) return;
       ripples.push({ x: e.clientX, y: e.clientY + window.scrollY, t: performance.now() });
       if (ripples.length > 4) ripples.shift();
+      wake();
     });
-    window.addEventListener('scroll', () => { dirty = true; }, { passive: true });
+    window.addEventListener('scroll', () => { dirty = true; wake(); }, { passive: true });
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) { cancelAnimationFrame(raf); raf = 0; ptr.on = false; }
+      else { lastFrame = 0; wake(); }
+    });
     window.addEventListener('resize', () => {
       $$('[data-snap]').forEach((el) => { el.style.minHeight = ''; });
       snapButtons();
@@ -4261,10 +4309,10 @@ el.addEventListener(<em>'px:open'</em>, (e) =&gt; …);</pre>
       tFrom = now;
       running = on;
       dirty = true;
+      wake();
     }
 
     doLayout();
-    requestAnimationFrame(frame);
     return { relayout, setRunning, get running() { return running; } };
   })();
 
@@ -5437,6 +5485,14 @@ el.addEventListener(<em>'px:open'</em>, (e) =&gt; …);</pre>
 
   /* ═════════════ Looping demos ═════════════ */
 
+  const motionIO = new IntersectionObserver((entries) => {
+    for (const e of entries) e.target.style.setProperty('--motion-state', e.isIntersecting ? 'running' : 'paused');
+  });
+  $$('.panel, .px-card, .px-list').forEach((el) => motionIO.observe(el));
+  const syncPageMotion = () => document.documentElement.toggleAttribute('data-page-hidden', document.hidden);
+  document.addEventListener('visibilitychange', syncPageMotion);
+  syncPageMotion();
+
   const visible = new WeakMap();
   const visIO = new IntersectionObserver((es) => es.forEach((e) => visible.set(e.target, e.isIntersecting)));
 
@@ -5445,6 +5501,7 @@ el.addEventListener(<em>'px:open'</em>, (e) =&gt; …);</pre>
   if (!REDUCE) {
     let tick = 0;
     setInterval(() => {
+      if (document.hidden) return;
       tick++;
       loops.forEach((el, i) => {
         if (!visible.get(el)) return;
@@ -6729,11 +6786,47 @@ el.addEventListener(<em>'px:open'</em>, (e) =&gt; …);</pre>
 
   /* ═════════════ Shared canvas ticker ═════════════ */
 
-  const tickers = new Set();
-  (function loop(now) {
-    requestAnimationFrame(loop);
-    tickers.forEach((fn) => fn(now));
-  })(performance.now());
+  // A draw returns its next deadline (now for continuous motion, Infinity when settled).
+  // Only visible widgets schedule work; timers bridge the quiet gaps between transitions.
+  const canvasJobs = new Map();
+  let canvasRaf = 0, canvasTimer = 0;
+  function scheduleCanvases() {
+    cancelAnimationFrame(canvasRaf);
+    clearTimeout(canvasTimer);
+    canvasRaf = canvasTimer = 0;
+    if (document.hidden) return;
+    let next = Infinity;
+    for (const job of canvasJobs.values()) if (job.visible) next = Math.min(next, job.next);
+    if (next === Infinity) return;
+    const wait = next - performance.now();
+    if (wait > 0) canvasTimer = setTimeout(scheduleCanvases, wait);
+    else canvasRaf = requestAnimationFrame(tickCanvases);
+  }
+  function tickCanvases(now) {
+    canvasRaf = 0;
+    for (const job of canvasJobs.values()) {
+      if (job.visible && now >= job.next) job.next = job.draw(now);
+    }
+    scheduleCanvases();
+  }
+  const canvasIO = new IntersectionObserver((entries) => {
+    for (const e of entries) {
+      const job = canvasJobs.get(e.target);
+      job.visible = e.isIntersecting;
+      if (job.visible) job.next = 0;
+    }
+    scheduleCanvases();
+  });
+  function observeCanvas(root, draw) {
+    const job = { draw, visible: false, next: 0 };
+    canvasJobs.set(root, job);
+    canvasIO.observe(root);
+    return () => { job.next = 0; scheduleCanvases(); };
+  }
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) for (const job of canvasJobs.values()) job.next = 0;
+    scheduleCanvases();
+  });
 
   function setupCanvas(canvas) {
     const dpr = Math.min(2, window.devicePixelRatio || 1);
@@ -6751,7 +6844,7 @@ el.addEventListener(<em>'px:open'</em>, (e) =&gt; …);</pre>
     const ITEMS = ['↑', '01', '02', '03', '100'];
     const PITCH = 6, REST = 1, DUR = 300;
     let S, cols = 0, rows = 0, ox = 0, oy = 0;
-    let from, to, delay, start = 0, idx = 0, mode = 'sweep', auto = true, lastAdvance = 0;
+    let from, to, delay, start = 0, end = 0, idx = 0, mode = 'sweep', auto = true, lastAdvance = 0;
 
     function sample(text) {
       const K = 4, W = cols * K, H = rows * K;
@@ -6791,6 +6884,7 @@ el.addEventListener(<em>'px:open'</em>, (e) =&gt; …);</pre>
 
     function resize() {
       S = setupCanvas(canvas);
+      invalidate();
       const nc = Math.floor(S.w / PITCH), nr = Math.floor(S.h / PITCH);
       ox = (S.w - nc * PITCH) / 2; oy = (S.h - nr * PITCH) / 2;
       if (nc === cols && nr === rows) return;
@@ -6820,12 +6914,13 @@ el.addEventListener(<em>'px:open'</em>, (e) =&gt; …);</pre>
         }
       }
       start = REDUCE ? -1e9 : now;
+      end = REDUCE ? 0 : now + DUR + delay.reduce((max, d) => Math.max(max, d), 0);
       lastAdvance = now;
+      invalidate();
       $('#matrix-step').textContent = `Step ${String(idx + 1).padStart(2, '0')} / ${String(ITEMS.length).padStart(2, '0')}`;
     }
 
     function draw(now) {
-      if (!visible.get(root)) return;
       if (auto && !REDUCE && now - lastAdvance > 2800) show(idx + 1);
       const { ctx, dpr } = S;
       ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -6852,13 +6947,13 @@ el.addEventListener(<em>'px:open'</em>, (e) =&gt; …);</pre>
       ctx.fillStyle = '#ece5d8'; ctx.fill(paths.on);
       ctx.fillStyle = '#888889'; ctx.fill(paths.fade);
       ctx.fillStyle = '#e85622'; ctx.fill(paths.front);
+      return now < end ? now : auto && !REDUCE ? lastAdvance + 2801 : Infinity;
     }
 
-    visIO.observe(root);
+    const invalidate = observeCanvas(root, draw);
     new ResizeObserver(resize).observe(canvas);
     resize();
     lastAdvance = performance.now();
-    tickers.add(draw);
 
     initSeg($('#matrix-mode'), (v) => {
       mode = v;
@@ -6867,7 +6962,7 @@ el.addEventListener(<em>'px:open'</em>, (e) =&gt; …);</pre>
     });
     $('#matrix-next').addEventListener('click', () => show(idx + 1));
     $('#matrix-prev').addEventListener('click', () => show(idx - 1));
-    $('#matrix-auto').addEventListener('px:change', (e) => { auto = e.detail; lastAdvance = performance.now(); });
+    $('#matrix-auto').addEventListener('px:change', (e) => { auto = e.detail; lastAdvance = performance.now(); invalidate(); });
   })();
 
   /* ═════════════ Signal matrix ═════════════ */
@@ -6900,10 +6995,9 @@ el.addEventListener(<em>'px:open'</em>, (e) =&gt; …);</pre>
     palettes.idle = sprites(ASH, BONE);
     palettes.alert = sprites([163, 60, 23], [255, 135, 87]);
 
-    function resize() { S = setupCanvas(canvas); }
+    function resize() { S = setupCanvas(canvas); invalidate(); }
 
     function draw(now) {
-      if (!visible.get(root)) return;
       const t = REDUCE ? 2 : now / 1000;
       const { ctx, dpr, w, h } = S;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -6940,15 +7034,15 @@ el.addEventListener(<em>'px:open'</em>, (e) =&gt; …);</pre>
         }
       }
       ctx.globalAlpha = 1;
+      return REDUCE ? Infinity : now;
     }
 
-    visIO.observe(root);
+    const invalidate = observeCanvas(root, draw);
     new ResizeObserver(resize).observe(canvas);
     resize();
-    tickers.add(draw);
 
     const labels = { idle: 'Idle', sync: 'Syncing', alert: 'Alert' };
-    initSeg($('#signal-state'), (v) => { state = v; $('#signal-label').textContent = labels[v]; });
+    initSeg($('#signal-state'), (v) => { state = v; $('#signal-label').textContent = labels[v]; invalidate(); });
   })();
 
   /* ═════════════ Nav + misc ═════════════ */

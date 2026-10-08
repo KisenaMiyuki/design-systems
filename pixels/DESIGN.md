@@ -165,6 +165,7 @@ Buttons (`.px-btn`) are width-snapped to whole units by `snapButtons(root)`. It 
 - Under `[data-panel]` and `[data-quiet]` surfaces, cells are muted (see 3.3).
 - **`data-glyph`** renders text *as field cells* (the hero wordmark). Attributes: `data-glyph="PIXEL/FLOW"`, `data-glyph-alt="PIXEL|FLOW"` (`|` breaks lines; used when narrower than 90 cells), `data-glyph-mask` (how strongly the area behind is muted), `data-glyph-align`, and `data-glyph-stroke`. Put an `.sr-only` heading inside for screen readers.
 - API (inside the script): `Field.relayout()` after layout changes that move surfaces (it's debounced, and called by `snapRO` automatically); `Field.setRunning(bool)` to pause the animation. The header switch `#field-toggle` uses it, and it starts off under reduced motion.
+- Rendering retains unchanged cells and repaints only changes to their final pixel size or colour. Scrolling and relayout invalidate the retained image. Motion still follows the browser's refresh rate; heat decay uses elapsed time. The frame loop sleeps when settled or the page is hidden, and wakes on interaction, scrolling, layout or glyph entry.
 
 Colours are drawn from a fixed list of palette tints (`COLORS` inside `Field`). If you add field effects, pick from that list.
 
@@ -442,7 +443,8 @@ Both use an invisible native `input[type=range]` laid over the track, so keyboar
 - **List (`.px-list` in a panel, with `data-hatch-group`):** 48px `.px-list__row` items with `data-hatch="diag" data-hatch-cell="12" data-hatch-tone=".2" data-hover`; `--head` is the 36px header row. On narrow screens, columns 4 and 5 hide.
 - **Media (`figure.px-media`):** a greyscale image (colour on hover) under a `.px-media__veil` scatter hatch that breathes while `aria-busy="true"` and dissolves when the image is ready (remove `.is-on`). `.is-failed` turns the status signal. Wait for the veil to finish assembling before swapping images.
 - **Skeleton:** `.px-skel` blocks are drawn as 5px cells with a stepped shimmer. Put the ghost and real layers in one `.skel` (`__ghost` and `__real` share a grid cell) and switch `data-state="loading|loaded"` along with `aria-busy`.
-- **Data displays:** the dot matrix (`Dot matrix display`) and signal matrix are canvas demos built on the shared `tickers` loop; reuse `setupCanvas` for new canvas widgets.
+- **Data displays:** the dot matrix (`Dot matrix display`) and signal matrix use `observeCanvas(root, draw)` and `setupCanvas`. `draw(now)` returns its next deadline: `now` for continuous animation, a future time for an automatic step, or `Infinity` when settled. Call the returned invalidation function after state or size changes. Only visible widgets in a visible page schedule frames; the dot matrix sleeps between transitions and both displays settle under reduced motion.
+- **Repeating CSS decoration:** `motionIO` sets the inherited `--motion-state` on panels, cards and lists so off-screen animations pause. Inactive busy indicators and loaded skeletons pause too; hiding the page pauses all CSS animations. Keep new repeating animations on `animation-play-state: var(--motion-state, running)` so they participate.
 - **`data-copy="#HEX"`** on a button copies the value and confirms with a toast.
 
 ### 7.9 Files
