@@ -25,7 +25,7 @@ These are the non-negotiables. An interface that breaks one of them is not Pixel
 ### For LLM agents
 
 - Copy markup patterns from the existing demos in the HTML. Every component in section 7 has a live example; search for its class name.
-- The script is a single closure. `toast`, `Dialog`, `Field`, `initSeg`, `recolorHatches` and friends are **not globals**. Add new behaviour **inside** that IIFE (before its closing `})();`), or deliberately expose an API on `window`.
+- The script is a single closure. `toast`, `Dialog`, `Files`, `Field`, `initSeg`, `recolorHatches` and friends are **not globals**. Add new behaviour **inside** that IIFE (before its closing `})();`), or deliberately expose an API on `window`.
 - Elements are wired once at load (`$$('[data-hatch]').forEach(initHatch)`, `$$('[data-roll]')`, `$$('[data-arrow]')`, …). Markup you inject later must be initialised by calling the same functions, as `toast()` does for its own elements.
 - Test in a browser over `http://` (not `file://`), and verify geometry with DOM and canvas measurements, not only screenshots.
 
@@ -256,7 +256,7 @@ So, to drive a hatch:
 
 - **`data-roll`** on a label turns its text into two stacked copies. In an active state (hover on `[data-hover]`, `:focus-visible`, `.is-on`, `.is-pressed`), the second copy (`--on` colour, weight 500) rolls up over `--dur-roll`.
 - **`data-arrow="→"`** builds a two-copy glyph track. In an active state the glyph **moves the way it points**: `→ ← ↑ ↓ ↗ ↘ ↙ ↖ ▸` travel along `--dx` and `--dy`, while `↺ ↻ × + −` stay put, rotate by `--spin` and cross-fade (`--fade`). While pressed, glyphs nudge 2px, or lean by `--lean`. Add a new glyph by giving it `--dx`/`--dy` (or `--spin`/`--fade`/`--lean`) next to the existing `[data-arrow="…"]` rules.
-- To change a glyph at runtime, set `el.dataset.arrow` **and** the text of both `.arrow > span` children (see the toast position control).
+- To change a glyph at runtime, set `el.dataset.arrow` **and** the text of both `.arrow > span` children (see the toast position control). For a glyph element created after load, set `data-arrow` and call `buildArrow(el)` (the Files menu does this).
 
 The roll and arrow rules use **descendant** selectors (`.is-on .roll__track`, `.is-on .arrow`). Never put `.is-on` on a container that holds buttons, or every button inside will flip to its active label. Use a dedicated class plus a child-combinator `HATCH_ON` entry instead, as dialogs do with `is-dimmed` and `is-raised`.
 
@@ -432,6 +432,42 @@ Both use an invisible native `input[type=range]` laid over the track, so keyboar
 - **Data displays:** the dot matrix (`Dot matrix display`) and signal matrix are canvas demos built on the shared `tickers` loop; reuse `setupCanvas` for new canvas widgets.
 - **`data-copy="#HEX"`** on a button copies the value and confirms with a toast.
 
+### 7.9 Files
+
+**`.px-files`** is a tree of folders and files built from data, with actions you define. Put an empty root in the page and call `Files(root, options)` inside the script; it returns a handle (also kept on `root._files`).
+
+```html
+<div class="px-files" id="files"></div>   <!-- Files() fills it with .px-files__tree and .px-files__menu -->
+```
+
+```js
+const files = Files($('#files'), {
+  label: 'Survey files',                  // the tree's aria-label
+  items: [
+    { name: 'terrain', open: true, children: [{ name: 'relief-04.tif', meta: '38.2 MB' }] },
+    { name: 'archive', readonly: true, children: [] },   // your own fields stay on item.data
+  ],
+  actions: [
+    { id: 'open', label: 'Open', glyph: '↗', inline: true, when: (it) => it.type === 'file', run: (it, f) => f.open(it) },
+    { id: 'rename', label: 'Rename', key: 'F2', when: (it) => !it.data.readonly, run: (it, f) => f.edit(it) },
+    '-',
+    { id: 'delete', label: 'Delete', glyph: '×', key: ['Delete', 'Mod+Backspace'], danger: true, run: (it, f) => f.remove(it) },
+  ],
+});
+```
+
+- **Items:** anything with a `children` array is a folder (`item.type` is `'dir'` or `'file'`). `meta` is the right-hand micro text; folders without one show their item count. Handlers receive item objects with `name`, `type`, `path` (names joined by `/`), `depth`, `parent`, `children`, `open`, `meta` and `data` (the object you passed in).
+- **Options:** `sort` (folders first, then natural name order; `false` keeps your order, or pass `compare(a, b)`), `openOn: 'dblclick' | 'click'` for files, `toggleOnClick` (default `true`; `false` leaves folder toggling to the caret and the keyboard), and `empty` (the text for an empty tree).
+- **Actions** are the customisation point. Each one appears in the actions menu (in order, with `'-'` as a rule; rules collapse when the actions around them are hidden), as an inline row button when `inline: true`, and as a shortcut when it has `key` (`'F2'`, `'Delete'`, `'Mod+Backspace'`, where `Mod` is Ctrl or ⌘; the first key is the one shown). `when(item, files)` hides an action for items it doesn't apply to; call `files.update(item)` after changing something `when` reads. `danger` sets the label in signal. Use glyphs that already have `data-arrow` rules (`↗ → + × ↻ …`), because the menu animates them.
+- **Events** bubble from the root, each with `detail.item` and `detail.files`: `px:select`, `px:open` (a file: Enter, double click or `openOn`), `px:toggle` (`detail.open`; cancel it to stop the change, for example to load children first and then call `add` and `expand`), `px:rename` (`detail.name`, `detail.from`; cancelable) and `px:action` (`detail.action` is the id; it fires before `run`, and cancelling it skips `run`). An action without `run` is handled entirely through `px:action`.
+- **Handle:** `get(path)`, `select(item, { focus })`, `open(item)` (what Enter does), `expand`, `collapse`, `toggle`, `expandAll()`, `collapseAll()`, `reveal(item)`, `add(parent, data)` (returns the new item; `parent` can be `null` for the top level), `remove(item)` (returns `restore()`, so it can back an Undo toast), `rename(item, name)`, `edit(item)` (an inline rename that resolves with the new name, or `null` if cancelled), `update(item, patch)`, `menu(item)`, `uniqueName(parent, base)`, `set(items)` (replace everything), plus `items`, `selected` and the live `actions` array. Every method accepts an item or a path string.
+- **Keyboard** (the WAI tree pattern): ↑ ↓ move, → opens a folder or moves to its first child, ← closes it or moves to the parent, Home and End jump to the ends, Enter and Space open, `*` opens every sibling, and typing jumps to matching names. Shift+F10, the Menu key, a right click or the `⋯` button opens the actions menu (arrow keys, Home, End and the first letter move through it; Esc and Tab close it and return to the row). Selection follows focus, with a single tab stop.
+- **Rows** are 36px `[role=treeitem]` elements with `aria-level`, `aria-setsize` and `aria-posinset`. Each row is its own `x` hatch (6px cells, `--void-700`/`--void-600` toned), so hover, focus and `aria-selected` light it through the generic `HATCH_ON` entries. Indent is 2u per level, with a 1px guide under each open folder's caret. The selected row gets bone text and the 6px signal square used by menus; focus is the usual 1px signal outline, inset 5px.
+- **Inline actions** are 36px buttons in the row's last column. They wipe in (`steps(3)`) on hover, focus and selection, so on touch screens they show on the selected row. They're `tabindex="-1"` and `aria-hidden`, and never take focus: keyboard and screen-reader users reach the same actions through the menu and shortcuts. Their glyphs are plain text (see the pitfall on `data-hover` hosts).
+- **Motion:** the caret turns **cell by cell**, not by rotating. On its 5×5 grid, ▸ and ▾ share six cells; the other three on each side swap in a clockwise sweep (40ms apart, each through a half-lit `steps(2)` fade), and closing plays the mirror order slightly faster. The per-cell `--o` and `--c` delays live in `GLYPH.caret`. Opening and closing a folder changes its height **one row per step** (`steps(n, start)`, about 28ms a row, capped at 280ms, with exits at .78 of that), and added and removed rows do the same. The actions menu opens like `.px-menu`, in four steps, under the row (or above it near the viewport's foot), snapped to the 12px columns. Under reduced motion, every change is instant.
+- **Size:** the tree scrolls inside a fixed viewport of `--files-rows` rows (default 12), so expanding a folder never resizes the panel. Set `--files-rows` on `.px-files` to change it. Metadata hides below 600px.
+- **Rename:** `edit(item)` swaps the name for a 24px field, with the stem (the part before the extension) selected. Enter commits; an empty, duplicate or slashed name keeps the field open and shows the reason in signal where the meta was. Esc cancels, and leaving the field commits a valid name or cancels an invalid one. The New file and New folder demo actions show the pattern: `add`, then `edit`, then `remove` if the result is `null`.
+
 ---
 
 ## 8. Accessibility checklist
@@ -486,6 +522,7 @@ Change the meaning with the glyph and the label, never with a new colour.
 - **Hidden hosts don't build.** `buildHatch` skips zero-size elements (closed dialogs, `display: none`). Build on show, then add the on-state on the next frame, or the hatch starts fully on with no animation.
 - **Hidden buttons measure 0.** `snapButtons` leaves them unsized; re-run it for the subtree once it's visible.
 - **`.is-on` on a container flips every label inside** (descendant roll and arrow rules). Use specific state classes and child-combinator `HATCH_ON` entries.
+- **The same goes for `[data-hover]` and focused hosts.** Hovering or focusing a host turns every `data-roll` label and `data-arrow` glyph inside it to its on copy, including those in nested buttons, whose on colour is usually void on a dark fill. Glyphs inside a hover row (such as `.px-files__act`) must be plain text.
 - **`--cols` is taken** by the layout grid.
 - **Thin SVG strokes on half pixels vanish.** Content inside `.wrap` often sits on .5px offsets, and the display may scale by 1.25 or 1.5. Draw pixel glyphs as filled shapes on whole user units, with `shape-rendering: crispEdges`, and give the `<svg>` `overflow: visible`.
 - **The script is closure-scoped.** Calling `toast()` from the console or another script fails; add code inside the IIFE.
@@ -524,6 +561,7 @@ Search the HTML for these banners (CSS uses `/* ═══…═══ Name ═�
 | Dialog | `Dialog` | `Dialog` (`Dialog.open`, `Dialog.close`) |
 | Tooltip and links | `Text` | `Tooltip` |
 | Card, list, media, skeleton | `Card`, `List`, `Image`, `Skeleton` | `Image`, `Skeleton` |
+| Files | `Files` | `Files` (`Files(root, options)`, `slide`, `forget`) |
 | Motion demos | `Motion` | `Motion lab`, `Looping demos` |
 | Canvas widgets | `Matrix + Signal` | `Shared canvas ticker`, `Dot matrix display`, `Signal matrix` |
 
