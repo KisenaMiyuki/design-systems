@@ -4,7 +4,7 @@ Pixel/Flow is a dark, monospaced, grid-locked interface language where **surface
 
 The whole system lives in one file, [`pixel-flow-design-system.html`](pixel-flow-design-system.html): tokens and component CSS in the `<style>` block, markup demos in `<main>`, and every behaviour in a single script wrapped in one IIFE. This document explains how to build new interfaces with it, for people and for LLM agents. When this guide and the HTML disagree, the HTML wins; fix this file.
 
-> **To view it:** run `python -m http.server 8000` inside `pixels/` and open `http://localhost:8000/pixel-flow-design-system.html`. Some parts (fonts, the Openverse image) need the network.
+> **To view it:** run `python -m http.server 8000` inside `pixels/` and open `http://localhost:8000/pixel-flow-design-system.html`. Some parts (fonts, the Image panel) need the network. The Image panel tries Openverse, then Wikimedia Commons, then Lorem Picsum; a source that answers 429 is skipped for 15 minutes, and so is an image host (such as Flickr's) whose files fail twice in a row. Both are remembered in `localStorage` under `pixel-flow:image-limits`.
 
 ---
 

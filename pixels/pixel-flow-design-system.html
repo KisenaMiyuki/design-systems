@@ -5163,23 +5163,108 @@ el.addEventListener(<em>'px:open'</em>, (e) =&gt; …);</pre>
     const veil = $('.px-media__veil', media);
     const status = $('#media-status');
     const credit = $('#media-credit');
-    // Openverse: keyword search over openly licensed images, no key needed. Results carry attribution.
+    const meta = $('#media-meta');
     const QUERY = 'mountain landscape';
-    const api = (page) => `https://api.openverse.org/v1/images/?q=${encodeURIComponent(QUERY)}&page_size=20&page=${page}&aspect_ratio=wide&mature=false`;
+    const q = encodeURIComponent(QUERY);
+    const getJSON = async (url) => {
+      const res = await fetch(url);
+      if (!res.ok) throw Object.assign(new Error(`HTTP ${res.status}`), { status: res.status });
+      return res.json();
+    };
+    const plain = (html) => new DOMParser().parseFromString(html || '', 'text/html').body.textContent.trim();
+    const wide = (w, h) => w >= h * 1.3;
+
+    // No-key sources, tried in order. Each returns a shuffled batch of { url, title, creator, licence, page }.
+    // Openverse allows 20 anonymous requests a minute and 200 a day; a 429 benches a source for LIMIT_MS.
+    const SOURCES = [
+      {
+        id: 'openverse', label: `Openverse · ${QUERY}`,
+        async batch() {
+          const d = await getJSON(`https://api.openverse.org/v1/images/?q=${q}&page_size=20&page=${1 + ((rnd() * 10) | 0)}&aspect_ratio=wide&mature=false`);
+          return d.results.filter((r) => r.url).map((r) => ({
+            url: r.url,
+            title: r.title,
+            creator: r.creator,
+            licence: r.license === 'cc0' || r.license === 'pdm' ? r.license.toUpperCase() : `CC ${r.license.toUpperCase()} ${r.license_version || ''}`.trim(),
+            page: r.foreign_landing_url || r.url,
+          }));
+        },
+      },
+      {
+        id: 'commons', label: `Wikimedia Commons · ${QUERY}`,
+        async batch() {
+          const d = await getJSON('https://commons.wikimedia.org/w/api.php?action=query&format=json&formatversion=2&origin=*'
+            + `&generator=search&gsrsearch=${q}%20filetype:bitmap&gsrnamespace=6&gsrlimit=30&gsroffset=${((rnd() * 8) | 0) * 30}`
+            + '&prop=imageinfo&iiprop=url|size|extmetadata&iiurlwidth=1280&iiextmetadatafilter=Artist|LicenseShortName|ObjectName');
+          return (d.query ? d.query.pages : []).map((p) => [p, p.imageinfo && p.imageinfo[0]])
+            .filter(([, i]) => i && i.thumburl && wide(i.width, i.height))
+            .map(([p, i]) => {
+              const m = i.extmetadata || {};
+              return {
+                url: i.thumburl,
+                title: plain(m.ObjectName && m.ObjectName.value) || p.title.replace(/^File:|\.\w+$/g, ''),
+                creator: plain(m.Artist && m.Artist.value),
+                licence: (m.LicenseShortName && m.LicenseShortName.value) || 'See source',
+                page: i.descriptionurl,
+              };
+            });
+        },
+      },
+      {
+        // Last resort: no keyword search, so any landscape-shaped photo.
+        id: 'picsum', label: 'Lorem Picsum · random photo',
+        async batch() {
+          const d = await getJSON(`https://picsum.photos/v2/list?page=${1 + ((rnd() * 30) | 0)}&limit=30`);
+          return d.filter((p) => wide(p.width, p.height)).map((p) => ({
+            url: `https://picsum.photos/id/${p.id}/1280/720`,
+            title: `Unsplash photo ${p.id}`,
+            creator: p.author,
+            licence: 'Unsplash License',
+            page: p.url,
+          }));
+        },
+      },
+    ];
+
+    const LIMIT_KEY = 'pixel-flow:image-limits';
+    const LIMIT_MS = 15 * 60 * 1000;
+    const limits = (() => { try { return JSON.parse(localStorage.getItem(LIMIT_KEY)) || {}; } catch { return {}; } })();
+    const bench = (key) => {
+      limits[key] = Date.now() + LIMIT_MS;
+      try { localStorage.setItem(LIMIT_KEY, JSON.stringify(limits)); } catch {}
+    };
+
+    // Image hosts rate-limit separately from the search APIs (Flickr answers 429 to hotlinked files),
+    // so a host whose files fail twice in a row is benched like a source.
+    const hostOf = (url) => { try { return `host:${new URL(url).host}`; } catch { return 'host:?'; } };
+    const hostFails = new Map();
+    const usable = (photo) => (limits[hostOf(photo.url)] || 0) <= Date.now();
+
     let pool = [];
+    let poolSource = null;
     let coveredAt = performance.now();
     let token = 0;
 
     async function nextPhoto() {
-      if (!pool.length) {
-        const res = await fetch(api(1 + ((rnd() * 10) | 0)));
-        if (!res.ok) throw new Error(res.status);
-        pool = (await res.json()).results.filter((r) => r.url).sort(() => rnd() - .5);
+      pool = pool.filter(usable);
+      if (pool.length) return { photo: pool.pop(), source: poolSource };
+      let last;
+      for (const src of SOURCES) {
+        if ((limits[src.id] || 0) > Date.now()) continue;
+        try {
+          const batch = (await src.batch()).filter(usable).sort(() => rnd() - .5);
+          if (!batch.length) continue;
+          pool = batch;
+          poolSource = src;
+          return { photo: pool.pop(), source: src };
+        } catch (err) {
+          last = err;
+          if (err.status === 429) bench(src.id);
+          console.warn(`Image source ${src.id} failed:`, err);
+        }
       }
-      return pool.pop();
+      throw last || new Error('No image source available');
     }
-
-    const licence = (p) => (p.license === 'cc0' || p.license === 'pdm' ? p.license.toUpperCase() : `CC ${p.license.toUpperCase()} ${p.license_version || ''}`.trim());
 
     const fail = $('#media-fail');
 
@@ -5194,25 +5279,41 @@ el.addEventListener(<em>'px:open'</em>, (e) =&gt; …);</pre>
           await new Promise((r) => setTimeout(r, 900 + rnd() * 600));
           throw new Error('simulated');
         }
-        const photo = await nextPhoto();
-        await new Promise((resolve, reject) => {
-          const probe = new Image();
-          probe.onload = resolve;
-          probe.onerror = reject;
-          probe.src = photo.url;
-        });
+        let photo, source;
+        for (let tries = 0; ; tries++) {
+          ({ photo, source } = await nextPhoto());
+          const host = hostOf(photo.url);
+          try {
+            await new Promise((resolve, reject) => {
+              const probe = new Image();
+              probe.onload = resolve;
+              probe.onerror = () => reject(new Error(`Couldn’t load ${photo.url}`));
+              probe.src = photo.url;
+            });
+            hostFails.delete(host);
+            break;
+          } catch (err) {
+            if (mine !== token) return;
+            const n = (hostFails.get(host) || 0) + 1;
+            hostFails.set(host, n);
+            if (n >= 2) bench(host);
+            if (tries >= 5) throw err;
+          }
+        }
         // Let the veil finish assembling before swapping, so the old image never shows mid-change.
         await new Promise((r) => setTimeout(r, Math.max(0, 700 - (performance.now() - coveredAt))));
         if (mine !== token) return;
         img.src = photo.url;
         img.alt = photo.title || 'Mountain landscape';
+        meta.textContent = source.label;
         const title = photo.title || 'Untitled';
         const short = title.length > 48 ? `${title.slice(0, 47).trimEnd()}…` : title;
-        credit.innerHTML = `<a class="px-link" href="${esc(photo.foreign_landing_url || photo.url)}" target="_blank" rel="noopener" title="${esc(title)}">${esc(short)}</a> by ${esc(photo.creator || 'unknown')} · ${esc(licence(photo))}`;
+        credit.innerHTML = `<a class="px-link" href="${esc(photo.page)}" target="_blank" rel="noopener" title="${esc(title)}">${esc(short)}</a> by ${esc(photo.creator || 'unknown')} · ${esc(photo.licence)}`;
         media.setAttribute('aria-busy', 'false');
         veil.classList.remove('is-on');
-      } catch {
+      } catch (err) {
         if (mine !== token) return;
+        if (err.message !== 'simulated') console.warn('Image failed to load:', err);
         media.classList.add('is-failed');
         status.textContent = 'Couldn’t load image · shuffle to retry';
       }
