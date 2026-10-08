@@ -292,6 +292,8 @@ Each entry gives the minimal markup; the HTML demo shows every variant. Search t
 
 **Submit (`.px-xbtn--submit`)**: a 5u fixed part. The **stateful** variant uses `data-state="idle|busy|done|fail"` with matching `[data-show="…"]` children in both the icon and the label. Ink goes bone, then ash, then bright bone or signal. After changing the state, call `recolorHatches(button)`, set `aria-busy` and `aria-disabled`, and update the `.sr-only` name. See `Submit: normal + stateful` for the reference `setState`.
 
+**Stateful glyph button (`.px-btn[data-state]`)**: the same states, inks and wiring on the default glyph button, for submits that shouldn't hide their label at rest. Put the `[data-show]` children in both `__label` (the idle one keeps `data-roll`) and `__icon`, mark `__label` `aria-hidden`, and name the button with a `.sr-only` span. Outside idle, toggle `.is-held` (instead of `.is-open`): the hatch stays lit in the state's ink and the label and glyph read in `--on`. All labels share one grid cell, so the button keeps the width of its longest label.
+
 ### 7.2 Text inputs
 
 ```html

@@ -408,6 +408,23 @@
       repeating-linear-gradient(135deg, transparent 0 5px, var(--void-700) 5px 6px);
   }
 
+  /* Stateful: the stateful submit's states and inks. Outside idle the hatch is held lit (.is-held) so each state
+     reads on its own fill; all labels share one grid cell, so the width never jumps between states. */
+  .px-btn[data-state="busy"] { --line: var(--ash); --text: var(--ash); --hatch: var(--ash); cursor: progress; }
+  .px-btn[data-state="done"] { --line: var(--bone-100); --text: var(--bone-100); --hatch: var(--bone-100); }
+  .px-btn[data-state="fail"] { --line: var(--signal); --text: var(--signal); --hatch: var(--signal); }
+  .px-btn[data-state] .px-btn__label { display: grid; }
+  .px-btn__label > [data-show] { grid-area: 1 / 1; white-space: nowrap; }
+  .px-btn__label > [data-show]:not(.roll) { display: flex; align-items: center; justify-content: center; }
+  .px-btn__icon > [data-show] { position: absolute; inset: 0; display: grid; place-items: center; }
+  .px-btn [data-show] { opacity: 0; transition: opacity 120ms linear; }
+  .px-btn[data-state="idle"] [data-show="idle"],
+  .px-btn[data-state="busy"] [data-show="busy"],
+  .px-btn[data-state="done"] [data-show="done"],
+  .px-btn[data-state="fail"] [data-show="fail"] { opacity: 1; transition-delay: 90ms; }
+  .px-btn.is-held [data-show] { color: var(--on); font-weight: 500; }
+  .px-btn.is-held .px-btn__icon::before { background: var(--on); }
+
   /* Expand variant */
   .px-xbtn {
     --h: 48px;
@@ -525,7 +542,7 @@
   .px-xbtn[data-state="busy"] [data-show="busy"],
   .px-xbtn[data-state="done"] [data-show="done"],
   .px-xbtn[data-state="fail"] [data-show="fail"] { opacity: 1; transition-delay: 90ms; }
-  .px-xbtn__check { width: 18px; height: 18px; fill: currentColor; shape-rendering: crispEdges; }
+  .px-xbtn__check, .px-btn__check { width: 18px; height: 18px; fill: currentColor; shape-rendering: crispEdges; }
 
   /* Busy glyph: a lit cell runs clockwise round a 3×3 ring, trailing a fading tail */
   .px-spin { display: grid; grid-template-columns: repeat(3, 4px); gap: 1px; }
@@ -1403,6 +1420,7 @@
     grid-template-columns: repeat(auto-fit, minmax(calc(var(--u) * 18), 1fr));
     gap: calc(var(--u) * 2);
   }
+  .submit-demo .px-btn { justify-self: start; }
 
   /* ═══════════════════════════ Feedback ═══════════════════════════ */
   .loader {
@@ -2909,7 +2927,7 @@ el.addEventListener(<em>'px:open'</em>, (e) =&gt; …);</pre>
 
         <!-- Submit -->
         <div class="panel s-6" data-panel data-snap>
-          <div class="panel__head t-micro"><b>Submit</b><span>Expand · stateful</span></div>
+          <div class="panel__head t-micro"><b>Submit</b><span>Expand · glyph · stateful</span></div>
           <form class="stack" id="req-form" novalidate>
             <label class="px-input" id="req-email" data-validate="email" data-required data-error="Needs a name, an @ and a domain.">
               <span class="t-micro muted">Contact email</span>
@@ -2954,6 +2972,24 @@ el.addEventListener(<em>'px:open'</em>, (e) =&gt; …);</pre>
                   </span>
                   <span class="sr-only">Deploy survey</span>
                   <span class="px-xbtn__corners"><span></span><span></span><span></span><span></span></span>
+                </button>
+              </div>
+              <div class="px-field">
+                <span class="t-micro muted">Glyph · stateful</span>
+                <button type="submit" class="px-btn" id="req-queue" data-hatch="x" data-hover data-state="idle" aria-disabled="false">
+                  <span class="px-btn__label" aria-hidden="true">
+                    <span data-show="idle" data-roll>Queue survey</span>
+                    <span data-show="busy">Queuing<span class="px-dots"></span></span>
+                    <span data-show="done">Queued</span>
+                    <span data-show="fail">Failed · retry</span>
+                  </span>
+                  <span class="px-btn__icon" aria-hidden="true">
+                    <span data-show="idle" data-arrow="→"></span>
+                    <span data-show="busy"><span class="px-spin"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span></span>
+                    <span data-show="done"><svg class="px-btn__check" viewBox="0 0 6 6"><rect x="4" y="1" width="1" height="1"/><rect x="1" y="2" width="1" height="1"/><rect x="3" y="2" width="1" height="1"/><rect x="2" y="3" width="1" height="1"/></svg></span>
+                    <span data-show="fail">×</span>
+                  </span>
+                  <span class="sr-only">Queue survey</span>
                 </button>
               </div>
             </div>
@@ -3356,6 +3392,7 @@ el.addEventListener(<em>'px:open'</em>, (e) =&gt; …);</pre>
     ':focus-visible > .px-hatch',
     '.px-xbtn:focus-visible .px-xbtn__panel > .px-hatch',
     '.px-xbtn.is-open .px-xbtn__panel > .px-hatch',
+    '.px-btn.is-held > .px-hatch',
     ':root:not([data-focus="grid"]) .px-input__box:focus-within > .px-input__bar > .px-hatch',
     ':root:not([data-focus="grid"]) .px-dd.is-open .px-input__bar > .px-hatch',
     '[data-focus="grid"] .px-input__box:focus-within > .px-input__grid > .px-hatch',
@@ -5080,37 +5117,41 @@ el.addEventListener(<em>'px:open'</em>, (e) =&gt; …);</pre>
   (() => {
     const form = $('#req-form');
     const email = $('#req-email');
-    const deploy = $('#req-deploy');
     const fail = $('#req-fail');
     const status = $('#req-status');
-    const name = $('.sr-only', deploy);
-    const LABEL = { idle: 'Deploy survey', busy: 'Processing', done: 'Deployed', fail: 'Failed, retry' };
-    let timer = 0;
+    const LABELS = {
+      'req-deploy': { idle: 'Deploy survey', busy: 'Processing', done: 'Deployed', fail: 'Failed, retry' },
+      'req-queue': { idle: 'Queue survey', busy: 'Queuing', done: 'Queued', fail: 'Failed, retry' },
+    };
+    const timers = new Map();
 
-    function setState(state) {
-      deploy.dataset.state = state;
-      deploy.classList.toggle('is-open', state !== 'idle');
-      deploy.setAttribute('aria-disabled', String(state === 'busy'));
-      deploy.setAttribute('aria-busy', String(state === 'busy'));
-      name.textContent = LABEL[state];
-      if (state !== 'idle') status.textContent = `${LABEL[state]}.`;
-      recolorHatches(deploy);
+    // The expand button holds open while it works; the glyph button holds its hatch lit.
+    function setState(btn, state) {
+      const label = LABELS[btn.id][state];
+      btn.dataset.state = state;
+      btn.classList.toggle(btn.matches('.px-xbtn') ? 'is-open' : 'is-held', state !== 'idle');
+      btn.setAttribute('aria-disabled', String(state === 'busy'));
+      btn.setAttribute('aria-busy', String(state === 'busy'));
+      $('.sr-only', btn).textContent = label;
+      if (state !== 'idle') status.textContent = `${label}.`;
+      recolorHatches(btn);
     }
 
     form.addEventListener('submit', (e) => {
       e.preventDefault();
       if (!email.validate()) { $('input', email).focus(); return; }
-      if (e.submitter !== deploy) {
+      const btn = e.submitter;
+      if (!btn || !LABELS[btn.id]) {
         toast('Request sent', `We’ll reply to ${$('input', email).value.trim()}.`);
         return;
       }
-      if (deploy.dataset.state === 'busy') return;
-      clearTimeout(timer);
-      setState('busy');
-      timer = setTimeout(() => {
-        setState(fail.getAttribute('aria-checked') === 'true' ? 'fail' : 'done');
-        timer = setTimeout(() => setState('idle'), 2400);
-      }, 2600);
+      if (btn.dataset.state === 'busy') return;
+      clearTimeout(timers.get(btn));
+      setState(btn, 'busy');
+      timers.set(btn, setTimeout(() => {
+        setState(btn, fail.getAttribute('aria-checked') === 'true' ? 'fail' : 'done');
+        timers.set(btn, setTimeout(() => setState(btn, 'idle'), 2400));
+      }, 2600));
     });
   })();
 
