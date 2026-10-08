@@ -1,17 +1,6 @@
 # design-systems
 
-Collection of some design systems.
+Collection of some custom-made design systems.
 
-To install dependencies:
-
-```bash
-bun install
-```
-
-To run:
-
-```bash
-bun run index.ts
-```
-
-This project was created using `bun init` in bun v1.3.14. [Bun](https://bun.com) is a fast all-in-one JavaScript runtime.
+- [Geometric Retro Futurism](https://kisenamiyuki.github.io/design-systems/geometric-retro-futurism)
+- [PIXEL/FLOW](https://kisenamiyuki.github.io/design-systems/pixels/pixel-flow-design-system) (a little CPU heavy)
