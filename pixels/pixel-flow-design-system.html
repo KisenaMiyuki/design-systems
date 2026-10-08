@@ -1206,9 +1206,8 @@
 
   .px-tz__foot { display: flex; justify-content: space-between; gap: var(--u); overflow: hidden; color: var(--ash-700); white-space: nowrap; }
 
-  .tz-demo { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: calc(var(--u) * 2); align-items: start; }
+  .tz-demo { display: grid; grid-template-columns: minmax(0, 1fr); gap: calc(var(--u) * 2); align-items: start; }
   .tz-demo .prose + .t-micro { display: block; margin-top: var(--u); }
-  @media (max-width: 791px) { .tz-demo { grid-template-columns: minmax(0, 1fr); } }
 
   /* Radio: a square that assembles a 2px-cell dot from the centre */
   .px-radio {
@@ -3000,7 +2999,7 @@ el.addEventListener(<em>'px:open'</em>, (e) =&gt; …);</pre>
         </div>
 
         <!-- Time zone -->
-        <div class="panel s-12" data-panel data-snap>
+        <div class="panel s-6" data-panel data-snap>
           <div class="panel__head t-micro"><b>Time zone</b><span>Cell map · 15° strips</span></div>
           <div class="tz-demo">
             <div class="px-field">
