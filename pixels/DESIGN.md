@@ -317,13 +317,24 @@ Each entry gives the minimal markup; the HTML demo shows every variant. Search t
 
 ### 7.3 Select, combobox and tag input
 
-All three share `listbox(dd, field, pick)` (under the `Listbox` banner). It handles opening and closing, `aria-expanded`, `aria-activedescendant`, the highlight (`.is-on` on the option, which lights its hatch) and outside clicks; `listKeys()` provides the shared keyboard handling.
+All three (and the time zone picker below) share `listbox(dd, field, pick, hooks)` (under the `Listbox` banner). It finds the `[role=listbox]` inside `dd` and handles opening and closing, `aria-expanded`, `aria-activedescendant`, the highlight (`.is-on` on the option, which lights its hatch) and outside clicks; `listKeys()` provides the shared keyboard handling. Optional `hooks.active(option | null)` runs whenever the highlight moves, and `hooks.open()` just before the menu shows.
 
 - `div.px-dd[data-select]`: a `button.px-input__box.px-select` with `.px-select__value` and `.px-dd__caret[data-arrow="↓"]`, followed by `ul.px-menu[role=listbox][data-hatch-group]` whose `li[role=option][data-hatch="x"]` items use `aria-selected`.
 - `div.px-dd[data-combobox]`: an `input[role=combobox]` in a box that filters options; matches are wrapped in `<mark>` (signal), and `.px-menu__empty` shows when nothing matches.
 - `div.px-dd[data-tags]`: `.px-chip` elements plus an input. Enter or comma adds a tag, Backspace removes the last, and an optional `li[data-add]` offers "Add new".
 
 Menus open with a 4-step clip; the selected option shows a 6px signal square.
+
+**Time zone (`div.px-dd.px-tz[data-tz]`)**: a select whose popup is a world map drawn as 6px field cells, cut into 25 vertical strips, one per nominal zone from UTC−12 to UTC+12. The trigger is the select's `button.px-select` plus a `.px-input__suffix[data-tz-now]` for the time there now; the popup is `.px-tz__pop` with an info row (`[data-tz-info="kicker|date|offset|places|time"]`), an empty `.px-tz__map[role=listbox]` and `.px-tz__ruler` inside `.px-tz__scroll`, and a foot with `[data-tz-utc]`. Copy the demo's markup; the script fills in the strips.
+
+- **Map:** `LAND` is 38 rows of 96 digits, one per 6px cell (equirectangular at 3.75° a cell, 84°N to 58°S, Natural Earth 1:110m land). Each digit is the cell's land coverage in five levels, so a 15° strip is 4 cells (24px) and the two at the date line are 2. One canvas (`.px-tz__cells`, sized with `setupCanvas`) draws every cell as a square on whole device pixels. Sea rests at 2px; land grows with its coverage from 2 to 5px, so coastlines soften instead of stepping. Inks are custom properties on `.px-tz__map`: `--tz-sea` (void-500), `--tz-land` (ash-700), `--tz-hover` (bone) and `--tz-pick` (signal). They're read on every open.
+- **Strips** are `[role=option]` elements under the canvas (`pointer-events: none` on it). Each is a `y` hatch (6px cells, void-600, like menu options) inside a `data-hatch-group`, so its fill sweeps in behind the cells. The highlight turns land bone and the value's land is signal, between 1px bone-700 side rules. Land cells change ink one by one, using the hatch rule: top to bottom over 120ms plus 30ms of jitter, with a 140ms fade. They retract bottom to top about 25% faster, reverse mid-fade at once, and hand off at .35 of the sweep when the highlight moves within 220ms. The canvas only animates while cells are moving.
+- **The label** above the map shows the highlighted strip, or the value when nothing is highlighted: a kicker (`Selected` with a signal square, or `Preview`, plus `Your zone`), the offset, a few places on that zone's standard time, and the time and date there (`Today`, `Tomorrow` or `Yesterday` relative to the viewer). Leaving the map puts the highlight back on the value. Clocks refresh on the minute, and so do the options' `aria-label`s.
+- **Keys:** the select's keys, plus ← → to move between strips (and to open). Typing a letter jumps to the next zone with a place starting with it.
+- **Value:** it starts on the viewer's standard offset, rounded to the nearest strip. Picking fires a bubbling **`px:change`** with `detail: { offset, name, zone, places }`, where `zone` is the IANA `Etc/GMT` name (signs inverted: UTC+8 is `Etc/GMT-8`) and can be passed straight to `Intl.DateTimeFormat`. `dd._tz.value` reads the same object, and `dd._tz.pick(offset)` sets it without an event.
+- **Placement:** the popup is 600px wide (`--tz-cells` × 6px + 2u). On open it slides left in 6px steps to stay a unit inside the viewport (`--tz-shift`). When it's still narrower than the map, the map scrolls sideways with the value centred.
+- **Motion:** the popup opens with a 6-step clip over the resting cells. Land then rises out of them, growing from 2px to its size and fading from sea to its ink, outward from the value (3ms a column, plus jitter). Under reduced motion every change is instant.
+- **Limits:** strips are nominal, so they keep standard time. There's no daylight saving, no half-hour zones such as India's, and nothing past ±12.
 
 ### 7.4 Choice controls
 
@@ -554,7 +565,7 @@ Search the HTML for these banners (CSS uses `/* ═══…═══ Name ═�
 | Hatch engine | `Hatch` | `Hatch: per-cell delays…` (`HATCH_ON`, `initHatch`, `buildHatch`, `setHatchState`, `stagger`, `sweepFront`, `recolorHatches`, `PRESS_HOSTS`) |
 | Roll and glyphs | inside `Hatch` (`.roll`, `.arrow`) | `Roll labels + arrows` |
 | Buttons | `Button` (`.px-btn`, `.px-xbtn`, `.px-ibtn`, `.px-spin`) | `Submit: normal + stateful` |
-| Inputs and pickers | `Controls` | `Fields: validation…` (`VALID`), `Listbox…` (`listbox`, `listKeys`), `Radio`, `Slider` |
+| Inputs and pickers | `Controls` | `Fields: validation…` (`VALID`), `Listbox…` (`listbox`, `listKeys`), `Time zone…` (`LAND`, `TZ_PLACES`, `tzClock`, `Cells`), `Radio`, `Slider` |
 | Switches and segments | `Controls` (`.px-switch`, `.px-check`, `.px-seg`) | `Switch · checkbox · segments` (`toggleAria`, `initSeg`) |
 | Feedback | `Feedback` | `Progress`, `Toasts` (`toast`, `toast.place`) |
 | Callout | `Callout` | `Callout` (`Callout.dismiss`, `px:dismiss`) |

@@ -1087,6 +1087,112 @@
 
   @keyframes chip-in { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0); } }
 
+  /* Time zone: a world map of 6px cells cut into nominal 15° strips, one option each, so a strip is
+     4 cells wide and the two at the date line are 2. The cells are drawn on one canvas laid over the strips. */
+  .px-tz { min-width: 0; }
+
+  .px-tz__pop {
+    position: absolute;
+    top: calc(100% - 1px);
+    left: 0;
+    z-index: 30;
+    display: grid;
+    gap: var(--u);
+    width: calc(var(--tz-cells, 96) * 6px + var(--u) * 2);
+    max-width: calc(100vw - var(--u) * 2);
+    padding: var(--u);
+    background: var(--void);
+    box-shadow: inset 0 0 0 1px var(--bone-700);
+    transform: translateX(var(--tz-shift, 0px));
+    visibility: hidden;
+    clip-path: inset(0 0 100% 0);
+    transition: clip-path 240ms steps(6, end), visibility 0s linear 240ms;
+  }
+  .px-tz.is-open .px-tz__pop { visibility: visible; clip-path: inset(0); transition: clip-path 240ms steps(6, end), visibility 0s; }
+
+  .px-tz__info {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-rows: 12px 24px;
+    column-gap: var(--u);
+    align-items: center;
+    white-space: nowrap;
+  }
+  .px-tz__kicker { grid-column: 1 / 3; display: flex; align-items: center; gap: 6px; color: var(--ash); }
+  .px-tz__kicker::before { content: ""; width: 6px; height: 6px; background: var(--ash-700); }
+  .px-tz__info[data-kind="selected"] .px-tz__kicker::before { background: var(--signal); }
+  .px-tz__date { color: var(--ash); text-align: right; }
+  .px-tz__offset,
+  .px-tz__time { color: var(--bone); font-size: 16px; letter-spacing: -.01em; }
+  .px-tz__places { overflow: hidden; color: var(--ash-300); text-overflow: ellipsis; }
+
+  .px-tz__scroll {
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: var(--void-500) transparent;
+  }
+  .px-tz__map,
+  .px-tz__ruler { display: flex; width: max-content; }
+  /* Cell inks, read by the script: sea rests, land is ash, the highlight bone and the value signal */
+  .px-tz__map {
+    --tz-sea: var(--void-500);
+    --tz-land: var(--ash-700);
+    --tz-hover: var(--bone);
+    --tz-pick: var(--signal);
+    position: relative;
+    outline: 0;
+  }
+
+  .px-tz__strip {
+    --hatch: var(--void-600);
+    --px-cell-dur: 140ms;
+    position: relative;
+    width: calc(var(--w) * 6px);
+    height: calc(var(--u) * 19);
+    overflow: hidden;
+    cursor: pointer;
+  }
+  .px-tz__strip:nth-child(even) { background: var(--void-800); }
+  .px-tz__strip[aria-selected="true"]::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    box-shadow: inset 1px 0 0 var(--bone-700), inset -1px 0 0 var(--bone-700);
+    pointer-events: none;
+  }
+
+  .px-tz__cells {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    display: block;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+
+  /* Ruler: even offsets only, so labels never touch */
+  .px-tz__ruler { color: var(--ash-700); }
+  .px-tz__tick {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: calc(var(--w) * 6px);
+    height: 24px;
+    white-space: nowrap;
+  }
+  .px-tz__tick:first-child { justify-content: flex-start; }
+  .px-tz__tick:last-child { justify-content: flex-end; }
+  .px-tz__tick.is-on { color: var(--bone); }
+
+  .px-tz__foot { display: flex; justify-content: space-between; gap: var(--u); overflow: hidden; color: var(--ash-700); white-space: nowrap; }
+
+  .tz-demo { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: calc(var(--u) * 2); align-items: start; }
+  .tz-demo .prose + .t-micro { display: block; margin-top: var(--u); }
+  @media (max-width: 791px) { .tz-demo { grid-template-columns: minmax(0, 1fr); } }
+
   /* Radio: a square that assembles a 2px-cell dot from the centre */
   .px-radio {
     --hatch: var(--signal);
@@ -2857,6 +2963,43 @@ el.addEventListener(<em>'px:open'</em>, (e) =&gt; …);</pre>
           </form>
         </div>
 
+        <!-- Time zone -->
+        <div class="panel s-12" data-panel data-snap>
+          <div class="panel__head t-micro"><b>Time zone</b><span>Cell map · 15° strips</span></div>
+          <div class="tz-demo">
+            <div class="px-field">
+              <span class="t-micro muted" id="tz-label">Field unit time zone</span>
+              <div class="px-dd px-tz" data-tz>
+                <button type="button" class="px-input__box px-select" data-hover aria-haspopup="listbox" aria-expanded="false" aria-controls="tz-map" aria-labelledby="tz-label tz-value">
+                  <span class="px-select__value" id="tz-value">UTC+00:00 · London, Lisbon, Accra</span>
+                  <span class="px-input__suffix t-micro num" data-tz-now>--:--</span>
+                  <span class="px-dd__caret" data-arrow="↓"></span>
+                  <span class="px-input__bar" data-hatch="x" data-hatch-cell="6" data-hatch-sweep="160" data-hatch-jitter="30"></span>
+                </button>
+                <div class="px-tz__pop">
+                  <div class="px-tz__info" data-kind="selected" aria-hidden="true">
+                    <span class="px-tz__kicker t-micro" data-tz-info="kicker">Selected</span>
+                    <span class="px-tz__date t-micro" data-tz-info="date"></span>
+                    <span class="px-tz__offset" data-tz-info="offset"></span>
+                    <span class="px-tz__places" data-tz-info="places"></span>
+                    <span class="px-tz__time num" data-tz-info="time"></span>
+                  </div>
+                  <div class="px-tz__scroll">
+                    <div class="px-tz__map" id="tz-map" role="listbox" aria-orientation="horizontal" aria-labelledby="tz-label" tabindex="-1" data-hatch-group></div>
+                    <div class="px-tz__ruler t-micro" aria-hidden="true"></div>
+                  </div>
+                  <div class="px-tz__foot t-micro" aria-hidden="true"><span>← → move · Enter selects · Esc closes</span><span class="num" data-tz-utc></span></div>
+                </div>
+              </div>
+              <span class="px-input__help t-micro">Opens on your own zone · hover a strip to preview it.</span>
+            </div>
+            <div>
+              <p class="prose">Each strip is a nominal zone, 15° of longitude centred on a whole hour, so the two at the date line are half strips. Hover or arrow through them and the label above the map shows the offset, a few places and the time there now. Strips keep standard time: no daylight saving and no half-hour zones.</p>
+              <span class="t-micro muted" role="status" id="tz-status">px:change · Etc/UTC</span>
+            </div>
+          </div>
+        </div>
+
         <!-- Image -->
         <div class="panel s-6" data-panel data-snap>
           <div class="panel__head t-micro"><b>Image</b><span id="media-meta">Openverse · mountain landscape</span></div>
@@ -4341,8 +4484,9 @@ el.addEventListener(<em>'px:open'</em>, (e) =&gt; …);</pre>
   let menuSeq = 0;
 
   // `field` owns focus and aria-activedescendant; the highlighted option carries .is-on, which lights its hatch.
-  function listbox(dd, field, pick) {
-    const menu = $('.px-menu', dd);
+  // hooks.active(option | null) runs when the highlight moves; hooks.open() runs just before the menu shows.
+  function listbox(dd, field, pick, hooks = {}) {
+    const menu = $('[role="listbox"]', dd);
     const base = menu.id || (menu.id = `px-menu-${++menuSeq}`);
     const name = (o) => { if (!o.id) o.id = `${base}-${++menuSeq}`; };
     $$('[role="option"]', menu).forEach(name);
@@ -4368,8 +4512,10 @@ el.addEventListener(<em>'px:open'</em>, (e) =&gt; …);</pre>
           field.setAttribute('aria-activedescendant', active.id);
           reveal(active);
         } else field.removeAttribute('aria-activedescendant');
+        if (hooks.active) hooks.active(active);
       },
       open(start) {
+        if (hooks.open) hooks.open();
         dd.classList.add('is-open');
         field.setAttribute('aria-expanded', 'true');
         const list = visible();
@@ -4586,6 +4732,348 @@ el.addEventListener(<em>'px:open'</em>, (e) =&gt; …);</pre>
     });
     known().forEach((o) => highlight(o, ''));
   });
+
+  /* ═════════════ Time zone: cell map in 15° strips ═════════════ */
+
+  // 96 × 38 cells, equirectangular from 180°W and 84°N at 3.75° a cell. Each digit is how much of the cell is land
+  // (0 under 10%, then 10, 35, 60 and 85%), from Natural Earth 1:110m.
+  const LAND = [
+    '000000000000000000000011223333222222333333121000000000000000010000000000010000000000000000000000',
+    '000000000000000010101122344212444444444444300000000231100000000000000000011210000000000000000000',
+    '000000000000000222120222222100112444444444200000000000000000001211000113334444110100021100000000',
+    '100012221110112224442232243332000244444443000000000001221000002010423444444444444433344322211111',
+    '321134444444444444343334331134210144443111110000000144444322234444434444444444444444444444444444',
+    '010134444444444444444443121223200034400000220000013442344444444444444444444444444444444444444442',
+    '000123421123444444444440000342200001100000000000023430344444444444444444444444444444443331122100',
+    '000011100000144444444444320344431000000000000022002212444444444444444444444444444444300002410000',
+    '000000000000114444444444442444444000000000000124234444444444444444444444444444444444431001100000',
+    '000000000000002444444444444444202200000000000003444444444444444444444444444444444444421000000000',
+    '000000000000000444444444444443210000000000000112433244431134314444444444444444444444211000000000',
+    '000000000000001444444444444420000000000000000244201123233324413444444444444444443420020000000000',
+    '000000000000000344444444444300000000000000000132122101123344423444444444444444431220220000000000',
+    '000000000000000024444444443100000000000000000144444201100244444444444444444444441012100000000000',
+    '000000000000000002444432222000000000000000000344444444444444434444444444444444442000000000000000',
+    '000000000000000001244400002100000000000000003444444444444244422233444444444444431000000000000000',
+    '000000000000000000014400101100000000000000024444444444444334444300244443344443201000000000000000',
+    '000000000000000000002433200111000000000000014444444444444414443100024420044421001000000000000000',
+    '000000000000000000000012330000000000000000024444444444444433320000014200004440002000000000000000',
+    '000000000000000000000000020122210000000000014444444444444443220000003100001230001100000000000000',
+    '000000000000000000000000001344442100000000001444344444444444410000000100002100010200000000000000',
+    '000000000000000000000000000344444420000000000000012444444444200000000000012201320000000000000000',
+    '000000000000000000000000002444444431000000000000002444444442000000000000002304421011000000000000',
+    '000000000000000000000000002444444444431000000000001444444420000000000000000211212011342110000000',
+    '000000000000000000000000001444444444443000000000000244444420000000000000000012111100132200100000',
+    '000000000000000000000000000344444444440000000000000244444430000000000000000000000002111000000000',
+    '000000000000000000000000000134444444430000000000000344444430320000000000000000000334213000000000',
+    '000000000000000000000000000003444444420000000000000344444201400000000000000000013444444100000000',
+    '000000000000000000000000000003444444200000000000000144444202300000000000000000344444444410001000',
+    '000000000000000000000000000004444440000000000000000044443000000000000000000000344444444430000000',
+    '000000000000000000000000000004444420000000000000000024441000000000000000000000144444444430000000',
+    '000000000000000000000000000014443200000000000000000002210000000000000000000000132100344420000000',
+    '000000000000000000000000000024442000000000000000000000000000000000000000000000000000023200000021',
+    '000000000000000000000000000034310000000000000000000000000000000000000000000000000000001100000120',
+    '000000000000000000000000000034100000000000000000000000000000000000000000000000000000000000001200',
+    '000000000000000000000000000144100000000000000000000000000000000000100000000000000000000000000000',
+    '000000000000000000000000000033001000000000000000000000000000000000000000000000000000000000000000',
+    '000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000',
+  ];
+
+  // Places on each zone's standard time, UTC−12 to UTC+12.
+  const TZ_PLACES = [
+    ['Baker Island', 'Howland Island'],
+    ['Pago Pago', 'Niue', 'Midway'],
+    ['Honolulu', 'Tahiti', 'Rarotonga'],
+    ['Anchorage', 'Juneau', 'Gambier Islands'],
+    ['Los Angeles', 'Vancouver', 'Tijuana'],
+    ['Denver', 'Phoenix', 'Calgary'],
+    ['Chicago', 'Mexico City', 'Guatemala City'],
+    ['New York', 'Toronto', 'Bogotá'],
+    ['Halifax', 'Caracas', 'La Paz'],
+    ['São Paulo', 'Buenos Aires', 'Montevideo'],
+    ['South Georgia', 'Fernando de Noronha'],
+    ['Azores', 'Cape Verde'],
+    ['London', 'Lisbon', 'Accra'],
+    ['Paris', 'Berlin', 'Lagos'],
+    ['Cairo', 'Athens', 'Johannesburg'],
+    ['Moscow', 'Istanbul', 'Nairobi'],
+    ['Dubai', 'Baku', 'Samara'],
+    ['Karachi', 'Tashkent', 'Yekaterinburg'],
+    ['Dhaka', 'Bishkek', 'Omsk'],
+    ['Bangkok', 'Jakarta', 'Hanoi'],
+    ['Beijing', 'Singapore', 'Perth'],
+    ['Tokyo', 'Seoul', 'Yakutsk'],
+    ['Sydney', 'Vladivostok', 'Guam'],
+    ['Nouméa', 'Honiara', 'Magadan'],
+    ['Auckland', 'Fiji', 'Kamchatka'],
+  ];
+
+  const tzName = (n) => `UTC${n < 0 ? '−' : '+'}${String(Math.abs(n)).padStart(2, '0')}:00`;
+  // Etc/GMT names count the other way round: UTC+8 is Etc/GMT-8.
+  const tzZone = (n) => (n ? `Etc/GMT${n > 0 ? '-' : '+'}${Math.abs(n)}` : 'Etc/UTC');
+  const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const two = (v) => String(v).padStart(2, '0');
+
+  function tzClock(n, now = Date.now()) {
+    const d = new Date(now + n * 36e5), here = new Date(now);
+    const days = Math.round((Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())
+      - Date.UTC(here.getFullYear(), here.getMonth(), here.getDate())) / 864e5);
+    return {
+      time: `${two(d.getUTCHours())}:${two(d.getUTCMinutes())}`,
+      date: `${DAYS[d.getUTCDay()]} ${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]}`,
+      rel: days ? (days > 0 ? 'Tomorrow' : 'Yesterday') : 'Today',
+    };
+  }
+
+  // The viewer's standard (not daylight) offset, rounded to the nearest strip.
+  const tzLocal = (() => {
+    const y = new Date().getFullYear();
+    const std = -Math.max(new Date(y, 0, 1).getTimezoneOffset(), new Date(y, 6, 1).getTimezoneOffset()) / 60;
+    return clamp(Math.round(std), -12, 12);
+  })();
+
+  $$('[data-tz]').forEach((dd) => {
+    const btn = $('.px-select', dd);
+    const value = $('.px-select__value', dd);
+    const now = $('[data-tz-now]', dd);
+    const pop = $('.px-tz__pop', dd);
+    const scroll = $('.px-tz__scroll', dd);
+    const map = $('.px-tz__map', dd);
+    const ruler = $('.px-tz__ruler', dd);
+    const utc = $('[data-tz-utc]', dd);
+    const info = $('.px-tz__info', dd);
+    const out = Object.fromEntries($$('[data-tz-info]', dd).map((el) => [el.dataset.tzInfo, el]));
+    const cols = LAND[0].length, per = cols / 24;
+    pop.style.setProperty('--tz-cells', cols);
+
+    const strips = [], ticks = [], stripOf = [];
+    for (let n = -12; n <= 12; n++) {
+      const w = Math.abs(n) === 12 ? per / 2 : per;
+      const s = document.createElement('div');
+      s.className = 'px-tz__strip';
+      s.setAttribute('role', 'option');
+      s.setAttribute('aria-selected', 'false');
+      s.style.setProperty('--w', w);
+      Object.assign(s.dataset, { offset: n, hatch: 'y', hatchCell: '6', hatchSweep: '120', hatchJitter: '30' });
+      const t = document.createElement('span');
+      t.className = 'px-tz__tick';
+      t.style.setProperty('--w', w);
+      if (n % 2 === 0) t.textContent = n > 0 ? `+${n}` : n < 0 ? `−${-n}` : '0';
+      for (let k = 0; k < w; k++) stripOf.push(strips.length);
+      strips.push(s);
+      ticks.push(t);
+    }
+    const canvas = document.createElement('canvas');
+    canvas.className = 'px-tz__cells';
+    canvas.setAttribute('aria-hidden', 'true');
+    map.append(...strips, canvas);
+    ruler.append(...ticks);
+    strips.forEach(initHatch);
+
+    /* Cells: sea rests as a 2px square; land grows with its coverage (2–5px in a 6px cell). Each land cell
+       fades between inks on its own delay, so a strip lights top to bottom like a y hatch and retracts
+       bottom to top, faster. On open, land rises out of the resting cells outward from the value. */
+    const Cells = (() => {
+      const rows = LAND.length, N = cols * rows;
+      const SIZE = [2, 2, 3, 4, 5];
+      const SWEEP = 120, JITTER = 30, DUR = 140, RISE = 160, HANDOFF = .35;
+      const level = new Uint8Array(N), jit = new Float32Array(N);
+      const from = new Float32Array(N * 3), to = new Float32Array(N * 3);
+      const t0 = new Float64Array(N), wait = new Float32Array(N), dur = new Float32Array(N), rise = new Float32Array(N);
+      const tone = new Uint8Array(strips.length);
+      let ink = null, g = null, openAt = -1, busy = 0, raf = 0, lastLit = -1e9;
+
+      for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) level[r * cols + c] = +LAND[r][c];
+      for (let i = 0; i < N; i++) jit[i] = rnd();
+
+      const read = () => {
+        const cs = getComputedStyle(map);
+        ink = ['--tz-sea', '--tz-land', '--tz-hover', '--tz-pick'].map((p) => toRGB(cs.getPropertyValue(p).trim()));
+      };
+      const progress = (i, now) => (dur[i] ? clamp((now - t0[i] - wait[i]) / dur[i], 0, 1) : 1);
+      const stripTone = (k) => (strips[k] === selected ? 3 : strips[k] === lb.active ? 2 : 1);
+
+      function setup() {
+        read();
+        g = setupCanvas(canvas);
+        for (let i = 0; i < N; i++) {
+          const c = ink[level[i] ? stripTone(stripOf[i % cols]) : 0];
+          from.set(c, i * 3);
+          to.set(c, i * 3);
+          dur[i] = 0;
+        }
+        strips.forEach((s, k) => { tone[k] = stripTone(k); });
+      }
+
+      function draw(now) {
+        const { ctx, dpr } = g, pitch = 6 * dpr;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        for (let i = 0; i < N; i++) {
+          const c = i % cols, r = (i / cols) | 0;
+          const e = easeCell(progress(i, now)), a = rise[i];
+          const up = openAt < 0 ? 0 : REDUCE ? 1 : easeCell(clamp((now - openAt - a) / RISE, 0, 1));
+          const sea = ink[0], k = i * 3;
+          let R = from[k] + (to[k] - from[k]) * e, G = from[k + 1] + (to[k + 1] - from[k + 1]) * e, B = from[k + 2] + (to[k + 2] - from[k + 2]) * e;
+          let size = 2;
+          if (level[i]) {
+            size = 2 + (SIZE[level[i]] - 2) * up;
+            R = sea[0] + (R - sea[0]) * up; G = sea[1] + (G - sea[1]) * up; B = sea[2] + (B - sea[2]) * up;
+          }
+          const sz = Math.max(1, Math.round(size * dpr)), off = Math.round((pitch - sz) / 2);
+          ctx.fillStyle = `rgb(${R | 0},${G | 0},${B | 0})`;
+          ctx.fillRect(Math.round(c * pitch) + off, Math.round(r * pitch) + off, sz, sz);
+        }
+      }
+
+      function frame(now) {
+        raf = 0;
+        draw(now);
+        if (now < busy) raf = requestAnimationFrame(frame);
+      }
+      const kick = (until) => {
+        busy = Math.max(busy, until);
+        if (!raf) raf = requestAnimationFrame(frame);
+      };
+
+      return {
+        // Re-aim every strip whose ink changed: the highlight and the value.
+        restyle() {
+          if (!g) return;
+          const now = performance.now();
+          const quick = now - lastLit < 220 ? HANDOFF : 1;
+          let until = now;
+          strips.forEach((s, k) => {
+            const next = stripTone(k);
+            if (next === tone[k]) return;
+            const out = next < tone[k];
+            if (next > 1) lastLit = now;
+            tone[k] = next;
+            for (let i = 0; i < N; i++) {
+              if (!level[i] || stripOf[i % cols] !== k) continue;
+              const r = (i / cols) | 0, p = progress(i, now), e = easeCell(p), j = i * 3;
+              for (let ch = 0; ch < 3; ch++) from[j + ch] += (to[j + ch] - from[j + ch]) * e;
+              to.set(ink[next], j);
+              const order = out ? 1 - r / (rows - 1) : r / (rows - 1);
+              t0[i] = now;
+              wait[i] = REDUCE || (p > 0 && p < 1) ? 0 : (order * SWEEP * quick + jit[i] * JITTER) * (out ? .78 : 1);
+              dur[i] = REDUCE ? 0 : DUR * (out ? .8 : 1);
+              until = Math.max(until, now + wait[i] + dur[i]);
+            }
+          });
+          kick(until);
+        },
+        open() {
+          setup();
+          const k = strips.indexOf(selected), mid = stripOf.indexOf(k) + strips[k].offsetWidth / 12;
+          for (let i = 0; i < N; i++) rise[i] = 60 + Math.abs((i % cols) + .5 - mid) * 3 + jit[i] * 40;
+          openAt = performance.now();
+          kick(openAt + (REDUCE ? 0 : 60 + cols * 3 + 40 + RISE));
+        },
+      };
+    })();
+
+    const offset = (s) => Number(s.dataset.offset);
+    const places = (s) => TZ_PLACES[offset(s) + 12];
+    const detail = (s) => ({ offset: offset(s), name: tzName(offset(s)), zone: tzZone(offset(s)), places: places(s) });
+    let selected = strips[tzLocal + 12];
+
+    // The label shows the highlighted strip while there is one, otherwise the value.
+    function paint(s) {
+      const n = offset(s), c = tzClock(n), mine = s === selected;
+      info.dataset.kind = mine ? 'selected' : 'preview';
+      out.kicker.textContent = `${mine ? 'Selected' : 'Preview'}${n === tzLocal ? ' · Your zone' : ''}`;
+      out.date.textContent = `${c.date} · ${c.rel}`;
+      out.offset.textContent = tzName(n);
+      out.places.textContent = places(s).join(', ');
+      out.time.textContent = c.time;
+    }
+
+    function tick() {
+      const t = Date.now();
+      strips.forEach((s) => s.setAttribute('aria-label', `${tzName(offset(s))}, ${places(s).join(', ')}, ${tzClock(offset(s), t).time}`));
+      now.textContent = tzClock(offset(selected), t).time;
+      utc.textContent = `UTC ${tzClock(0, t).time}`;
+      paint(lb.active || selected);
+    }
+
+    // Slide the popup left, in whole cells, when the trigger sits too close to the viewport's right edge.
+    // When the map is still wider than the popup, it scrolls with the value centred.
+    function place() {
+      pop.style.removeProperty('--tz-shift');
+      const r = pop.getBoundingClientRect();
+      const over = r.right - (innerWidth - U);
+      if (over > 0) pop.style.setProperty('--tz-shift', `${-Math.min(Math.ceil(over / 6) * 6, Math.max(0, r.left - U))}px`);
+      scroll.scrollLeft = selected.offsetLeft - (scroll.clientWidth - selected.offsetWidth) / 2;
+    }
+
+    function choose(s, quiet) {
+      selected = s;
+      strips.forEach((x) => x.setAttribute('aria-selected', String(x === s)));
+      value.textContent = `${tzName(offset(s))} · ${places(s).join(', ')}`;
+      Cells.restyle();
+      tick();
+      if (quiet) return;
+      lb.close();
+      btn.focus({ preventScroll: true });
+      dd.dispatchEvent(new CustomEvent('px:change', { bubbles: true, detail: detail(s) }));
+    }
+
+    const lb = listbox(dd, btn, (s) => choose(s), {
+      open() { place(); Cells.open(); },
+      active(s) {
+        ticks.forEach((t, i) => t.classList.toggle('is-on', strips[i] === s));
+        paint(s || selected);
+        Cells.restyle();
+        if (!s) return;
+        const l = s.offsetLeft, r = l + s.offsetWidth;
+        if (l < scroll.scrollLeft) scroll.scrollLeft = l;
+        else if (r > scroll.scrollLeft + scroll.clientWidth) scroll.scrollLeft = r - scroll.clientWidth;
+      },
+    });
+
+    map.addEventListener('pointerleave', () => { if (lb.isOpen) lb.setActive(selected); });
+    pop.addEventListener('pointerdown', (e) => e.preventDefault());
+    addEventListener('resize', () => { if (lb.isOpen) place(); });
+
+    let swallowClick = false;
+    btn.addEventListener('click', () => {
+      if (swallowClick) { swallowClick = false; return; }
+      lb.isOpen ? lb.close() : lb.open();
+    });
+    btn.addEventListener('keydown', (e) => {
+      if (lb.isOpen && e.key === ' ') { e.preventDefault(); swallowClick = true; if (lb.active) choose(lb.active); return; }
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { e.preventDefault(); lb.move(e.key === 'ArrowRight' ? 1 : -1); return; }
+      if (listKeys(lb, e, () => choose(lb.active))) return;
+      // Typing jumps to the next zone with a place starting with that letter.
+      if (e.key.length === 1 && /\p{L}/u.test(e.key)) {
+        const k = e.key.toLocaleLowerCase();
+        const from = strips.indexOf(lb.active || selected) + 1;
+        const hit = [...strips.slice(from), ...strips.slice(0, from)].find((s) => places(s).some((p) => p.toLocaleLowerCase().startsWith(k)));
+        if (hit) { if (!lb.isOpen) lb.open(hit); else lb.setActive(hit); }
+      }
+    });
+    btn.addEventListener('keyup', (e) => {
+      if (e.key !== ' ' || !swallowClick) return;
+      e.preventDefault();
+      setTimeout(() => { swallowClick = false; });
+    });
+
+    choose(selected, true);
+    const loop = () => { tick(); setTimeout(loop, 60000 - (Date.now() % 60000) + 20); };
+    setTimeout(loop, 60000 - (Date.now() % 60000) + 20);
+
+    dd._tz = {
+      get value() { return detail(selected); },
+      pick(n) { const s = strips[clamp(Math.round(n), -12, 12) + 12]; if (s !== selected) choose(s, true); },
+    };
+  });
+
+  (() => {
+    const dd = $('#tz-map')?.closest('[data-tz]'), status = $('#tz-status');
+    if (!dd || !status) return;
+    status.textContent = `Value · ${dd._tz.value.zone}`;
+    dd.addEventListener('px:change', (e) => { status.textContent = `px:change · ${e.detail.zone}`; });
+  })();
 
   /* ═════════════ Submit: normal + stateful ═════════════ */
 
