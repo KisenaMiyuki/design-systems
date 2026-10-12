@@ -2215,6 +2215,236 @@
   .callout-demo__wide { grid-column: 1 / -1; }
   @media (max-width: 791px) { .callout-demo { grid-template-columns: 1fr; } }
 
+  /* ═══════════════════════════ Reveal ═══════════════════════════ */
+  /* Content that stays out of the page until asked for. Closed content leaves the tab order and the
+     accessibility tree, not just the view, and the trigger carries the state. Openings run in 4 steps,
+     closings in 3 (the mirror rule, ~25% faster). */
+
+  /* Accordion: 48px heads in a framed column. A panel's row opens 0fr → 1fr, so the height needs no
+     measuring. Bodies pad 24px at the foot to keep every open item on whole units. */
+  .px-acc { padding: 1px; box-shadow: inset 0 0 0 1px var(--void-500); }
+  .px-acc__item + .px-acc__item { box-shadow: inset 0 1px 0 var(--void-500); }
+  .px-acc .px-acc__h { font-size: inherit; line-height: inherit; letter-spacing: normal; }
+
+  .px-acc__head {
+    --hatch: var(--void-700);
+    --hatch-b: var(--void-600);
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: var(--u);
+    width: 100%;
+    height: 48px;
+    padding: 0 var(--u) 0 calc(var(--u) * 2);
+    overflow: hidden;
+    border: 0;
+    background: transparent;
+    color: var(--ash-300);
+    text-align: left;
+    list-style: none;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: color var(--dur-cell) linear;
+  }
+  .px-acc__head::-webkit-details-marker { display: none; }
+  .px-acc__head > :not(.px-hatch) { position: relative; z-index: 1; }
+  .px-acc__head:focus { outline: 0; }
+  .px-acc__head:focus-visible { outline: 1px solid var(--signal); outline-offset: -5px; }
+
+  .px-acc__head[aria-expanded="true"],
+  .px-details[open] > .px-acc__head { color: var(--bone); }
+  .px-acc__head[aria-expanded="true"]::before,
+  .px-details[open] > .px-acc__head::before {
+    content: "";
+    position: absolute;
+    top: 21px;
+    left: 9px;
+    z-index: 1;
+    width: 6px;
+    height: 6px;
+    background: var(--signal);
+  }
+
+  .px-acc__idx { flex: 0 0 24px; color: var(--ash-700); }
+  .px-acc__title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .px-acc__meta { color: var(--ash-700); white-space: nowrap; }
+
+  /* + turns to − cell by cell: the tips go first and the stem retracts to the bar; closing grows it back out. */
+  .px-acc__glyph { flex: 0 0 auto; width: 10px; height: 10px; margin: 0 7px; overflow: visible; fill: currentColor; shape-rendering: crispEdges; }
+  .px-acc__glyph rect[data-v] { transition: opacity 60ms steps(2, end) var(--c, 0ms); }
+  .px-acc__head[aria-expanded="true"] > .px-acc__glyph rect[data-v],
+  .px-details[open] > .px-acc__head > .px-acc__glyph rect[data-v] { opacity: 0; transition-delay: var(--o, 0ms); }
+
+  .px-acc__panel {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 120ms steps(3, end);
+  }
+  .px-acc__h:has(> [aria-expanded="true"]) + .px-acc__panel {
+    grid-template-rows: 1fr;
+    transition: grid-template-rows 160ms steps(4, end);
+  }
+  .px-acc__clip { min-height: 0; overflow: hidden; }
+  .px-acc__body { padding: 0 calc(var(--u) * 2) calc(var(--u) * 2); color: var(--ash); }
+  .px-acc--indexed .px-acc__body { padding-left: calc(var(--u) * 5); }
+
+  /* Native <details>: the same head as a <summary>. Where ::details-content and interpolate-size exist the
+     body steps open like the scripted one; elsewhere it opens at once. */
+  .px-details { interpolate-size: allow-keywords; }
+  .px-details::details-content {
+    block-size: 0;
+    overflow-y: clip;
+    transition: block-size 120ms steps(3, end), content-visibility 120ms allow-discrete;
+  }
+  .px-details[open]::details-content {
+    block-size: auto;
+    transition: block-size 160ms steps(4, end), content-visibility 160ms allow-discrete;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .px-acc__head:hover { color: var(--bone); }
+  }
+
+  /* Tabs: panels share one grid cell, so the frame keeps the tallest height and switching never shifts the
+     page. Hidden panels keep their box but drop out of view, focus and the accessibility tree. */
+  .px-tabs__panels { display: grid; }
+  .px-tabs__panel { grid-area: 1 / 1; min-width: 0; }
+  .px-tabs__panel[hidden] { display: block; visibility: hidden; }
+  .px-tabs__panel:focus { outline: 0; }
+  .px-tabs__panel:focus-visible { outline: 1px solid var(--signal); outline-offset: 4px; }
+  .px-tabs__panel.is-entering { animation: tab-wipe 180ms steps(6, end); }
+  .px-tabs__panel[data-from="right"] { --wipe: inset(0 0 0 100%); }
+  @keyframes tab-wipe { from { clip-path: var(--wipe, inset(0 100% 0 0)); } }
+
+  .reveal-rows > div {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--u);
+    height: 36px;
+    box-shadow: inset 0 -1px 0 var(--void-500);
+    color: var(--ash-300);
+  }
+  .reveal-rows > div > :last-child { color: var(--ash); white-space: nowrap; }
+
+  /* Show more: the body clips to --lines lines and the last one dithers through a 2px checker, so the cut
+     reads as "continues". --h is the text's full height, kept current by script. */
+  .px-more__body {
+    --dither: linear-gradient(#000 0 0) top / 100% calc(100% - 24px) no-repeat,
+              repeating-conic-gradient(#000 0 25%, transparent 0 50%) 0 0 / 4px 4px;
+    height: calc(var(--lines, 4) * 24px);
+    overflow: hidden;
+    color: var(--ash-300);
+    -webkit-mask: var(--dither);
+    mask: var(--dither);
+    transition: height 120ms steps(3, end);
+  }
+  .px-more.is-open .px-more__body {
+    height: var(--h, auto);
+    -webkit-mask: none;
+    mask: none;
+    transition: height 160ms steps(4, end);
+  }
+  .px-more.is-short .px-more__body { height: auto; -webkit-mask: none; mask: none; }
+  .px-more.is-short .px-more__toggle { display: none; }
+  .px-more__toggle { padding: 0; border: 0; cursor: pointer; }
+
+  /* Popover: top layer, light dismiss and Esc come from the popover attribute. It wipes open from the side
+     of its trigger in four steps and closes in three. */
+  .px-pop {
+    position: fixed;
+    inset: auto;
+    top: 0;
+    left: 0;
+    width: calc(var(--u) * 22);
+    max-width: calc(100vw - var(--u) * 2);
+    margin: 0;
+    padding: var(--u) calc(var(--u) * 2);
+    overflow: visible;
+    border: 0;
+    background: var(--void);
+    box-shadow: inset 0 0 0 1px var(--bone-700);
+    color: var(--bone);
+    clip-path: inset(0);
+    transition: clip-path 120ms steps(3, end), display 120ms allow-discrete, overlay 120ms allow-discrete;
+  }
+  .px-pop:popover-open { transition: clip-path 160ms steps(4, end), display 160ms allow-discrete, overlay 160ms allow-discrete; }
+  .px-pop:not(:popover-open) { clip-path: inset(0 0 100% 0); }
+  .px-pop[data-side="top"]:not(:popover-open) { clip-path: inset(100% 0 0 0); }
+  @starting-style {
+    .px-pop:popover-open { clip-path: inset(0 0 100% 0); }
+    .px-pop[data-side="top"]:popover-open { clip-path: inset(100% 0 0 0); }
+  }
+
+  .px-pop__head { display: flex; align-items: center; justify-content: space-between; height: 24px; color: var(--ash); }
+  .px-pop__head b { color: var(--bone); font-weight: 400; }
+  .px-pop__list { margin: 0; padding: 0; list-style: none; }
+  .px-pop__list li { display: flex; align-items: center; gap: var(--u); height: 24px; color: var(--ash-300); }
+  .px-pop__list i { display: grid; flex: 0 0 12px; place-items: center; height: 12px; }
+  .px-pop__list i::before { content: ""; width: var(--s); height: var(--s); background: var(--c); }
+
+  /* Redaction: a cell cover over a value that isn't in the page yet. The cover sits above the text and
+     dissolves at random; a 2px signal bar counts down the time until it assembles again. */
+  .px-redact {
+    --hatch: var(--ash-700);
+    --hatch-b: var(--void-500);
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    height: 24px;
+    padding: 0 6px;
+    overflow: hidden;
+    border: 0;
+    background: transparent;
+    box-shadow: inset 0 0 0 1px var(--void-500);
+    color: var(--bone);
+    letter-spacing: .04em;
+    vertical-align: top;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: box-shadow var(--dur-cell) linear;
+  }
+  .px-redact--block { display: flex; width: 100%; height: 48px; padding: 0 var(--u); letter-spacing: .08em; }
+  .px-redact:focus-visible { outline: 1px solid var(--signal); outline-offset: 3px; }
+  .px-redact__cover { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
+  .px-redact__text { position: relative; z-index: 1; white-space: nowrap; }
+  .px-redact[aria-pressed="false"] .px-redact__text { -webkit-user-select: none; user-select: none; }
+  .px-redact[aria-pressed="true"]::after {
+    content: "";
+    position: absolute;
+    inset: auto 0 0;
+    z-index: 3;
+    height: 2px;
+    background: var(--signal);
+    transform-origin: left;
+    animation: redact-hold var(--hold, 10s) steps(10, end) forwards;
+  }
+  @keyframes redact-hold { to { transform: scaleX(0); } }
+
+  @media (hover: hover) and (pointer: fine) {
+    .px-redact:hover { box-shadow: inset 0 0 0 1px var(--ash-700); }
+  }
+
+  /* Reference table: one 36px row per pattern, scrolling sideways on narrow screens */
+  .reveal-map-wrap { overflow-x: auto; scrollbar-width: thin; scrollbar-color: var(--void-500) transparent; }
+  .reveal-map { width: 100%; min-width: 840px; border-collapse: collapse; }
+  .reveal-map th,
+  .reveal-map td {
+    height: 36px;
+    padding: 0 var(--u);
+    box-shadow: inset 0 -1px 0 var(--void-500);
+    color: var(--ash);
+    font-weight: 400;
+    text-align: left;
+    white-space: nowrap;
+  }
+  .reveal-map th:first-child,
+  .reveal-map td:first-child { padding-left: 0; }
+  .reveal-map th { color: var(--ash-700); font-size: 10px; letter-spacing: .08em; text-transform: uppercase; }
+  .reveal-map td:first-child { color: var(--bone); }
+  .reveal-map td:first-child small { margin-left: 6px; color: var(--ash-700); font-size: 10px; letter-spacing: .08em; text-transform: uppercase; }
+  .reveal-map code { color: var(--ash-300); font-family: inherit; }
+
   /* ═══════════════════════════ Motion ═══════════════════════════ */
   .principle { display: grid; gap: calc(var(--u) * 2); align-content: start; }
   .principle p { color: var(--ash); }
@@ -2365,6 +2595,7 @@
     <nav class="nav t-label" aria-label="Sections">
       <a href="#foundations">Foundations<span class="nav__bar" data-hatch="x" data-hatch-cell="6"></span></a>
       <a href="#components">Components<span class="nav__bar" data-hatch="x" data-hatch-cell="6"></span></a>
+      <a href="#reveal">Reveal<span class="nav__bar" data-hatch="x" data-hatch-cell="6"></span></a>
       <a href="#motion">Motion<span class="nav__bar" data-hatch="x" data-hatch-cell="6"></span></a>
       <a href="#references">References<span class="nav__bar" data-hatch="x" data-hatch-cell="6"></span></a>
     </nav>
@@ -3176,11 +3407,235 @@ el.addEventListener(<em>'px:open'</em>, (e) =&gt; …);</pre>
     </div>
   </section>
 
+  <!-- ───────────── Reveal ───────────── -->
+  <section id="reveal">
+    <div class="wrap">
+      <header class="sec-head" data-quiet>
+        <span class="sec-head__idx">03 /</span>
+        <h2>Reveal</h2>
+        <p>Content that stays out of the page until someone asks for it. Choose by where it opens: in place, by swapping, on top, or from under a cover.</p>
+      </header>
+
+      <div class="grid">
+        <div class="panel s-3 principle" data-panel data-snap>
+          <div class="panel__head t-micro"><b>Out, not invisible</b><span>01</span></div>
+          <p>Closed content leaves the tab order and the accessibility tree. Clipping or opacity alone leaves stops the keyboard can’t see.</p>
+        </div>
+        <div class="panel s-3 principle" data-panel data-snap>
+          <div class="panel__head t-micro"><b>The trigger says so</b><span>02</span></div>
+          <p>Whatever opens it carries the state, as aria-expanded, aria-selected or aria-pressed, plus a glyph that changes with it.</p>
+        </div>
+        <div class="panel s-3 principle" data-panel data-snap>
+          <div class="panel__head t-micro"><b>Steps in, faster out</b><span>03</span></div>
+          <p>Openings run in 4 steps of 40 ms, on the cell rhythm. Closings run in 3: the mirror rule, about 25% faster.</p>
+        </div>
+        <div class="panel s-3 principle" data-panel data-snap>
+          <div class="panel__head t-micro"><b>Focus stays put</b><span>04</span></div>
+          <p>In-place reveals leave focus on the trigger. Only an overlay that needs an answer takes it, and it gives focus back.</p>
+        </div>
+
+        <!-- Accordion -->
+        <div class="panel s-6" data-panel>
+          <div class="panel__head t-micro"><b>Accordion</b><span>Expand in place</span></div>
+          <div class="stack">
+            <div class="px-acc px-acc--indexed" id="acc" data-single>
+              <div class="px-acc__item">
+                <h3 class="px-acc__h">
+                  <button type="button" class="px-acc__head" id="acc-relief-h" aria-expanded="true" aria-controls="acc-relief" data-hatch="entry" data-hatch-cell="6" data-hover>
+                    <span class="px-acc__idx t-micro">01</span>
+                    <span class="px-acc__title">Relief</span>
+                    <span class="px-acc__meta t-micro num">2.18M cells</span>
+                    <svg class="px-acc__glyph" viewBox="0 0 5 5" aria-hidden="true"><rect x="0" y="2" width="5" height="1"/><rect data-v x="2" y="0" width="1" height="1" style="--c: 45ms"/><rect data-v x="2" y="1" width="1" height="1" style="--o: 60ms"/><rect data-v x="2" y="3" width="1" height="1" style="--o: 60ms"/><rect data-v x="2" y="4" width="1" height="1" style="--c: 45ms"/></svg>
+                  </button>
+                </h3>
+                <div class="px-acc__panel" id="acc-relief" role="region" aria-labelledby="acc-relief-h">
+                  <div class="px-acc__clip"><div class="px-acc__body"><p>Shaded from a 1 m elevation model. Light comes from the north-west at 45°, so ridges read as raised.</p></div></div>
+                </div>
+              </div>
+              <div class="px-acc__item">
+                <h3 class="px-acc__h">
+                  <button type="button" class="px-acc__head" id="acc-contours-h" aria-expanded="false" aria-controls="acc-contours" data-hatch="entry" data-hatch-cell="6" data-hover>
+                    <span class="px-acc__idx t-micro">02</span>
+                    <span class="px-acc__title">Contours</span>
+                    <span class="px-acc__meta t-micro num">912k cells</span>
+                    <svg class="px-acc__glyph" viewBox="0 0 5 5" aria-hidden="true"><rect x="0" y="2" width="5" height="1"/><rect data-v x="2" y="0" width="1" height="1" style="--c: 45ms"/><rect data-v x="2" y="1" width="1" height="1" style="--o: 60ms"/><rect data-v x="2" y="3" width="1" height="1" style="--o: 60ms"/><rect data-v x="2" y="4" width="1" height="1" style="--c: 45ms"/></svg>
+                  </button>
+                </h3>
+                <div class="px-acc__panel" id="acc-contours" role="region" aria-labelledby="acc-contours-h">
+                  <div class="px-acc__clip"><div class="px-acc__body" hidden="until-found"><p>A line every 10 m and an index line every 50 m. Labels sit on the slope and read uphill.</p></div></div>
+                </div>
+              </div>
+              <div class="px-acc__item">
+                <h3 class="px-acc__h">
+                  <button type="button" class="px-acc__head" id="acc-hydro-h" aria-expanded="false" aria-controls="acc-hydro" data-hatch="entry" data-hatch-cell="6" data-hover>
+                    <span class="px-acc__idx t-micro">03</span>
+                    <span class="px-acc__title">Hydrology</span>
+                    <span class="px-acc__meta t-micro num">302k cells</span>
+                    <svg class="px-acc__glyph" viewBox="0 0 5 5" aria-hidden="true"><rect x="0" y="2" width="5" height="1"/><rect data-v x="2" y="0" width="1" height="1" style="--c: 45ms"/><rect data-v x="2" y="1" width="1" height="1" style="--o: 60ms"/><rect data-v x="2" y="3" width="1" height="1" style="--o: 60ms"/><rect data-v x="2" y="4" width="1" height="1" style="--c: 45ms"/></svg>
+                  </button>
+                </h3>
+                <div class="px-acc__panel" id="acc-hydro" role="region" aria-labelledby="acc-hydro-h">
+                  <div class="px-acc__clip"><div class="px-acc__body" hidden="until-found"><p>Streams traced from flow accumulation. Lake outlines come from the survey pass of 12 June.</p></div></div>
+                </div>
+              </div>
+              <div class="px-acc__item">
+                <h3 class="px-acc__h">
+                  <button type="button" class="px-acc__head" id="acc-notes-h" aria-expanded="false" aria-controls="acc-notes" data-hatch="entry" data-hatch-cell="6" data-hover>
+                    <span class="px-acc__idx t-micro">04</span>
+                    <span class="px-acc__title">Annotations</span>
+                    <span class="px-acc__meta t-micro num">12 notes</span>
+                    <svg class="px-acc__glyph" viewBox="0 0 5 5" aria-hidden="true"><rect x="0" y="2" width="5" height="1"/><rect data-v x="2" y="0" width="1" height="1" style="--c: 45ms"/><rect data-v x="2" y="1" width="1" height="1" style="--o: 60ms"/><rect data-v x="2" y="3" width="1" height="1" style="--o: 60ms"/><rect data-v x="2" y="4" width="1" height="1" style="--c: 45ms"/></svg>
+                  </button>
+                </h3>
+                <div class="px-acc__panel" id="acc-notes" role="region" aria-labelledby="acc-notes-h">
+                  <div class="px-acc__clip"><div class="px-acc__body" hidden="until-found"><p>Field notes pinned to cells: every cairn on the ridge, two washed-out bridges and the spring at 1,960 m.</p></div></div>
+                </div>
+              </div>
+            </div>
+            <div class="row">
+              <label class="opt t-micro muted">One at a time <button type="button" class="px-switch" role="switch" aria-checked="true" data-hatch="x" data-hatch-cell="6" id="acc-single" aria-label="One row open at a time"><span class="px-switch__knob"></span></button></label>
+              <span class="muted" style="flex: 1; min-width: 20ch">Closed rows still answer find-in-page in Chromium. Search for “cairn”.</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="panel s-6" data-panel>
+          <div class="panel__head t-micro"><b>Tabs</b><span>Switch in place</span></div>
+          <div class="stack">
+            <div class="px-seg px-seg--block" role="tablist" aria-label="Survey detail" id="rv-tabs">
+              <button type="button" role="tab" id="rv-tab-sum" aria-controls="rv-tp-sum" aria-selected="true" data-hatch="entry" data-hatch-cell="6" data-value="sum"><span>Summary</span></button>
+              <button type="button" role="tab" id="rv-tab-layers" aria-controls="rv-tp-layers" aria-selected="false" data-hatch="entry" data-hatch-cell="6" data-value="layers"><span>Layers</span></button>
+              <button type="button" role="tab" id="rv-tab-log" aria-controls="rv-tp-log" aria-selected="false" data-hatch="entry" data-hatch-cell="6" data-value="log"><span>History</span></button>
+            </div>
+            <div class="px-tabs__panels">
+              <div class="px-tabs__panel reveal-rows" role="tabpanel" id="rv-tp-sum" aria-labelledby="rv-tab-sum" tabindex="0">
+                <div><span>Area</span><span class="num">18.4 km²</span></div>
+                <div><span>Relief</span><span class="num">412 – 2,184 m</span></div>
+                <div><span>Cells</span><span class="num">2.18M</span></div>
+                <div><span>Updated</span><span>2 hours ago</span></div>
+              </div>
+              <div class="px-tabs__panel reveal-rows" role="tabpanel" id="rv-tp-layers" aria-labelledby="rv-tab-layers" tabindex="0" hidden>
+                <div><span>Terrain / relief</span><span>On</span></div>
+                <div><span>Contours / 10 m</span><span>On</span></div>
+                <div><span>Hydrology</span><span>Off</span></div>
+                <div><span>Annotations</span><span class="num">12</span></div>
+              </div>
+              <div class="px-tabs__panel reveal-rows" role="tabpanel" id="rv-tp-log" aria-labelledby="rv-tab-log" tabindex="0" hidden>
+                <div><span>Sync failed · unit 07</span><span class="num">14:02</span></div>
+                <div><span>Contours rebuilt</span><span class="num">12:40</span></div>
+                <div><span>Survey pass 3 uploaded</span><span class="num">09:15</span></div>
+                <div><span>Published</span><span>Yesterday</span></div>
+              </div>
+            </div>
+            <p class="muted">Arrow keys move between tabs. Hidden panels keep their height, so switching never moves the page, and the new panel wipes in from the old tab’s side.</p>
+          </div>
+        </div>
+
+        <!-- Details -->
+        <div class="panel s-3" data-panel>
+          <div class="panel__head t-micro"><b>Details</b><span>No script</span></div>
+          <div class="stack">
+            <div class="px-acc">
+              <details class="px-acc__item px-details" name="rv-native" open>
+                <summary class="px-acc__head" data-hatch="entry" data-hatch-cell="6" data-hover>
+                  <span class="px-acc__title">Datum</span>
+                  <svg class="px-acc__glyph" viewBox="0 0 5 5" aria-hidden="true"><rect x="0" y="2" width="5" height="1"/><rect data-v x="2" y="0" width="1" height="1" style="--c: 45ms"/><rect data-v x="2" y="1" width="1" height="1" style="--o: 60ms"/><rect data-v x="2" y="3" width="1" height="1" style="--o: 60ms"/><rect data-v x="2" y="4" width="1" height="1" style="--c: 45ms"/></svg>
+                </summary>
+                <div class="px-acc__body"><p>WGS 84, with heights above the geoid.</p></div>
+              </details>
+              <details class="px-acc__item px-details" name="rv-native">
+                <summary class="px-acc__head" data-hatch="entry" data-hatch-cell="6" data-hover>
+                  <span class="px-acc__title">Licence</span>
+                  <svg class="px-acc__glyph" viewBox="0 0 5 5" aria-hidden="true"><rect x="0" y="2" width="5" height="1"/><rect data-v x="2" y="0" width="1" height="1" style="--c: 45ms"/><rect data-v x="2" y="1" width="1" height="1" style="--o: 60ms"/><rect data-v x="2" y="3" width="1" height="1" style="--o: 60ms"/><rect data-v x="2" y="4" width="1" height="1" style="--c: 45ms"/></svg>
+                </summary>
+                <div class="px-acc__body"><p>CC BY 4.0. Credit the field unit.</p></div>
+              </details>
+            </div>
+            <p class="muted">Plain &lt;details&gt; works before any script loads. Giving both the same name lets only one stay open.</p>
+          </div>
+        </div>
+
+        <!-- Show more -->
+        <div class="panel s-3" data-panel>
+          <div class="panel__head t-micro"><b>Show more</b><span>Clamp · 4 lines</span></div>
+          <div class="stack">
+            <div class="px-more" data-lines="4">
+              <div class="px-more__body" id="rv-more-body">
+                <p class="px-more__text">The survey left the col at first light, before the wind rose. Two passes covered the north face. Cloud cut the third short above 2,400 m, so the snowfield there is filled in from last year’s model. Cairns on the ridge were logged on the way down.</p>
+              </div>
+              <button type="button" class="px-link px-more__toggle" aria-expanded="false" aria-controls="rv-more-body">Show more</button>
+            </div>
+            <p class="muted">The last visible line dithers to show the text goes on. Use it for plain text only, since links in the cut part could still take focus.</p>
+          </div>
+        </div>
+
+        <!-- Popover -->
+        <div class="panel s-3" data-panel>
+          <div class="panel__head t-micro"><b>Popover</b><span>Light dismiss</span></div>
+          <div class="stack">
+            <p class="muted">Opens in the top layer beside its trigger, with no backdrop. A click outside or Esc closes it, and the rest of the page stays usable.</p>
+            <div class="row">
+              <button type="button" class="px-btn px-btn--s" data-hatch="x" data-hover popovertarget="rv-pop"><span class="px-btn__label" data-roll>Field legend</span><span class="px-btn__icon" data-arrow="↘"></span></button>
+            </div>
+            <div class="px-pop" id="rv-pop" popover>
+              <div class="px-pop__head t-micro"><b>Legend</b><span>Cell states</span></div>
+              <ul class="px-pop__list">
+                <li><i style="--c: var(--ash-700); --s: 2px"></i>Resting · 2px</li>
+                <li><i style="--c: var(--ash); --s: 6px"></i>Drifting · up to 9px</li>
+                <li><i style="--c: var(--bone); --s: 9px"></i>Under the pointer</li>
+                <li><i style="--c: var(--signal); --s: 9px"></i>Action and focus</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- Redact -->
+        <div class="panel s-3" data-panel>
+          <div class="panel__head t-micro"><b>Redact</b><span>Press to uncover</span></div>
+          <div class="stack">
+            <div class="stack" style="gap: 6px">
+              <span class="t-micro muted" aria-hidden="true">Access key</span>
+              <button type="button" class="px-redact px-redact--block" id="redact-key" aria-pressed="false" data-name="Access key"><span class="px-redact__cover" data-hatch="scatter" data-hatch-cell="6" data-hatch-sweep="260" data-hatch-tone=".3"></span><span class="sr-only">Access key, hidden</span><span class="px-redact__text" aria-hidden="true">000-0000-0000-0000</span></button>
+            </div>
+            <p class="prose">Base camp is at <button type="button" class="px-redact" id="redact-camp" aria-pressed="false" data-name="Base camp position"><span class="px-redact__cover" data-hatch="scatter" data-hatch-cell="6" data-hatch-sweep="200" data-hatch-tone=".3"></span><span class="sr-only">Base camp position, hidden</span><span class="px-redact__text" aria-hidden="true">000000 0 00000 0</span></button>, two hours below the col.</p>
+            <span class="t-micro muted" role="status" id="redact-status">Covers return after 10 s</span>
+          </div>
+        </div>
+
+        <!-- Map -->
+        <div class="panel s-12" data-panel>
+          <div class="panel__head t-micro"><b>Choosing a reveal</b><span>Where it opens · how it hides</span></div>
+          <div class="reveal-map-wrap">
+            <table class="reveal-map">
+              <thead>
+                <tr><th scope="col">Pattern</th><th scope="col">Action</th><th scope="col">Opens</th><th scope="col">Hidden by</th><th scope="col">Trigger state</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>Accordion</td><td>Click a head</td><td>In place, pushes down</td><td><code>hidden="until-found"</code></td><td><code>aria-expanded</code></td></tr>
+                <tr><td>Details</td><td>Click the summary</td><td>In place, pushes down</td><td>Closed <code>&lt;details&gt;</code></td><td><code>open</code></td></tr>
+                <tr><td>Tabs</td><td>Click or arrow to a tab</td><td>In place, swaps</td><td><code>hidden</code>, height held</td><td><code>aria-selected</code></td></tr>
+                <tr><td>Show more</td><td>Click Show more</td><td>In place, grows</td><td>Clipped to 4 lines</td><td><code>aria-expanded</code></td></tr>
+                <tr><td>Popover</td><td>Click the trigger</td><td>Top layer, anchored</td><td><code>popover</code></td><td><code>aria-expanded</code> (native)</td></tr>
+                <tr><td>Redact</td><td>Press the cover</td><td>In place, under cells</td><td>Not in the page yet</td><td><code>aria-pressed</code></td></tr>
+                <tr><td>Dialog<small>Components</small></td><td>Click the trigger</td><td>Top layer, modal</td><td>Closed <code>&lt;dialog&gt;</code></td><td><code>aria-haspopup</code></td></tr>
+                <tr><td>Select<small>Components</small></td><td>Click, type or arrow</td><td>Anchored menu</td><td><code>visibility</code> + clip</td><td><code>aria-expanded</code></td></tr>
+                <tr><td>Password<small>Components</small></td><td>Press Show</td><td>In the field</td><td><code>type="password"</code></td><td><code>aria-pressed</code></td></tr>
+                <tr><td>Tooltip<small>Components</small></td><td>Hover 400 ms or focus</td><td>Beside the target</td><td><code>role="tooltip"</code></td><td><code>aria-describedby</code></td></tr>
+                <tr><td>Row actions<small>Components</small></td><td>Hover or select a row</td><td>Inside the row</td><td><code>visibility</code> + clip</td><td>Row <code>aria-selected</code></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- ───────────── Motion ───────────── -->
   <section id="motion">
     <div class="wrap">
       <header class="sec-head" data-quiet>
-        <span class="sec-head__idx">03 /</span>
+        <span class="sec-head__idx">04 /</span>
         <h2>Motion</h2>
         <p>One rule: a cell’s delay is its position times the sweep, plus a random jitter. Exit mirrors it and runs a little faster. Everything else is a parameter.</p>
       </header>
@@ -3264,7 +3719,7 @@ el.addEventListener(<em>'px:open'</em>, (e) =&gt; …);</pre>
   <section id="references">
     <div class="wrap">
       <header class="sec-head" data-quiet>
-        <span class="sec-head__idx">04 /</span>
+        <span class="sec-head__idx">05 /</span>
         <h2>References</h2>
         <p>Where each part of the system came from, and what was taken.</p>
       </header>
@@ -3412,6 +3867,7 @@ el.addEventListener(<em>'px:open'</em>, (e) =&gt; …);</pre>
     '.px-dialog.is-dimmed > .px-dialog__scrim > .px-hatch',
     '.px-dialog.is-raised > .px-dialog__panel > .px-hatch',
     '.px-callout.is-shown > .px-callout__rail > .px-hatch',
+    '.px-redact[aria-pressed="false"] > .px-redact__cover > .px-hatch',
     ...(FINE ? [
       '[data-hover]:hover > .px-hatch',
       '.px-xbtn:hover > .px-xbtn__panel > .px-hatch',
@@ -3762,7 +4218,7 @@ el.addEventListener(<em>'px:open'</em>, (e) =&gt; …);</pre>
   });
   document.addEventListener('keyup', (e) => { if (pressing && pressKey(e)) releaseControl(true); });
   new MutationObserver(queueHatchSync).observe(document.body, {
-    subtree: true, attributes: true, attributeFilter: ['class', 'aria-checked', 'aria-selected'],
+    subtree: true, attributes: true, attributeFilter: ['class', 'aria-checked', 'aria-selected', 'aria-pressed'],
   });
 
   // Shifts delays so the earliest cell starts at once.
@@ -7043,6 +7499,147 @@ el.addEventListener(<em>'px:open'</em>, (e) =&gt; …);</pre>
 
     const labels = { idle: 'Idle', sync: 'Syncing', alert: 'Alert' };
     initSeg($('#signal-state'), (v) => { state = v; $('#signal-label').textContent = labels[v]; invalidate(); });
+  })();
+
+  /* ═════════════ Reveal ═════════════ */
+
+  // Reveals change the section's height and move everything below it, so the field's panel mask follows.
+  (() => {
+    let raf = 0;
+    new ResizeObserver(() => {
+      if (!raf) raf = requestAnimationFrame(() => { raf = 0; Field.relayout(); });
+    }).observe($('#reveal .grid'));
+  })();
+
+  // Accordion. Closed bodies are hidden="until-found": out of the tab order and the accessibility tree, yet
+  // find-in-page still matches them and fires beforematch, which opens the row. The attribute goes back on
+  // only after the row has closed, or the text would vanish on the first step.
+  function initAccordion(acc) {
+    const heads = $$('button.px-acc__head', acc);
+    const bodyOf = (h) => $('.px-acc__body', $(`#${h.getAttribute('aria-controls')}`));
+    const isOpen = (h) => h.getAttribute('aria-expanded') === 'true';
+    const set = (h, open) => {
+      if (isOpen(h) === open) return;
+      const body = bodyOf(h);
+      clearTimeout(h._shut);
+      if (open) body.removeAttribute('hidden');
+      else h._shut = setTimeout(() => { if (!isOpen(h)) body.setAttribute('hidden', 'until-found'); }, REDUCE ? 0 : 160);
+      h.setAttribute('aria-expanded', String(open));
+    };
+    const open = (h) => {
+      if (acc.dataset.single !== undefined) heads.forEach((o) => o !== h && set(o, false));
+      set(h, true);
+    };
+    heads.forEach((h, i) => {
+      h.addEventListener('click', () => (isOpen(h) ? set(h, false) : open(h)));
+      bodyOf(h).addEventListener('beforematch', () => open(h));
+      h.addEventListener('keydown', (e) => {
+        const j = { ArrowDown: i + 1, ArrowUp: i - 1, Home: 0, End: heads.length - 1 }[e.key];
+        if (j === undefined) return;
+        e.preventDefault();
+        heads[(j + heads.length) % heads.length].focus();
+      });
+    });
+    return { heads, isOpen, set };
+  }
+
+  (() => {
+    const acc = $('#acc');
+    const { heads, isOpen, set } = initAccordion(acc);
+    $('#acc-single').addEventListener('px:change', (e) => {
+      acc.toggleAttribute('data-single', e.detail);
+      if (e.detail) heads.filter(isOpen).slice(1).forEach((h) => set(h, false));
+    });
+  })();
+
+  // Tabs: the new panel wipes in from the side of the tab that was selected before.
+  (() => {
+    const list = $('#rv-tabs');
+    const tabs = $$('[role="tab"]', list);
+    const panelOf = (t) => $(`#${t.getAttribute('aria-controls')}`);
+    let cur = tabs.findIndex((t) => t.getAttribute('aria-selected') === 'true');
+    initSeg(list, (v, next) => {
+      const i = tabs.indexOf(next);
+      tabs.forEach((t) => { panelOf(t).hidden = t !== next; });
+      const p = panelOf(next);
+      p.dataset.from = i > cur ? 'left' : 'right';
+      p.classList.remove('is-entering');
+      void p.offsetWidth;
+      p.classList.add('is-entering');
+      cur = i;
+    });
+  })();
+
+  // Show more: --h tracks the text's full height so the open state can step to it; the label counts the
+  // lines still hidden, and text that already fits drops the clamp and the button.
+  $$('.px-more').forEach((root) => {
+    const text = $('.px-more__text', root), btn = $('.px-more__toggle', root);
+    const lines = +root.dataset.lines || 4;
+    root.style.setProperty('--lines', lines);
+    const label = () => {
+      const extra = Math.round(text.offsetHeight / 24) - lines;
+      root.classList.toggle('is-short', extra <= 0);
+      btn.textContent = root.classList.contains('is-open') ? 'Show less' : `Show ${extra} more line${extra === 1 ? '' : 's'}`;
+    };
+    new ResizeObserver(() => { root.style.setProperty('--h', `${text.offsetHeight}px`); label(); }).observe(text);
+    btn.addEventListener('click', () => {
+      const open = !root.classList.contains('is-open');
+      root.classList.toggle('is-open', open);
+      btn.setAttribute('aria-expanded', String(open));
+      label();
+    });
+  });
+
+  // Popover: the popover attribute brings the top layer, light dismiss, Esc and the trigger's expanded state.
+  // Script only places it under the trigger (above it near the viewport's foot) and keeps the trigger lit.
+  $$('.px-pop').forEach((pop) => {
+    const btn = $(`[popovertarget="${pop.id}"]`);
+    if (!btn || !pop.showPopover) return;
+    const place = () => {
+      const r = btn.getBoundingClientRect(), w = pop.offsetWidth, h = pop.offsetHeight, gap = U / 2;
+      const below = r.bottom + gap + h <= innerHeight - U || r.top - gap - h < U;
+      pop.dataset.side = below ? 'bottom' : 'top';
+      pop.style.left = `${clamp(r.left, U, innerWidth - w - U)}px`;
+      pop.style.top = `${below ? r.bottom + gap : r.top - gap - h}px`;
+    };
+    pop.addEventListener('toggle', (e) => {
+      const open = e.newState === 'open';
+      btn.classList.toggle('is-on', open);
+      if (open) place();
+      const listen = open ? 'addEventListener' : 'removeEventListener';
+      window[listen]('scroll', place, { passive: true });
+      window[listen]('resize', place);
+    });
+  });
+
+  // Redaction: the value isn't in the page until it's asked for. A placeholder of the same length holds the
+  // width under the cover; the cover dissolves off the real value, assembles back after HOLD or a second
+  // press, and only once it's whole does the placeholder return.
+  (() => {
+    const VALUES = { 'redact-key': 'PXF-7Q2K-91MV-D4RE', 'redact-camp': '46.52° N 6.63° E' };
+    const HOLD = 10000, SETTLE = 600;
+    const status = $('#redact-status');
+    $$('.px-redact').forEach((btn) => {
+      const text = $('.px-redact__text', btn), name = $('.sr-only', btn);
+      const mask = text.textContent, label = btn.dataset.name;
+      let hold = 0, swap = 0;
+      btn.style.setProperty('--hold', `${HOLD}ms`);
+      const set = (on) => {
+        clearTimeout(hold);
+        clearTimeout(swap);
+        btn.setAttribute('aria-pressed', String(on));
+        text.setAttribute('aria-hidden', String(!on));
+        name.textContent = on ? `${label}: ` : `${label}, hidden`;
+        status.textContent = on ? `${label} shown for ${HOLD / 1000} s` : `${label} hidden`;
+        if (on) {
+          text.textContent = VALUES[btn.id];
+          hold = setTimeout(() => set(false), HOLD);
+        } else {
+          swap = setTimeout(() => { text.textContent = mask; }, REDUCE ? 0 : SETTLE);
+        }
+      };
+      btn.addEventListener('click', () => set(btn.getAttribute('aria-pressed') !== 'true'));
+    });
   })();
 
   /* ═════════════ Nav + misc ═════════════ */

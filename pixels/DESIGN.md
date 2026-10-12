@@ -150,7 +150,7 @@ Sections are spaced 12u apart (`section { padding-top }`). The z-index scale is:
 |---|---|
 | `data-panel` | The field's cells under this element drop to resting size, with a two-cell falloff around the edge |
 | `data-quiet` / `data-quiet=".6"` | A lighter mute for text blocks (default .85 of a panel's) so headings stay legible over the field |
-| `data-snap` | Height is rounded up to whole units by a ResizeObserver (`snapRO`), so the field runs straight through the layout |
+| `data-snap` | Height is rounded up to whole units by a ResizeObserver (`snapRO`), so the field runs straight through the layout. It sets `min-height`, so leave it off panels whose content collapses (see 7.10) |
 
 Buttons (`.px-btn`) are width-snapped to whole units by `snapButtons(root)`. It skips hidden buttons (width 0); call `snapButtons(el)` again after showing hidden content.
 
@@ -222,9 +222,9 @@ A hatch is on when its `.px-hatch` layer matches **`HATCH_ON`**, a selector list
 - `[aria-selected="true"]:not([role="option"]) > .px-hatch`
 - `:focus-visible > .px-hatch`
 - `[data-hover]:hover > .px-hatch` (fine pointers only)
-- Component-specific entries for inputs, the nav, dropdowns, the expand button and dialogs.
+- Component-specific entries for inputs, the nav, dropdowns, the expand button, dialogs, callout rails and the redaction cover.
 
-On-states are re-checked on the next frame (`queueHatchSync()`) after `pointerover`, `pointerout`, `focusin` and `focusout`, and after any change to `class`, `aria-checked` or `aria-selected` anywhere in the body (a MutationObserver).
+On-states are re-checked on the next frame (`queueHatchSync()`) after `pointerover`, `pointerout`, `focusin` and `focusout`, and after any change to `class`, `aria-checked`, `aria-selected` or `aria-pressed` anywhere in the body (a MutationObserver).
 
 So, to drive a hatch:
 
@@ -483,6 +483,118 @@ const files = Files($('#files'), {
 - **Size:** the tree scrolls inside a fixed viewport of `--files-rows` rows (default 12), so expanding a folder never resizes the panel. Set `--files-rows` on `.px-files` to change it. Metadata hides below 600px.
 - **Rename:** `edit(item)` swaps the name for a 24px field, with the stem (the part before the extension) selected. Enter commits; an empty, duplicate or slashed name keeps the field open and shows the reason in signal where the meta was. Esc cancels, and leaving the field commits a valid name or cancels an invalid one. The New file and New folder demo actions show the pattern: `add`, then `edit`, then `remove` if the result is `null`.
 
+### 7.10 Reveal (hidden by default)
+
+Content that stays out of the page until the user asks for it. The **Reveal** section of the HTML has a live demo of each pattern and a "Choosing a reveal" table that also covers the reveals elsewhere in the system (dialog, select, password, tooltip, file-row actions).
+
+**Rules for every reveal:**
+
+- **Out, not invisible.** Closed content must leave the tab order and the accessibility tree (`hidden`, `hidden="until-found"`, `visibility: hidden`, a closed `<details>`/`<dialog>`/`popover`). Clipping, `opacity: 0` or zero height on their own leave focus stops the user can't see.
+- **The trigger carries the state:** `aria-expanded`, `aria-selected` or `aria-pressed`, plus a glyph or fill that changes with it.
+- **Steps in, faster out.** Opening runs in `steps(4, end)` over 160ms and closing in `steps(3, end)` over 120ms (the mirror rule).
+- **Focus stays on the trigger** for in-place reveals. Only overlays that need an answer (dialogs) move focus, and they give it back.
+
+**Picking one:**
+
+| Pattern | Opens | Use for |
+|---|---|---|
+| Accordion | In place, pushes content down | Several labelled sections, one or many open |
+| Details | In place, pushes content down | The same, when it has to work before or without the script |
+| Tabs | In place, swapping panels | Parallel views of one thing, exactly one visible |
+| Show more | In place, growing | Long plain text with a useful first few lines |
+| Popover | Top layer, beside the trigger | Short supporting content that shouldn't block the page |
+| Redact | In place, from under a cover | Sensitive values (keys, positions) shown on request |
+| Dialog (7.7) | Top layer, modal | Anything that needs an answer before going on |
+
+**Accordion (`.px-acc`)**
+
+```html
+<div class="px-acc px-acc--indexed" id="acc" data-single>
+  <div class="px-acc__item">
+    <h3 class="px-acc__h">
+      <button type="button" class="px-acc__head" id="acc-relief-h" aria-expanded="false" aria-controls="acc-relief" data-hatch="entry" data-hatch-cell="6" data-hover>
+        <span class="px-acc__idx t-micro">01</span>            <!-- only with --indexed -->
+        <span class="px-acc__title">Relief</span>
+        <span class="px-acc__meta t-micro num">2.18M cells</span>  <!-- optional -->
+        <svg class="px-acc__glyph" viewBox="0 0 5 5" aria-hidden="true">…+ glyph, stem cells marked data-v…</svg>
+      </button>
+    </h3>
+    <div class="px-acc__panel" id="acc-relief" role="region" aria-labelledby="acc-relief-h">
+      <div class="px-acc__clip"><div class="px-acc__body" hidden="until-found"><p>…</p></div></div>
+    </div>
+  </div>
+</div>
+```
+
+- **Heads** are 48px buttons in a heading, with a `--void-700`/`--void-600` `entry` hatch on hover and focus, like file rows. An open head gets bone text and the 6px signal square. `--indexed` adds a 24px index column and indents bodies to 5u so they line up with the title.
+- **The glyph** turns `+` into `−` cell by cell: the stem's tips go first and the inner cells follow 60ms later. Closing plays it in reverse, 45ms apart. The delays are `--o` (opening) and `--c` (closing) on each `rect[data-v]`; copy the SVG from the demo.
+- **Height** comes from `grid-template-rows: 0fr → 1fr` on `__panel`, so nothing is measured. `__clip` does the clipping. Bodies pad 2u at the foot, so with 24px text lines every open item stays on whole units.
+- **Hiding:** closed bodies carry `hidden="until-found"`. That takes them out of focus and the accessibility tree, but in Chromium find-in-page still matches them. It fires `beforematch`, which opens the row. Script puts the attribute back only after the close has finished (160ms), or the text would vanish on the first step. Browsers without `until-found` treat it as plain `hidden`.
+- **Script:** `initAccordion(acc)` wires the clicks, `beforematch`, and ↑ ↓ Home End between heads. It returns `{ heads, isOpen, set(head, open) }`. With `data-single` on the root, opening one row closes the others; the demo's "One at a time" switch toggles that attribute.
+
+**Details (`details.px-details`)**: the same look from native markup, working without script. Use `summary.px-acc__head` (the head styles hide the marker) and put `.px-acc__body` straight inside. Inside a `.px-acc` frame, give each `<details>` the `px-acc__item` class too. Giving several the same `name` makes them exclusive (only one open). Where `::details-content` and `interpolate-size` are supported, the body steps open like the accordion; elsewhere it opens at once.
+
+**Tabs (`.px-tabs__panels`)**: a `.px-seg` tablist (7.5) whose tabs point at `[role=tabpanel]` elements through `aria-controls`.
+
+```html
+<div class="px-seg px-seg--block" role="tablist" aria-label="Survey detail" id="rv-tabs">
+  <button type="button" role="tab" id="rv-tab-sum" aria-controls="rv-tp-sum" aria-selected="true" data-hatch="entry" data-hatch-cell="6" data-value="sum"><span>Summary</span></button>
+  …
+</div>
+<div class="px-tabs__panels">
+  <div class="px-tabs__panel" role="tabpanel" id="rv-tp-sum" aria-labelledby="rv-tab-sum" tabindex="0">…</div>
+  <div class="px-tabs__panel" role="tabpanel" id="rv-tp-layers" aria-labelledby="rv-tab-layers" tabindex="0" hidden>…</div>
+</div>
+```
+
+- Panels share one grid cell, and `[hidden]` is restyled to `visibility: hidden` instead of `display: none`. The frame therefore keeps the tallest panel's height and switching never moves the page, while hidden panels still drop out of view, focus and the accessibility tree.
+- The tablist has an `id`, so wire it with `initSeg(list, onChange)`. On change, set `hidden` on every other panel and add `.is-entering` (with `data-from="left|right"`) to the new one. It wipes in over 180ms in `steps(6)` from the side of the tab that was selected before, matching the segment fill. Restart the animation by removing the class and forcing a reflow.
+- `.reveal-rows` is the demo's panel content: 36px rows with a 1px rule, label left and value right.
+
+**Show more (`.px-more`)**
+
+```html
+<div class="px-more" data-lines="4">
+  <div class="px-more__body" id="more-body"><p class="px-more__text">…</p></div>
+  <button type="button" class="px-link px-more__toggle" aria-expanded="false" aria-controls="more-body">Show more</button>
+</div>
+```
+
+- The body clips to `data-lines` lines of 24px (default 4). The last visible line is masked through a 2px checkerboard, which dithers it to say the text goes on.
+- A ResizeObserver keeps `--h` set to the text's full height, so `.is-open` can step to it. The button reads "Show N more lines" or "Show less". Text that already fits gets `.is-short`, which drops the clamp and hides the button.
+- **Plain text only.** Clipped text is still read by screen readers (fine for prose), but links or buttons in the cut part would still take focus. Use an accordion for anything interactive.
+
+**Popover (`.px-pop[popover]`)**
+
+```html
+<button type="button" class="px-btn px-btn--s" data-hatch="x" data-hover popovertarget="rv-pop">…</button>
+<div class="px-pop" id="rv-pop" popover>
+  <div class="px-pop__head t-micro"><b>Legend</b><span>Cell states</span></div>
+  <ul class="px-pop__list"><li><i style="--c: var(--bone); --s: 9px"></i>Under the pointer</li>…</ul>
+</div>
+```
+
+- The native `popover` attribute gives the top layer, light dismiss, Esc, and `aria-expanded` on the trigger. There's no backdrop, and the rest of the page stays usable.
+- Script only positions it: half a unit under the trigger, or above it near the viewport's foot (`data-side="top"`), and kept a unit inside the viewport. It follows scroll and resize while open. The trigger gets `.is-on` while open, so a `.px-btn` stays lit with its label rolled.
+- It opens with a 4-step clip from the trigger's side (`@starting-style`) and closes in 3 (`transition-behavior: allow-discrete` on `display` and `overlay`). Without those features it opens and closes at once.
+- `.px-pop__list` rows are 24px with a 12px swatch cell; `--c` and `--s` set the square's colour and size.
+
+**Redact (`.px-redact`)**
+
+```html
+<button type="button" class="px-redact px-redact--block" id="redact-key" aria-pressed="false" data-name="Access key">
+  <span class="px-redact__cover" data-hatch="scatter" data-hatch-cell="6" data-hatch-sweep="260" data-hatch-tone=".3"></span>
+  <span class="sr-only">Access key, hidden</span>
+  <span class="px-redact__text" aria-hidden="true">000-0000-0000-0000</span>
+</button>
+```
+
+- The cover is a `scatter` hatch in `--ash-700` toned with `--void-500`, lit while `aria-pressed="false"` (a `HATCH_ON` entry). Because it's on a child span rather than the button, focusing the button doesn't bring the cover back. The inline variant is 24px tall and sits in prose; `--block` is 48px and full width.
+- **The value isn't in the page until it's asked for.** The markup holds a placeholder of the same length (`0` for every visible character, so mono widths match). On press, script puts the real value in and the cover dissolves off it. After `HOLD` (10s) or a second press, the cover assembles again, and only once it's whole (`SETTLE`, 600ms) does the placeholder return. In the demo, values come from a `VALUES` map keyed by the button's `id`; in a real interface, fetch them at that point.
+- While shown, a 2px signal bar along the bottom counts down the hold in 10 steps (`--hold`). The `.sr-only` name switches between "Name, hidden" and "Name: " plus the value. The panel's `role="status"` line announces each change. Hidden text can't be selected.
+
+**Layout notes:** reveal panels change height, so they don't use `data-snap` (a snapped panel keeps its `min-height` and can't shrink again). Size their contents in whole units instead. A ResizeObserver on `#reveal .grid` calls `Field.relayout()` so the field's panel mask follows when anything below moves. Do the same for any new section whose height changes at runtime.
+
 ---
 
 ## 8. Accessibility checklist
@@ -542,7 +654,9 @@ Change the meaning with the glyph and the label, never with a new colour.
 - **Thin SVG strokes on half pixels vanish.** Content inside `.wrap` often sits on .5px offsets, and the display may scale by 1.25 or 1.5. Draw pixel glyphs as filled shapes on whole user units, with `shape-rendering: crispEdges`, and give the `<svg>` `overflow: visible`.
 - **The script is closure-scoped.** Calling `toast()` from the console or another script fails; add code inside the IIFE.
 - **`buildHatch` resets entry and exit points** to the defaults when it rebuilds (on resize). Persist custom points in `data-hatch-entry` and `data-hatch-exit`.
-- **Attribute changes outside `class`, `aria-checked` and `aria-selected` aren't observed;** call `queueHatchSync()` yourself.
+- **Attribute changes outside `class`, `aria-checked`, `aria-selected` and `aria-pressed` aren't observed;** call `queueHatchSync()` yourself. Note that `aria-expanded` isn't on the list.
+- **`data-snap` panels can't shrink.** The snapper sets `min-height`, which then holds the panel at its tallest. Panels with collapsible content go without it (7.10).
+- **Hiding with `hidden="until-found"` drops the content's size at once.** Set it only after a closing animation ends, as the accordion does.
 - **Don't lay out by `:last-child` or `:nth-child` in containers whose items can be dismissed or removed;** the next item inherits the rule and the layout jumps. Use an explicit class (as `.callout-demo__wide` does).
 - **Removing a focused element drops focus to `<body>`.** Move focus first: to the nearest control in the same panel, or back to the trigger.
 
@@ -577,6 +691,7 @@ Search the HTML for these banners (CSS uses `/* ═══…═══ Name ═�
 | Tooltip and links | `Text` | `Tooltip` |
 | Card, list, media, skeleton | `Card`, `List`, `Image`, `Skeleton` | `Image`, `Skeleton` |
 | Files | `Files` | `Files` (`Files(root, options)`, `slide`, `forget`) |
+| Reveal | `Reveal` (`.px-acc`, `.px-details`, `.px-tabs__*`, `.px-more`, `.px-pop`, `.px-redact`, `.reveal-map`) | `Reveal` (`initAccordion`, tab wiring, show more, popover placement, redaction `VALUES`, `HOLD`, `SETTLE`) |
 | Motion demos | `Motion` | `Motion lab`, `Looping demos` |
 | Canvas widgets | `Matrix + Signal` | `Shared canvas ticker`, `Dot matrix display`, `Signal matrix` |
 
